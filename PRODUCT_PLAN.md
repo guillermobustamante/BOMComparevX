@@ -1,170 +1,233 @@
-# BOMCompare — Product Discovery + V1 Build Plan
+# BOMCompare — Product Plan + Integrated Solution Architecture
 
-## 1) What I heard (your goals in plain language)
+## 1) Product Vision
 
-You want a **real, launchable web product** where engineers can:
-- Sign in
-- Upload two design/BOM files
-- Get a clear BOM diff (new/changed/removed)
-- Revisit history
-- Share results securely
-- Export outputs
+BOMCompare is a multi-tenant SaaS platform for accurate, repeatable BOM revision comparison in manufacturing workflows. It enables secure uploads, deterministic diffs, clear visual change review, historical traceability, controlled sharing, and export outputs compatible with customer workflows.
 
-You also want this to feel **professional**, not a demo.
+This document integrates the original product plan with the Solution Architecture Amendment and is scoped for a public Phase 1 launch.
 
 ---
 
-## 2) Reality check: what to build first vs later
+## 2) Product Owner Alignment (what we are optimizing for)
 
-Your requirements are strong, but they describe roughly **V1 + V2** together.
-If we build all of it at once, launch speed and quality will suffer.
-
-### Must-have for Public V1 (recommended)
-1. OAuth login (Google + Microsoft)
-2. Upload two files per comparison (CSV + Excel in V1), can keep uloading files to the same comparision, compare the latest uploaded to the previous uploaded version.
-3. Async processing with status/progress UI
-4. BOM diff table with search/sort/filter
-5. Change highlighting (new/changed/removed)
-6. CSV export for comparison results
-7. Session history (view/reopen)
-8. Upload cooldown policy (48h) + admin override
-
-
-### Defer to V1.1 / V2
-9. Basic sharing by invite email (authenticated recipient only)
-1. Native STEP/STP parsing (if parser quality/risk is high)
-2. Email notification preferences center
-3. Rich tagging/renaming UX polish
-4. Multi-version chain upload (N versions) with advanced cross-version analytics
-5. Deep admin analytics dashboards
+You want a product that is:
+- Real and launchable (not a prototype)
+- Professional in UX across desktop/tablet/mobile
+- Built in visible stages with clear checkpoints
+- Technically solid for future scaling and compliance hardening
 
 ---
 
-## 3) Key assumptions I’m challenging now
+## 3) Scope Strategy: Launchable V1 vs Later
 
-1. **STEP/STP in day one** is risky unless we use a reliable parser/service.
-   - Recommendation: start with CSV/Excel for stable launch, add STEP/STP pipeline right after baseline launch.
+### 3.1 Must-Have for Public V1
+1. Google + Microsoft OAuth authentication
+2. Tenant-scoped authorization (own + explicitly shared only)
+3. Two-file upload per comparison (picker, drag/drop, link input)
+4. File/type/size validation (max 30MB)
+5. Async job processing with queue + progress timeline
+6. BOM results table with search/sort/filter and change filters
+7. Visual change indicators for new/changed/removed (row + column level)
+8. CSV export and Excel-compatible export
+9. History (status, timestamps, reopen, rename, tags, delete)
+10. Sharing by invited email, auth required, manual revoke
+11. Upload limit policy (48-hour default) with admin reset/override
+12. 7-day deletion of raw STEP/STP files; metadata/results persist
+13. Immutable revisions (new upload = new revision)
+14. Multi-version chain behavior: additional file compares to prior revision in same analysis
 
-2. **48-hour upload limit for every user** may hurt activation.
-   - Recommendation: keep the rule, but add free onboarding credits (e.g., first 3 comparisons immediately) to reduce drop-off.
-
-3. **No sharing expiry** can create long-term security risk.
-   - Recommendation: keep “no expiry” default per requirement, but include manual revoke and access logs in V1.
-
----
-
-## 4) Proposed V1 scope we can actually launch
-
-### User-facing
-- Login via Google + Microsoft
-- Landing on upload page after login
-- Upload exactly 2 files (CSV/XLS/XLSX initially)
-- Drag/drop + file picker (link ingest can be V1.1 if needed)
-- Immediate validation (type + size)
-- Background processing job with progress states
-- Result table:
-  - sort/filter/search
-  - filters: new/changed/removed (combinable)
-  - color-coded row/cell changes
-- Export comparison as CSV (Excel-compatible encoding)
-- History list with status + reopen result
-- Share result with one or more emails (must authenticate)
-
-### Admin-facing
-- User list
-- Reset/override upload cooldown
-- Basic event log (uploads, failures, shares)
-
-### Platform behavior
-- Queue when concurrency exceeded
-- In-app notification for completion
-- File retention worker (delete raw uploaded files at 7 days)
-
-Complexity: **Medium–Ambitious** (depending on STEP/STP inclusion in V1)
+### 3.2 Post-Launch (V1.1/V2)
+1. PLM integrations
+2. Optional ML-assisted detection
+3. Regulatory-grade tamper evidence / signatures
+4. Multi-region and data residency expansion
+5. Advanced analytics/reports
 
 ---
 
-## 5) Technical approach (plain language)
+## 4) Architecture Principles (amended)
 
-- **Frontend**: modern responsive app (React + Next.js) for fast UI and routing.
-- **Backend/API**: server routes for uploads, comparisons, history, sharing.
-- **Database**: Azure SQL Database for users, jobs, sessions, shares, audit logs, with Azure SQL Server Graph when necesary.
-- **Storage**: Azure Blob Storage for uploaded files and exports.
-- **Background jobs**: queue worker for parsing/comparison and retention cleanup.
-- **Auth**: OAuth via Google and Microsoft.
-- **Hosting**: managed deployment (e.g., Build and use github wokflows).
+1. **Speed First**: Typical 5MB BOM comparison around 30s p95.
+2. **Accuracy at Scale**: 95%+ column detection (Semantic Registry), deterministic attribute-level diffing.
+3. **Determinism First (Phase 1)**: Same inputs produce same outputs.
+4. **Format Preservation**: Original Excel structure retained via immutable mapping.
+5. **Isolation-First Multi-Tenancy**: Tenant filtering in DB and app layers.
+6. **Immutability for Reproducibility**: Append-only revision/result model.
+7. **Async-First Processing**: Queue-backed background workers.
+8. **Progressive Capability**: Phase 1 core; Phase 2 regulatory/PLM depth.
 
 ---
 
-## 6) Data model outline (high level)
+## 5) Integrated Solution Architecture
 
+### 5.1 Deployment Baseline (Azure-native)
+- Single region in Phase 1: Canada Central
+- Managed services for reduced ops burden and compliance readiness
+- Stateless API + queue + worker architecture
+- Scale path from 2 concurrent uploads to 10 and 50+
+
+### 5.2 Core Components
+1. **Frontend (React SPA)**: upload, mapping preview, results, history, sharing, notifications
+2. **API Layer**: authenticated endpoints, tenant context enforcement
+3. **Identity**: Google and Microsoft OAuth federation
+4. **Blob Storage**: raw uploads and exports
+5. **Queue**: async orchestration with retry/dead-letter policies
+6. **Workers**: parsing, matching, diffing, export creation, retention cleanup
+7. **SQL Database**: users/sessions/revisions/shares/policies/notifications/audits
+8. **Graph Capability**: Azure SQL Graph (or equivalent graph model) for BOM hierarchy traversal
+9. **Cache**: query acceleration for session history/results
+10. **Admin/Audit Services**: overrides, observability, audit export
+
+### 5.3 Amendment 1: Semantic Registry + Multi-Pass Detection
+- **Pass 1: Semantic Registry** (95%+ target)
+  - Cross-industry aliases (electronics/mechanical/aerospace/manufacturing)
+  - Multi-language aliases (EN/ES/DE/FR/JA/ZH)
+- **Pass 2: Heuristic Fallback** (~70% where registry misses)
+- **Pass 3: ML Assist (Phase 2 optional)**
+- **Pass 4: User Confirmation** via preview UI
+  - confidence scores visible
+  - manual remap supported
+  - mappings saved immutably per revision
+
+Detection Strategy Order: exact → fuzzy → heuristic → user override.
+
+### 5.4 Amendment 2: Hybrid Excel-Database Interchange
+- Preserve original column structure metadata
+- Export comparison outputs aligned to uploaded structure
+- Immutable column map snapshots enable reproducible re-exports
+- Non-standard Excel support includes:
+  - merged cells
+  - multi-line headers
+  - inline comments
+  - variable row lengths
+
+### 5.5 Deterministic Component Matching Strategy Hierarchy
+1. Internal ID match (target ≥99%)
+2. Part Number + Revision (target ≥98%)
+3. Part Number only fallback (target ≥95%)
+4. Fuzzy match (target ≥90%, bounded edit-distance)
+5. No match => ADDED/REMOVED classification
+
+### 5.6 Attribute-Level Change Detection
+Default monitored attributes:
+- quantity
+- supplier
+- cost (unit/total)
+- lifecycle_status
+- revision
+- lead_time_weeks
+
+Custom tenant attributes are configurable (example: ROHS_Compliant, Certification_Level, Thermal_Rating).
+
+### 5.7 End-to-End Runtime Flow
+1. User logs in and lands on upload screen
+2. Two files submitted; API validates policy/size/type
+3. Files stored; session + revision records created; job queued
+4. Worker parses and runs multi-pass detection
+5. Preview UI displays mapping/confidence for user confirmation
+6. Worker performs deterministic matching and diff computation
+7. Results stored; progressive data returned to UI
+8. Completion notification triggered (in-app/email per config)
+9. User reviews, filters, exports, shares, and revisits via history
+
+### 5.8 Data Model Outline (architecture-aligned)
+- `tenants`
 - `users`
 - `comparison_sessions`
-- `session_versions`
-- `comparison_results`
+- `bom_revisions`
+- `bom_components`
+- `component_links`
+- `comparison_diffs`
+- `bom_column_mappings` (immutable per revision)
+- `column_detection_audits` (strategy/confidence/confirmation)
 - `shares`
-- `notifications`
-- `upload_limits`
-- `admin_actions`
+- `upload_policies` and overrides
 - `job_runs`
+- `notifications`
+- `audit_logs`
+
+### 5.9 Security and Isolation
+- Tenant filter required on every data path
+- No cross-tenant query behavior in Phase 1
+- Sharing is explicit and auditable
+- Append-only audit trail with synchronized timestamps
+- Audit export supported (CSV/JSON)
 
 ---
-## 6.1) xxxxxx
+
+## 6) NFR Alignment Snapshot
+
+### 6.1 Performance
+- ≤5MB BOM: 30s p95
+- 5–30MB BOM: 90s p95
+- Enterprise BOM: first rows quickly + remainder async
+- 30MB upload target: ~5s ingest via direct/resumable upload
+- UI interactions: <500ms
+- Page load: <3s
+- Mobile interaction: <1s target under 4G conditions
+
+### 6.2 Scaling Roadmap
+- **Phase 1 (0–6 mo)**: 2 concurrent uploads
+- **Transition (6–12 mo)**: ~10 concurrent uploads
+- **Phase 2 (12–18 mo)**: 50+ concurrent uploads
+- Trigger-based scaling by CPU, queue depth, DB/RU utilization, storage thresholds
+
+### 6.3 Compliance and Controls
+- SOC 2 Type II target readiness within 9 months post-launch
+- ISO 27001 readiness within 12 months
+- Exportable audit trails
+- Phase 1 customer focus: non-regulated environments
+
 ---
 
-## 7) Build stages (visible increments)
+## 7) UX Blueprint
+
+1. Post-login direct landing on upload screen
+2. Restriction banner when queue/limits block uploads
+3. Two-file upload card with validation feedback
+4. Column detection preview screen with confidence + editable mapping
+5. Processing timeline: Uploading → Detecting → Matching → Diffing → Finalizing
+6. Results grid with color-coded row/cell deltas + filters/search/sort
+7. History view with reopen/rename/tags/delete
+8. Share modal with invite + revoke controls
+9. Notification center linking to completed jobs
+
+---
+
+## 8) Staged Delivery Plan
 
 ### Stage 1 — Foundation
-- App shell, responsive layout, auth, protected routes.
-- Output: users can sign in and see upload screen.
+Auth, tenant model, responsive shell, protected routes.
 
-### Stage 2 — Upload + Validation
-- Two-file upload, drag/drop, validation, basic history entry.
-- Output: sessions created and queued.
+### Stage 2 — Upload + Policy + Queue
+Validation rules, cooldown/override, queued processing, restriction banners.
 
-### Stage 3 — Async Comparison Engine
-- Worker pipeline, progress states, result persistence.
-- Output: completed comparison results viewable.
+### Stage 3 — Detection + Mapping
+Semantic Registry + fallback detection + confirmation UI + immutable mapping persistence.
 
-### Stage 4 — Results Experience
-- Diff table, highlighting, filtering, search/sort, export CSV.
-- Output: production-quality result reading workflow.
+### Stage 4 — Diff Engine + Progressive Results
+Deterministic matching, normalized diffs, progressive/streaming result delivery.
 
-### Stage 5 — Sharing + Notifications + Limits
-- Invite sharing, in-app notifications, 48h cooldown logic + admin overrides.
-- Output: collaboration + policy controls.
+### Stage 5 — Export + Sharing + Notifications + Admin
+Hybrid exports, invite/revoke sharing, admin controls, notification channels.
 
 ### Stage 6 — Retention + Hardening
-- 7-day raw-file deletion job, failure tracking, QA, polish.
-- Output: launch-ready reliability baseline.
+Raw-file lifecycle enforcement, audit exports, performance tuning for p95 targets.
 
 ---
 
-## 8) Decisions you need to make now (product owner controls)
+## 9) Open Questions / Ambiguities to Resolve Before Build Lock
 
-1. **V1 file formats**
-   - A) CSV/Excel only (fast launch)
-   - We are going to go with Option A. We will limit V1 file formats to CSV/Excel.
-
-2. **Notification in V1**
-   - A) In-app only, In-app only notifications
-
-3. **Upload limit onboarding policy**
-   - B) first 3 comparisons unrestricted, then 48h rule. 
-   - first 3 comparisons unrestricted, then 48h rule for V1
-
-4. **Sharing scope in V1**
-   - A) single recipient per share, single recipient per share for V1.
-
-5. **Deployment preference**
-   - The intention is to deploy this in Azure, so use technologies that are in Azure, and I want more control for V1.
-
+1. Should Phase 1 graph implementation be Azure SQL Graph immediately, or relational-only with graph migration later? Azure SQL Graph immediately 
+2. For “same format” Excel export, do you require style/formula fidelity or column/layout fidelity only? style/formulacolumn/layout fidelity, plus columns that are part of the comparision.
+3. Should 7-year retention apply to audit metadata/results only, while raw uploaded engineering files still delete at day 7? Yes.
+4. Confirm default multi-version behavior: each new upload compares against the immediately previous revision in-session. Yes, initially 2 files are required to be uploaded, but after the initial comparision has happend there is a posibility that the user adds a new file to the same comparision.
+5. Confirm upload policy for onboarding: strict 48h from first use vs initial credit-based grace period.  First 3 comparisons unrestricted, then 48h rule.
+6. Confirm launch notification default: in-app only or in-app + email.
+in-app for V1 and in-app + email for v2.
 ---
 
-## 9) Immediate next step (Phase 1 completion)
+## 10) Immediate Next Step
 
-Once you confirm the 5 decisions above, I will produce:
-1. A locked **V1 spec**
-2. A **sprint-by-sprint implementation plan**
-3. A **build checklist** with acceptance criteria
-4. Then we begin implementation in repo in small, reviewable increments.
+Once the six questions above are confirmed, we freeze V1 scope and proceed stage-by-stage with product-owner approvals at each stage boundary.
+
