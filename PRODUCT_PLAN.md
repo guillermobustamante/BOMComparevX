@@ -159,3 +159,12 @@ Complexity: **Medium–Ambitious** (depending on STEP/STP inclusion in V1)
 5. **Deployment preference**
    - The intention is to deploy this in Azure, so use technologies that are in Azure, and I want more control for V1.
 
+---
+
+## 9) Immediate next step (Phase 1 completion)
+
+Once you confirm the 5 decisions above, I will produce:
+1. A locked **V1 spec**
+2. A **sprint-by-sprint implementation plan**
+3. A **build checklist** with acceptance criteria
+4. Then we begin implementation in repo in small, reviewable increments.
