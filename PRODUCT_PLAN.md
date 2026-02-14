@@ -218,6 +218,7 @@ Raw-file lifecycle enforcement, audit exports, performance tuning for p95 target
 
 ## 9) Open Questions / Ambiguities to Resolve Before Build Lock
 
+<<<<<<< ours
 1. Should Phase 1 graph implementation be Azure SQL Graph immediately, or relational-only with graph migration later? Azure SQL Graph immediately 
 2. For “same format” Excel export, do you require style/formula fidelity or column/layout fidelity only? style/formulacolumn/layout fidelity, plus columns that are part of the comparision.
 3. Should 7-year retention apply to audit metadata/results only, while raw uploaded engineering files still delete at day 7? Yes.
@@ -225,9 +226,21 @@ Raw-file lifecycle enforcement, audit exports, performance tuning for p95 target
 5. Confirm upload policy for onboarding: strict 48h from first use vs initial credit-based grace period.  First 3 comparisons unrestricted, then 48h rule.
 6. Confirm launch notification default: in-app only or in-app + email.
 in-app for V1 and in-app + email for v2.
+=======
+1. Should Phase 1 graph implementation be Azure SQL Graph immediately, or relational-only with graph migration later?
+2. For “same format” Excel export, do you require style/formula fidelity or column/layout fidelity only?
+3. Should 7-year retention apply to audit metadata/results only, while raw uploaded engineering files still delete at day 7?
+4. Confirm default multi-version behavior: each new upload compares against the immediately previous revision in-session.
+5. Confirm upload policy for onboarding: strict 48h from first use vs initial credit-based grace period.
+6. Confirm launch notification default: in-app only or in-app + email.
+
+>>>>>>> theirs
 ---
 
 ## 10) Immediate Next Step
 
 Once the six questions above are confirmed, we freeze V1 scope and proceed stage-by-stage with product-owner approvals at each stage boundary.
+<<<<<<< ours
 
+=======
+>>>>>>> theirs
