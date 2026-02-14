@@ -21,16 +21,17 @@ If we build all of it at once, launch speed and quality will suffer.
 
 ### Must-have for Public V1 (recommended)
 1. OAuth login (Google + Microsoft)
-2. Upload two files per comparison (CSV + Excel in V1)
+2. Upload two files per comparison (CSV + Excel in V1), can keep uloading files to the same comparision, compare the latest uploaded to the previous uploaded version.
 3. Async processing with status/progress UI
 4. BOM diff table with search/sort/filter
 5. Change highlighting (new/changed/removed)
 6. CSV export for comparison results
 7. Session history (view/reopen)
 8. Upload cooldown policy (48h) + admin override
-9. Basic sharing by invite email (authenticated recipient only)
+
 
 ### Defer to V1.1 / V2
+9. Basic sharing by invite email (authenticated recipient only)
 1. Native STEP/STP parsing (if parser quality/risk is high)
 2. Email notification preferences center
 3. Rich tagging/renaming UX polish
@@ -87,11 +88,11 @@ Complexity: **Medium–Ambitious** (depending on STEP/STP inclusion in V1)
 
 - **Frontend**: modern responsive app (React + Next.js) for fast UI and routing.
 - **Backend/API**: server routes for uploads, comparisons, history, sharing.
-- **Database**: PostgreSQL for users, jobs, sessions, shares, audit logs.
-- **Storage**: object storage for uploaded files and exports.
+- **Database**: Azure SQL Database for users, jobs, sessions, shares, audit logs, with Azure SQL Server Graph when necesary.
+- **Storage**: Azure Blob Storage for uploaded files and exports.
 - **Background jobs**: queue worker for parsing/comparison and retention cleanup.
 - **Auth**: OAuth via Google and Microsoft.
-- **Hosting**: managed deployment (e.g., Vercel + managed Postgres + object storage + worker runtime).
+- **Hosting**: managed deployment (e.g., Build and use github wokflows).
 
 ---
 
@@ -107,6 +108,8 @@ Complexity: **Medium–Ambitious** (depending on STEP/STP inclusion in V1)
 - `admin_actions`
 - `job_runs`
 
+---
+## 6.1) xxxxxx
 ---
 
 ## 7) Build stages (visible increments)
@@ -141,31 +144,18 @@ Complexity: **Medium–Ambitious** (depending on STEP/STP inclusion in V1)
 
 1. **V1 file formats**
    - A) CSV/Excel only (fast launch)
-   - B) CSV/Excel + STEP/STP now (slower, riskier)
+   - We are going to go with Option A. We will limit V1 file formats to CSV/Excel.
 
 2. **Notification in V1**
-   - A) In-app only
-   - B) In-app + email at launch
+   - A) In-app only, In-app only notifications
 
 3. **Upload limit onboarding policy**
-   - A) strict 48h from day 1
-   - B) first 3 comparisons unrestricted, then 48h rule
+   - B) first 3 comparisons unrestricted, then 48h rule. 
+   - first 3 comparisons unrestricted, then 48h rule for V1
 
 4. **Sharing scope in V1**
-   - A) single recipient per share
-   - B) multiple recipients per share
+   - A) single recipient per share, single recipient per share for V1.
 
 5. **Deployment preference**
-   - A) fastest managed stack (recommended)
-   - B) more custom infra control
-
----
-
-## 9) Immediate next step (Phase 1 completion)
-
-Once you confirm the 5 decisions above, I will produce:
-1. A locked **V1 spec**
-2. A **sprint-by-sprint implementation plan**
-3. A **build checklist** with acceptance criteria
-4. Then we begin implementation in repo in small, reviewable increments.
+   - The intention is to deploy this in Azure, so use technologies that are in Azure, and I want more control for V1.
 
