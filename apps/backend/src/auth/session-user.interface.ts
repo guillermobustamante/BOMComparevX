@@ -6,5 +6,6 @@ export interface SessionUser {
 
 export interface SessionState {
   oauthState?: string;
+  returnToPath?: string;
   user?: SessionUser;
 }

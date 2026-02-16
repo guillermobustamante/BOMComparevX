@@ -14,6 +14,8 @@ import { AuthResultDto } from './dto/auth-result.dto';
 import { AuthConfigService } from '../config/auth-config.service';
 import { SessionAuthGuard } from './session-auth.guard';
 import { SessionState } from './session-user.interface';
+import { GoogleStartGuard } from './google-start.guard';
+import { buildReturnToUrl, sanitizeReturnToPath } from './redirect.util';
 
 @Controller('auth')
 export class AuthController {
@@ -23,7 +25,7 @@ export class AuthController {
   ) {}
 
   @Get('google/start')
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleStartGuard)
   googleStart(): void {
     // Guard handles redirect to Google OAuth.
   }
@@ -45,14 +47,20 @@ export class AuthController {
       displayName: user.displayName
     };
 
-    const returnTo = `${this.authConfig.getWebBaseUrl()}/upload`;
+    const returnTo = this.consumeReturnToUrl(session);
     res.redirect(returnTo);
   }
 
   @Get('microsoft/start')
-  async microsoftStart(@Req() req: Request, @Res() res: Response): Promise<void> {
+  async microsoftStart(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query('returnTo') returnTo?: string
+  ): Promise<void> {
     const state = randomUUID();
-    (req.session as SessionState).oauthState = state;
+    const session = req.session as SessionState;
+    session.oauthState = state;
+    session.returnToPath = sanitizeReturnToPath(returnTo);
 
     const authUrl = await this.authService.createMicrosoftAuthUrl(state);
     res.redirect(authUrl);
@@ -77,7 +85,7 @@ export class AuthController {
       const user = await this.authService.exchangeMicrosoftCode(code);
       session.user = user;
       delete session.oauthState;
-      const returnTo = `${this.authConfig.getWebBaseUrl()}/upload`;
+      const returnTo = this.consumeReturnToUrl(session);
       res.redirect(returnTo);
     } catch {
       res.status(401).json(this.error('AUTH_MICROSOFT_CALLBACK_FAILED', 'Microsoft login failed.', correlationId));
@@ -98,5 +106,11 @@ export class AuthController {
 
   private error(code: string, message: string, correlationId: string) {
     return { code, message, correlationId };
+  }
+
+  private consumeReturnToUrl(session: SessionState): string {
+    const returnToUrl = buildReturnToUrl(this.authConfig.getWebBaseUrl(), session.returnToPath);
+    delete session.returnToPath;
+    return returnToUrl;
   }
 }

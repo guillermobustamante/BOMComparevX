@@ -4,10 +4,11 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { SessionAuthGuard } from './session-auth.guard';
+import { GoogleStartGuard } from './google-start.guard';
 
 @Module({
   imports: [PassportModule.register({ session: true })],
   controllers: [AuthController],
-  providers: [AuthService, GoogleStrategy, SessionAuthGuard]
+  providers: [AuthService, GoogleStrategy, SessionAuthGuard, GoogleStartGuard]
 })
 export class AuthModule {}

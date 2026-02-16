@@ -14,6 +14,10 @@ Planned framework: NestJS + TypeScript with Passport strategies for Google/Micro
 - `GET /api/auth/microsoft/callback`
 - `GET /api/health`
 
+Optional query support for start endpoints:
+- `returnTo` (internal path only, e.g. `/upload` or `/history`).
+- Unsafe values fall back to `/upload`.
+
 ## Notes
 - Secrets are resolved via Azure Key Vault secret names from env contract.
 - Local fallback supports direct `GOOGLE_*` and `MICROSOFT_*` env vars for development.
