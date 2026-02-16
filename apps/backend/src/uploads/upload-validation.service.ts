@@ -7,6 +7,11 @@ const ALLOWED_EXTENSIONS = new Set(['.csv', '.xls', '.xlsx']);
 export interface UploadValidationResult {
   accepted: true;
   correlationId: string;
+  policy?: {
+    comparisonsUsed: number;
+    unrestrictedComparisonsRemaining: number;
+    cooldownUntilUtc: string | null;
+  };
   files: {
     fileA: { name: string; size: number };
     fileB: { name: string; size: number };

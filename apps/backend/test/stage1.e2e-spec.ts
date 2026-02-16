@@ -5,9 +5,13 @@ import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
 import * as passport from 'passport';
 import { AppModule } from '../src/app.module';
+import { UploadHistoryService } from '../src/uploads/upload-history.service';
+import { UploadJobService } from '../src/uploads/upload-job.service';
 
 describe('Stage 1 API baseline (e2e)', () => {
   let app: INestApplication;
+  let uploadHistoryService: UploadHistoryService;
+  let uploadJobService: UploadJobService;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -32,6 +36,8 @@ describe('Stage 1 API baseline (e2e)', () => {
     app.use(passport.session());
     app.setGlobalPrefix('api');
     await app.init();
+    uploadHistoryService = moduleFixture.get(UploadHistoryService);
+    uploadJobService = moduleFixture.get(UploadJobService);
   });
 
   afterAll(async () => {
@@ -172,5 +178,163 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(response.body.accepted).toBe(true);
     expect(response.body.files.fileA.name).toBe('bom-a.csv');
     expect(response.body.files.fileB.name).toBe('bom-b.xlsx');
+    expect(response.body.policy.comparisonsUsed).toBe(1);
+    expect(response.body.policy.unrestrictedComparisonsRemaining).toBe(2);
+  });
+
+  it('upload intake accepts valid files and returns accepted job metadata', async () => {
+    const email = `intake.user.${Date.now()}@example.com`;
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email, tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const response = await agent
+      .post('/api/uploads/intake')
+      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'bom-a.csv', contentType: 'text/csv' })
+      .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'bom-b.csv', contentType: 'text/csv' })
+      .expect(202);
+
+    expect(response.body.status).toBe('accepted');
+    expect(response.body.jobId).toBeDefined();
+    expect(response.body.sessionId).toBeDefined();
+    expect(response.body.historyId).toBeDefined();
+    expect(response.body.correlationId).toBeDefined();
+    expect(response.body.idempotentReplay).toBe(false);
+  });
+
+  it('upload intake is idempotent by Idempotency-Key and does not create duplicate jobs', async () => {
+    const email = `idempotency.user.${Date.now()}@example.com`;
+    const idempotencyKey = `idem-${Date.now()}`;
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email, tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const first = await agent
+      .post('/api/uploads/intake')
+      .set('Idempotency-Key', idempotencyKey)
+      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'bom-a.csv', contentType: 'text/csv' })
+      .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'bom-b.csv', contentType: 'text/csv' })
+      .expect(202);
+
+    const second = await agent
+      .post('/api/uploads/intake')
+      .set('Idempotency-Key', idempotencyKey)
+      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'bom-a.csv', contentType: 'text/csv' })
+      .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'bom-b.csv', contentType: 'text/csv' })
+      .expect(202);
+
+    expect(second.body.idempotentReplay).toBe(true);
+    expect(second.body.jobId).toBe(first.body.jobId);
+    expect(second.body.sessionId).toBe(first.body.sessionId);
+    expect(second.body.historyId).toBe(first.body.historyId);
+  });
+
+  it('upload intake creates history entry linked to job and session', async () => {
+    const email = `history.user.${Date.now()}@example.com`;
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email, tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const response = await agent
+      .post('/api/uploads/intake')
+      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'bom-a.csv', contentType: 'text/csv' })
+      .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'bom-b.csv', contentType: 'text/csv' })
+      .expect(202);
+
+    const history = uploadHistoryService.findByJobId(response.body.jobId);
+    expect(history).toBeDefined();
+    expect(history?.historyId).toBe(response.body.historyId);
+    expect(history?.sessionId).toBe(response.body.sessionId);
+    expect(history?.status).toBe('queued');
+    expect(history?.initiatorEmail).toBe(email);
+
+    const job = uploadJobService.findByJobId(response.body.jobId);
+    expect(job?.status).toBe('queued');
+  });
+
+  it('upload intake routes failed enqueue attempts to dead-letter after retries', async () => {
+    const email = `queue.fail.${Date.now()}@example.com`;
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email, tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const response = await agent
+      .post('/api/uploads/intake')
+      .set('x-test-queue-fail', 'always')
+      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'bom-a.csv', contentType: 'text/csv' })
+      .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'bom-b.csv', contentType: 'text/csv' })
+      .expect(503);
+
+    expect(response.body.code).toBe('UPLOAD_QUEUE_ENQUEUE_FAILED');
+    expect(response.body.correlationId).toBeDefined();
+  });
+
+  it('upload policy allows first three comparisons unrestricted and tracks usage', async () => {
+    const email = `policy.user.${Date.now()}@example.com`;
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email, tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const one = await agent
+      .post('/api/uploads/validate')
+      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'bom-1.csv', contentType: 'text/csv' })
+      .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'bom-2.csv', contentType: 'text/csv' })
+      .expect(201);
+    expect(one.body.policy.comparisonsUsed).toBe(1);
+    expect(one.body.policy.unrestrictedComparisonsRemaining).toBe(2);
+
+    const two = await agent
+      .post('/api/uploads/validate')
+      .attach('fileA', Buffer.from('a,b\n5,6\n'), { filename: 'bom-3.csv', contentType: 'text/csv' })
+      .attach('fileB', Buffer.from('a,b\n7,8\n'), { filename: 'bom-4.csv', contentType: 'text/csv' })
+      .expect(201);
+    expect(two.body.policy.comparisonsUsed).toBe(2);
+    expect(two.body.policy.unrestrictedComparisonsRemaining).toBe(1);
+
+    const three = await agent
+      .post('/api/uploads/validate')
+      .attach('fileA', Buffer.from('a,b\n9,10\n'), { filename: 'bom-5.csv', contentType: 'text/csv' })
+      .attach('fileB', Buffer.from('a,b\n11,12\n'), { filename: 'bom-6.csv', contentType: 'text/csv' })
+      .expect(201);
+    expect(three.body.policy.comparisonsUsed).toBe(3);
+    expect(three.body.policy.unrestrictedComparisonsRemaining).toBe(0);
+  });
+
+  it('upload policy blocks the 4th attempt during cooldown and allows after expiry', async () => {
+    const email = `cooldown.user.${Date.now()}@example.com`;
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email, tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const postValidPair = () =>
+      agent
+        .post('/api/uploads/validate')
+        .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'cool-1.csv', contentType: 'text/csv' })
+        .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'cool-2.csv', contentType: 'text/csv' });
+
+    await postValidPair().expect(201);
+    await postValidPair().expect(201);
+    await postValidPair().expect(201);
+
+    const blocked = await postValidPair().expect(429);
+    expect(blocked.body.code).toBe('UPLOAD_COOLDOWN_ACTIVE');
+    expect(blocked.body.cooldownUntilUtc).toBeDefined();
+
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const acceptedAfterCooldown = await postValidPair().expect(201);
+    expect(acceptedAfterCooldown.body.policy.comparisonsUsed).toBe(4);
+    expect(acceptedAfterCooldown.body.policy.unrestrictedComparisonsRemaining).toBe(0);
   });
 });

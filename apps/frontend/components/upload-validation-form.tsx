@@ -6,6 +6,9 @@ interface ValidationError {
   code?: string;
   message?: string;
   correlationId?: string;
+  cooldownUntilUtc?: string;
+  comparisonsUsed?: number;
+  unrestrictedComparisonsRemaining?: number;
 }
 
 interface ValidationSuccess {
@@ -15,6 +18,20 @@ interface ValidationSuccess {
     fileA: { name: string; size: number };
     fileB: { name: string; size: number };
   };
+  policy?: {
+    comparisonsUsed: number;
+    unrestrictedComparisonsRemaining: number;
+    cooldownUntilUtc: string | null;
+  };
+}
+
+interface IntakeSuccess {
+  jobId: string;
+  sessionId: string;
+  historyId: string | null;
+  status: 'accepted';
+  correlationId: string;
+  idempotentReplay: boolean;
 }
 
 function bytesToMb(value: number): string {
@@ -25,15 +42,23 @@ export function UploadValidationForm() {
   const [fileA, setFileA] = useState<File | null>(null);
   const [fileB, setFileB] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isQueueing, setIsQueueing] = useState(false);
   const [error, setError] = useState<ValidationError | null>(null);
   const [success, setSuccess] = useState<ValidationSuccess | null>(null);
+  const [intakeSuccess, setIntakeSuccess] = useState<IntakeSuccess | null>(null);
+  const [blockedUntilUtc, setBlockedUntilUtc] = useState<string | null>(null);
 
-  const canSubmit = useMemo(() => !!fileA && !!fileB && !isSubmitting, [fileA, fileB, isSubmitting]);
+  const isBlocked = useMemo(() => !!blockedUntilUtc, [blockedUntilUtc]);
+  const canSubmit = useMemo(
+    () => !!fileA && !!fileB && !isSubmitting && !isQueueing && !isBlocked,
+    [fileA, fileB, isSubmitting, isQueueing, isBlocked]
+  );
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setIntakeSuccess(null);
 
     if (!fileA || !fileB) {
       setError({
@@ -56,11 +81,19 @@ export function UploadValidationForm() {
       const payload = (await response.json()) as ValidationError | ValidationSuccess;
 
       if (!response.ok) {
-        setError(payload as ValidationError);
+        const parsedError = payload as ValidationError;
+        if (parsedError.code === 'UPLOAD_COOLDOWN_ACTIVE' && parsedError.cooldownUntilUtc) {
+          setBlockedUntilUtc(parsedError.cooldownUntilUtc);
+        }
+        setError(parsedError);
         return;
       }
 
-      setSuccess(payload as ValidationSuccess);
+      const parsedSuccess = payload as ValidationSuccess;
+      if (parsedSuccess.policy?.cooldownUntilUtc) {
+        setBlockedUntilUtc(parsedSuccess.policy.cooldownUntilUtc);
+      }
+      setSuccess(parsedSuccess);
     } catch {
       setError({
         code: 'UPLOAD_VALIDATE_REQUEST_FAILED',
@@ -68,6 +101,50 @@ export function UploadValidationForm() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function onQueue() {
+    setError(null);
+    setIntakeSuccess(null);
+
+    if (!fileA || !fileB) {
+      setError({
+        code: 'UPLOAD_FILE_COUNT_INVALID',
+        message: 'Select exactly two files before queueing.'
+      });
+      return;
+    }
+
+    setIsQueueing(true);
+    const form = new FormData();
+    form.append('fileA', fileA);
+    form.append('fileB', fileB);
+
+    try {
+      const response = await fetch('/api/uploads/intake', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+        body: form
+      });
+      const payload = (await response.json()) as ValidationError | IntakeSuccess;
+      if (!response.ok) {
+        const parsedError = payload as ValidationError;
+        if (parsedError.code === 'UPLOAD_COOLDOWN_ACTIVE' && parsedError.cooldownUntilUtc) {
+          setBlockedUntilUtc(parsedError.cooldownUntilUtc);
+        }
+        setError(parsedError);
+        return;
+      }
+
+      setIntakeSuccess(payload as IntakeSuccess);
+    } catch {
+      setError({
+        code: 'UPLOAD_INTAKE_REQUEST_FAILED',
+        message: 'Could not reach upload intake service.'
+      });
+    } finally {
+      setIsQueueing(false);
     }
   }
 
@@ -84,6 +161,7 @@ export function UploadValidationForm() {
           id="fileA"
           name="fileA"
           type="file"
+          disabled={isBlocked}
           onChange={(e) => setFileA(e.currentTarget.files?.[0] || null)}
           data-testid="file-input-a"
         />
@@ -95,6 +173,7 @@ export function UploadValidationForm() {
           id="fileB"
           name="fileB"
           type="file"
+          disabled={isBlocked}
           onChange={(e) => setFileB(e.currentTarget.files?.[0] || null)}
           data-testid="file-input-b"
         />
@@ -104,7 +183,28 @@ export function UploadValidationForm() {
         <button className="btn btnPrimary" type="submit" disabled={!canSubmit} data-testid="validate-upload-btn">
           {isSubmitting ? 'Validating...' : 'Validate Upload'}
         </button>
+        <button
+          className="btn"
+          type="button"
+          disabled={!canSubmit}
+          data-testid="queue-upload-btn"
+          onClick={onQueue}
+        >
+          {isQueueing ? 'Queueing...' : 'Queue Job'}
+        </button>
       </div>
+
+      {isBlocked && (
+        <div className="alertWarning" data-testid="upload-policy-blocked-banner">
+          <strong>Uploads temporarily blocked</strong>
+          <div>
+            Cooldown active until {blockedUntilUtc ? new Date(blockedUntilUtc).toUTCString() : 'unknown time'}.
+          </div>
+          <a className="linkInline" href="/billing" data-testid="more-credits-link">
+            More credits
+          </a>
+        </div>
+      )}
 
       {fileA && <p className="p">File A: {fileA.name} ({bytesToMb(fileA.size)})</p>}
       {fileB && <p className="p">File B: {fileB.name} ({bytesToMb(fileB.size)})</p>}
@@ -122,7 +222,22 @@ export function UploadValidationForm() {
           <strong>UPLOAD_VALIDATED</strong>
           <div>fileA: {success.files.fileA.name}</div>
           <div>fileB: {success.files.fileB.name}</div>
+          {success.policy && (
+            <div>
+              Policy: used {success.policy.comparisonsUsed}, remaining {success.policy.unrestrictedComparisonsRemaining}
+            </div>
+          )}
           <div>Correlation ID: {success.correlationId}</div>
+        </div>
+      )}
+
+      {intakeSuccess && (
+        <div className="alertSuccess" data-testid="upload-intake-success">
+          <strong>UPLOAD_ACCEPTED</strong>
+          <div>Status: {intakeSuccess.status}</div>
+          <div>Job ID: {intakeSuccess.jobId}</div>
+          <div>History ID: {intakeSuccess.historyId || 'n/a'}</div>
+          <div>Correlation ID: {intakeSuccess.correlationId}</div>
         </div>
       )}
     </form>

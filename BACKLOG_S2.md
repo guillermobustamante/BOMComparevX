@@ -57,7 +57,7 @@ A story is `Ready` only when all are true:
 - Estimate: `5`
 - Owner: `FE`
 - Sprint: `S2`
-- Status: `Backlog`
+- Status: `In Progress`
 
 ### Traceability
 - Requirement link(s): `FR-003`
@@ -192,7 +192,7 @@ Add e2e coverage for all rejection paths.
 - Estimate: `3`
 - Owner: `BE`
 - Sprint: `S2`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-004`, `V1_DECISIONS.md` upload policy decision
@@ -232,7 +232,7 @@ Persist and increment usage state atomically and expose policy fields for downst
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S2`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-004`, `V1_DECISIONS.md`
@@ -273,7 +273,7 @@ Use UTC comparisons and return deterministic cooldown metadata/error contract.
 - Estimate: `3`
 - Owner: `FE`
 - Sprint: `S2`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-004`
@@ -312,7 +312,7 @@ Map backend cooldown contract directly to UI state.
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S2`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-005`
@@ -361,7 +361,7 @@ Return 202 with job identifiers and support idempotency to prevent duplicate enq
 - Estimate: `3`
 - Owner: `BE`
 - Sprint: `S2`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-011`
@@ -399,7 +399,7 @@ Ensure history persistence is guaranteed on success path.
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S2`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-005`
@@ -440,7 +440,7 @@ Include retry/dead-letter baseline and deterministic job state transitions.
 - Estimate: `5`
 - Owner: `QA/BE/FE`
 - Sprint: `S2`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-003`, `FR-004`, `FR-005`

@@ -7,11 +7,11 @@
     "build": "npx nest build",
     "start": "npx nest start",
     "start:dev": "npx nest start --watch",
-    "start:test:e2e": "cross-env NODE_ENV=test ENABLE_TEST_ROUTES=true AZURE_KEY_VAULT_URI= GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy MICROSOFT_CLIENT_ID=dummy MICROSOFT_CLIENT_SECRET=dummy PORT=4100 npx nest start",
-    "start:test": "cross-env NODE_ENV=test ENABLE_TEST_ROUTES=true AZURE_KEY_VAULT_URI= GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy MICROSOFT_CLIENT_ID=dummy MICROSOFT_CLIENT_SECRET=dummy PORT=4000 npx nest start",
+    "start:test:e2e": "cross-env NODE_ENV=test ENABLE_TEST_ROUTES=true AZURE_KEY_VAULT_URI= GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy MICROSOFT_CLIENT_ID=dummy MICROSOFT_CLIENT_SECRET=dummy UPLOAD_COOLDOWN_MS=100 PORT=4100 npx nest start",
+    "start:test": "cross-env NODE_ENV=test ENABLE_TEST_ROUTES=true AZURE_KEY_VAULT_URI= GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy MICROSOFT_CLIENT_ID=dummy MICROSOFT_CLIENT_SECRET=dummy UPLOAD_COOLDOWN_MS=100 PORT=4000 npx nest start",
     "typecheck": "npx tsc -p tsconfig.json --noEmit",
     "test": "npm run test:e2e",
-    "test:e2e": "cross-env NODE_ENV=test ENABLE_TEST_ROUTES=true AZURE_KEY_VAULT_URI= GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy MICROSOFT_CLIENT_ID=dummy MICROSOFT_CLIENT_SECRET=dummy jest --config ./test/jest-e2e.json --runInBand",
+    "test:e2e": "cross-env NODE_ENV=test ENABLE_TEST_ROUTES=true AZURE_KEY_VAULT_URI= GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy MICROSOFT_CLIENT_ID=dummy MICROSOFT_CLIENT_SECRET=dummy UPLOAD_COOLDOWN_MS=100 jest --config ./test/jest-e2e.json --runInBand",
     "ci": "npm run typecheck && npm run build && npm run test"
   },
   "dependencies": {
