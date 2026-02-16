@@ -11,6 +11,8 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
+playwright-report/
+test-results/
 
 # OS
 .DS_Store

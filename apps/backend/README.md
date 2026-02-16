@@ -6,6 +6,7 @@ Planned framework: NestJS + TypeScript with Passport strategies for Google/Micro
 1. Install deps: `npm install --prefix apps/backend`
 2. Ensure `.env.local` is populated from `.env.example`
 3. Start dev server: `npm --prefix apps/backend run start:dev`
+4. Run API e2e tests: `npm --prefix apps/backend run test:e2e`
 
 ## Implemented Auth Contract Endpoints
 - `GET /api/auth/google/start`
@@ -31,6 +32,11 @@ Audit events:
 - `auth.login.failure`
 - `auth.access.denied`
 - Events are emitted as structured JSON logs with correlation ID and UTC timestamp.
+
+Test support routes (disabled by default):
+- Set `ENABLE_TEST_ROUTES=true` to enable:
+- `POST /api/auth/test/login`
+- `POST /api/auth/test/logout`
 
 ## Notes
 - Secrets are resolved via Azure Key Vault secret names from env contract.

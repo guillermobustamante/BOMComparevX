@@ -21,3 +21,9 @@ Execution baseline for Stage 1 with selected stack:
 6. Start backend: `npm --prefix apps/backend run start:dev`.
 7. Start frontend: `npm --prefix apps/frontend run dev`.
 8. Push branch to trigger CI.
+
+## Automated Verification
+- Run full local verification after a story:
+`npm run verify:story`
+- This executes:
+`ci:checks` (contracts + backend + frontend build checks) and Playwright browser tests.

@@ -17,6 +17,9 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Install root dependencies
+        run: npm install
+
       - name: Install backend dependencies
         run: npm install --prefix apps/backend
 
@@ -25,3 +28,16 @@ jobs:
 
       - name: Run CI checks
         run: npm run ci:checks
+
+      - name: Install Playwright browser
+        run: npm run frontend:test:e2e:install
+
+      - name: Run browser tests
+        run: npm run frontend:test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report

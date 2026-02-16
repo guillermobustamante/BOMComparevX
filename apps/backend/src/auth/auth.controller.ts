@@ -1,6 +1,9 @@
 import {
+  Body,
   Controller,
   Get,
+  NotFoundException,
+  Post,
   Query,
   Req,
   Res,
@@ -153,6 +156,50 @@ export class AuthController {
     };
   }
 
+  @Post('test/login')
+  testLogin(
+    @Req() req: Request,
+    @Body()
+    body: {
+      email?: string;
+      displayName?: string;
+      provider?: 'google' | 'microsoft';
+      tenantId?: string;
+    }
+  ) {
+    this.ensureTestRoutesEnabled();
+    const correlationId = randomUUID();
+    const session = req.session as SessionState;
+    session.user = {
+      provider: body.provider || 'google',
+      email: body.email || 'test.user@example.com',
+      displayName: body.displayName || 'Test User',
+      tenantId: body.tenantId || process.env.DEFAULT_TENANT_ID || 'dev-tenant'
+    };
+
+    this.auditService.emit({
+      eventType: 'auth.login.success',
+      outcome: 'success',
+      actorEmail: session.user.email,
+      tenantId: session.user.tenantId,
+      provider: session.user.provider,
+      reason: 'test_route_login',
+      correlationId
+    });
+
+    return { ok: true, correlationId, user: session.user };
+  }
+
+  @Post('test/logout')
+  testLogout(@Req() req: Request) {
+    this.ensureTestRoutesEnabled();
+    const session = req.session as SessionState;
+    delete session.user;
+    delete session.oauthState;
+    delete session.returnToPath;
+    return { ok: true };
+  }
+
   private error(code: string, message: string, correlationId: string) {
     return { code, message, correlationId };
   }
@@ -161,5 +208,11 @@ export class AuthController {
     const returnToUrl = buildReturnToUrl(this.authConfig.getWebBaseUrl(), session.returnToPath);
     delete session.returnToPath;
     return returnToUrl;
+  }
+
+  private ensureTestRoutesEnabled(): void {
+    if (process.env.ENABLE_TEST_ROUTES !== 'true') {
+      throw new NotFoundException();
+    }
   }
 }

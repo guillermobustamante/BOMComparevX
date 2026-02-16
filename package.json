@@ -4,10 +4,17 @@
   "version": "0.1.0",
   "description": "BOM Compare VX monorepo baseline",
   "scripts": {
+    "backend:test": "npm --prefix apps/backend run test:e2e",
     "backend:ci": "npm --prefix apps/backend run ci",
+    "frontend:test:e2e": "npx playwright test",
+    "frontend:test:e2e:install": "npx playwright install chromium",
     "frontend:ci": "npm --prefix apps/frontend run ci",
     "check:env-contract": "node tools/validate-env-contract.mjs",
     "check:required-files": "node tools/check-required-files.mjs",
-    "ci:checks": "npm run check:env-contract && npm run check:required-files && npm run backend:ci && npm run frontend:ci"
+    "ci:checks": "npm run check:env-contract && npm run check:required-files && npm run backend:ci && npm run frontend:ci",
+    "verify:story": "npm run ci:checks && npm run frontend:test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.1"
   }
 }
