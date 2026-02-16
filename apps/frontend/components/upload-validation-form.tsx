@@ -41,6 +41,7 @@ function bytesToMb(value: number): string {
 export function UploadValidationForm() {
   const [fileA, setFileA] = useState<File | null>(null);
   const [fileB, setFileB] = useState<File | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isQueueing, setIsQueueing] = useState(false);
   const [error, setError] = useState<ValidationError | null>(null);
@@ -53,6 +54,40 @@ export function UploadValidationForm() {
     () => !!fileA && !!fileB && !isSubmitting && !isQueueing && !isBlocked,
     [fileA, fileB, isSubmitting, isQueueing, isBlocked]
   );
+
+  function applyPickedFiles(nextFileA: File | null, nextFileB: File | null) {
+    setFileA(nextFileA);
+    setFileB(nextFileB);
+    setError(null);
+  }
+
+  function applyDroppedFiles(dropped: FileList | null) {
+    const droppedFiles = Array.from(dropped || []);
+    if (droppedFiles.length === 0) return;
+    if (droppedFiles.length > 2) {
+      setError({
+        code: 'UPLOAD_FILE_COUNT_INVALID',
+        message: 'Drop one or two files only.'
+      });
+      return;
+    }
+
+    if (droppedFiles.length === 2) {
+      applyPickedFiles(droppedFiles[0], droppedFiles[1]);
+      return;
+    }
+
+    const one = droppedFiles[0];
+    if (!fileA) {
+      applyPickedFiles(one, fileB);
+      return;
+    }
+    if (!fileB) {
+      applyPickedFiles(fileA, one);
+      return;
+    }
+    applyPickedFiles(fileA, one);
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -152,6 +187,28 @@ export function UploadValidationForm() {
     <form onSubmit={onSubmit} className="panel" data-testid="upload-validation-form">
       <h1 className="h1">Upload</h1>
       <p className="p">Validate exactly two files before starting queue intake.</p>
+      <div
+        className={`dropzone ${isDragActive ? 'dropzoneActive' : ''}`}
+        data-testid="upload-dropzone"
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!isBlocked) {
+            setIsDragActive(true);
+          }
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setIsDragActive(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragActive(false);
+          if (isBlocked) return;
+          applyDroppedFiles(e.dataTransfer.files);
+        }}
+      >
+        Drop one or two files here. If two are dropped, they map to `fileA` then `fileB` in order.
+      </div>
 
       <div className="actions">
         <label className="btn" htmlFor="fileA">
@@ -162,7 +219,7 @@ export function UploadValidationForm() {
           name="fileA"
           type="file"
           disabled={isBlocked}
-          onChange={(e) => setFileA(e.currentTarget.files?.[0] || null)}
+          onChange={(e) => applyPickedFiles(e.currentTarget.files?.[0] || null, fileB)}
           data-testid="file-input-a"
         />
 
@@ -174,7 +231,7 @@ export function UploadValidationForm() {
           name="fileB"
           type="file"
           disabled={isBlocked}
-          onChange={(e) => setFileB(e.currentTarget.files?.[0] || null)}
+          onChange={(e) => applyPickedFiles(fileA, e.currentTarget.files?.[0] || null)}
           data-testid="file-input-b"
         />
       </div>

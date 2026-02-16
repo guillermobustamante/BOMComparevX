@@ -57,7 +57,7 @@ A story is `Ready` only when all are true:
 - Estimate: `5`
 - Owner: `FE`
 - Sprint: `S2`
-- Status: `In Progress`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-003`

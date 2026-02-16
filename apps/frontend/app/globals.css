@@ -97,6 +97,21 @@ a {
   flex-wrap: wrap;
 }
 
+.dropzone {
+  margin-top: 16px;
+  padding: 16px;
+  border: 2px dashed #b7cbec;
+  border-radius: 12px;
+  background: #f7fbff;
+  color: var(--muted);
+}
+
+.dropzoneActive {
+  border-color: var(--accent);
+  background: #edf4ff;
+  color: var(--ink);
+}
+
 .btn {
   border: 1px solid var(--line);
   border-radius: 10px;

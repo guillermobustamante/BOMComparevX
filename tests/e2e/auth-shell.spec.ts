@@ -138,6 +138,41 @@ test('upload shows cooldown blocked banner, disables controls, and shows More cr
   await context.close();
 });
 
+test('upload drag/drop assigns deterministic slots and validates', async ({ browser, request, baseURL }) => {
+  const email = uniqueEmail('playwright.dragdrop');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({
+    baseURL,
+    storageState
+  });
+  const page = await context.newPage();
+
+  await page.goto('/upload');
+  const dataTransfer = await page.evaluateHandle(() => {
+    const dt = new DataTransfer();
+    dt.items.add(new File(['part,qty\nA,1\n'], 'drop-a.csv', { type: 'text/csv' }));
+    dt.items.add(new File(['part,qty\nB,2\n'], 'drop-b.csv', { type: 'text/csv' }));
+    return dt;
+  });
+
+  await page.dispatchEvent('[data-testid="upload-dropzone"]', 'drop', { dataTransfer });
+  await expect(page.getByText(/File A: drop-a\.csv/)).toBeVisible();
+  await expect(page.getByText(/File B: drop-b\.csv/)).toBeVisible();
+
+  await page.getByTestId('validate-upload-btn').click();
+  await expect(page.getByTestId('upload-validation-success')).toContainText('UPLOAD_VALIDATED');
+  await context.close();
+});
+
 test('upload can queue a valid intake and show accepted job feedback', async ({ browser, request, baseURL }) => {
   const email = uniqueEmail('playwright.intake');
   await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
