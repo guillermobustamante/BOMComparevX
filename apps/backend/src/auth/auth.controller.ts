@@ -12,15 +12,8 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { AuthResultDto } from './dto/auth-result.dto';
 import { AuthConfigService } from '../config/auth-config.service';
-
-interface SessionState {
-  oauthState?: string;
-  user?: {
-    provider: 'google' | 'microsoft';
-    email: string;
-    displayName: string;
-  };
-}
+import { SessionAuthGuard } from './session-auth.guard';
+import { SessionState } from './session-user.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -89,6 +82,18 @@ export class AuthController {
     } catch {
       res.status(401).json(this.error('AUTH_MICROSOFT_CALLBACK_FAILED', 'Microsoft login failed.', correlationId));
     }
+  }
+
+  @Get('me')
+  @UseGuards(SessionAuthGuard)
+  me(@Req() req: Request): AuthResultDto {
+    const user = (req.session as SessionState).user;
+    return {
+      provider: user!.provider,
+      email: user!.email,
+      displayName: user!.displayName,
+      correlationId: randomUUID()
+    };
   }
 
   private error(code: string, message: string, correlationId: string) {

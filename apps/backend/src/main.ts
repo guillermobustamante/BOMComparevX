@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import passport from 'passport';
 import { AppModule } from './app.module';
 import { AuthConfigService } from './config/auth-config.service';
 
@@ -20,6 +21,8 @@ async function bootstrap() {
       }
     })
   );
+  app.use(passport.initialize());
+  app.use(passport.session());
 
   const authConfig = app.get(AuthConfigService);
   await authConfig.initialize();
