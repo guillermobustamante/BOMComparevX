@@ -4,8 +4,9 @@
   "version": "0.1.0",
   "description": "BOM Compare VX monorepo baseline",
   "scripts": {
+    "backend:ci": "npm --prefix apps/backend run ci",
     "check:env-contract": "node tools/validate-env-contract.mjs",
     "check:required-files": "node tools/check-required-files.mjs",
-    "ci:checks": "npm run check:env-contract && npm run check:required-files"
+    "ci:checks": "npm run check:env-contract && npm run check:required-files && npm run backend:ci"
   }
 }

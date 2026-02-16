@@ -17,5 +17,8 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Install backend dependencies
+        run: npm install --prefix apps/backend
+
       - name: Run CI checks
         run: npm run ci:checks
