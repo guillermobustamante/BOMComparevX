@@ -26,6 +26,12 @@ Tenant behavior:
 - Fallback tenant is `DEFAULT_TENANT_ID`.
 - Cross-tenant access to `tenant/resource/:tenantId` returns `403`.
 
+Audit events:
+- `auth.login.success`
+- `auth.login.failure`
+- `auth.access.denied`
+- Events are emitted as structured JSON logs with correlation ID and UTC timestamp.
+
 ## Notes
 - Secrets are resolved via Azure Key Vault secret names from env contract.
 - Local fallback supports direct `GOOGLE_*` and `MICROSOFT_*` env vars for development.

@@ -7,9 +7,10 @@ import { SessionAuthGuard } from './session-auth.guard';
 import { GoogleStartGuard } from './google-start.guard';
 import { TenantModule } from '../tenant/tenant.module';
 import { ConfigModule } from '../config/config.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
-  imports: [PassportModule.register({ session: true }), TenantModule, ConfigModule],
+  imports: [PassportModule.register({ session: true }), TenantModule, ConfigModule, AuditModule],
   controllers: [AuthController],
   providers: [AuthService, GoogleStrategy, SessionAuthGuard, GoogleStartGuard]
 })

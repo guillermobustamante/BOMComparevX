@@ -17,13 +17,15 @@ import { SessionState } from './session-user.interface';
 import { GoogleStartGuard } from './google-start.guard';
 import { buildReturnToUrl, sanitizeReturnToPath } from './redirect.util';
 import { TenantResolverService } from '../tenant/tenant-resolver.service';
+import { AuditService } from '../audit/audit.service';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly authConfig: AuthConfigService,
-    private readonly tenantResolver: TenantResolverService
+    private readonly tenantResolver: TenantResolverService,
+    private readonly auditService: AuditService
   ) {}
 
   @Get('google/start')
@@ -38,6 +40,13 @@ export class AuthController {
     const correlationId = randomUUID();
     const user = req.user as AuthResultDto | undefined;
     if (!user) {
+      this.auditService.emit({
+        eventType: 'auth.login.failure',
+        outcome: 'failure',
+        provider: 'google',
+        reason: 'google_callback_user_missing',
+        correlationId
+      });
       res.status(401).json(this.error('AUTH_GOOGLE_CALLBACK_FAILED', 'Google login failed.', correlationId));
       return;
     }
@@ -49,6 +58,14 @@ export class AuthController {
       displayName: user.displayName,
       tenantId: this.tenantResolver.resolveTenantId(user.email)
     };
+    this.auditService.emit({
+      eventType: 'auth.login.success',
+      outcome: 'success',
+      actorEmail: session.user.email,
+      tenantId: session.user.tenantId,
+      provider: 'google',
+      correlationId
+    });
 
     const returnTo = this.consumeReturnToUrl(session);
     res.redirect(returnTo);
@@ -80,6 +97,13 @@ export class AuthController {
     const session = req.session as SessionState;
 
     if (!code || !state || session.oauthState !== state) {
+      this.auditService.emit({
+        eventType: 'auth.login.failure',
+        outcome: 'failure',
+        provider: 'microsoft',
+        reason: 'microsoft_callback_state_invalid',
+        correlationId
+      });
       res.status(401).json(this.error('AUTH_MICROSOFT_STATE_INVALID', 'Microsoft callback is invalid.', correlationId));
       return;
     }
@@ -93,10 +117,25 @@ export class AuthController {
         displayName: user.displayName,
         tenantId
       };
+      this.auditService.emit({
+        eventType: 'auth.login.success',
+        outcome: 'success',
+        actorEmail: session.user.email,
+        tenantId: session.user.tenantId,
+        provider: 'microsoft',
+        correlationId
+      });
       delete session.oauthState;
       const returnTo = this.consumeReturnToUrl(session);
       res.redirect(returnTo);
     } catch {
+      this.auditService.emit({
+        eventType: 'auth.login.failure',
+        outcome: 'failure',
+        provider: 'microsoft',
+        reason: 'microsoft_callback_exchange_failed',
+        correlationId
+      });
       res.status(401).json(this.error('AUTH_MICROSOFT_CALLBACK_FAILED', 'Microsoft login failed.', correlationId));
     }
   }
