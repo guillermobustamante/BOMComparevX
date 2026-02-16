@@ -45,8 +45,9 @@ Deliver secure sign-in and baseline access control so authenticated users can re
 
 ### Dependencies
 - OAuth app registrations for Google and Microsoft.
+- `S1-09` identity provider provisioning and secret management completed or in parallel.
 - Tenant identity model available in persistence layer.
-- Secrets/config management for provider credentials.
+- Secrets/config management for provider credentials (Azure Key Vault per environment).
 
 ### Definition of Done (Sprint-Level)
 - All Stage 1 acceptance bullets in `V1_SPEC.md` are demonstrably met.

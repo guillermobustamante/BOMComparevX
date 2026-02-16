@@ -1,0 +1,16 @@
+# Node
+node_modules/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+.next/
+dist/
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db

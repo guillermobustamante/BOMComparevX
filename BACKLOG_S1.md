@@ -639,7 +639,7 @@ and ensure failures block merge.
 
 ## Sequencing and Parallelization
 
-- Parallel lane A: `S1-01` and `S1-02`.
+- Parallel lane A: `S1-09` provisioning track plus `S1-01` and `S1-02` implementation track.
 - Parallel lane B: `S1-06` shell scaffolding.
 - Follow-on: `S1-03` and `S1-04` once auth endpoints stabilize.
 - Security/data hardening: `S1-05` and `S1-07`.
@@ -653,3 +653,176 @@ A story is `Ready` only when all are true:
 3. Dependencies are explicitly not blocked.
 4. Acceptance criteria are testable and mapped to `V1_SPEC.md`.
 5. AI Prompt is present and scoped to in-story work only.
+---
+
+## S1-09 Identity Provider Provisioning and Secret Management
+
+### Story Metadata
+- Story ID: `S1-09`
+- Title: `Identity Provider Provisioning and Secret Management`
+- Type: `Story`
+- Priority: `P0`
+- Estimate: `3`
+- Owner: `DevOps/BE`
+- Sprint: `S1`
+- Status: `Backlog`
+
+### Traceability
+- Requirement link(s): `FR-001`
+- Stage acceptance link(s): `Stage 1 bullet 1`
+- Decision link(s): Deployment preference in `V1_DECISIONS.md` (Azure-oriented stack)
+
+### User Story
+As an engineering team, we need OAuth provider credentials securely provisioned per environment so Google and Microsoft login can run safely in Dev/Test/Prod.
+
+### Business Value
+- Why this story matters now: Unblocks `S1-01` and `S1-02` from being environment-blocked.
+- Risk if delayed: Auth stories may complete in code but fail in real environments.
+
+### Scope
+- In scope:
+  - Create Google and Microsoft app registrations.
+  - Configure callback URLs for Dev/Test/Prod.
+  - Store client IDs/secrets in Azure Key Vault.
+  - Wire runtime configuration to retrieve secrets without hardcoding.
+  - Document secret rotation and access policy.
+- Out of scope:
+  - End-user auth UX and routing behavior.
+  - Tenant authorization logic.
+
+### Inputs
+- Trigger/API/UI input:
+  - Infrastructure setup request for OAuth providers.
+- Required fields and types:
+  - Environment names, callback URLs, tenant/domain constraints.
+- Preconditions:
+  - Azure subscription/resource group and Key Vault exist.
+- Auth/Tenant context required:
+  - Platform/admin permissions for provider portals and Azure Key Vault.
+
+### Outputs
+- Success outputs (payload, redirect, state change):
+  - Provider credentials available via secure runtime config.
+  - Verified callback registrations in each environment.
+- Failure outputs (error payload, UI state):
+  - Setup checklist indicates blocking config missing.
+- Side effects (events, history/audit records):
+  - Audit trail for secret creation/updates via platform logs.
+
+### Contract
+- Endpoint(s)/event(s):
+  - Config contract exposed to auth modules:
+    - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+    - `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`
+    - Provider callback URL config per environment
+- Request schema:
+  - N/A (infrastructure/config story)
+- Response schema:
+  - N/A (verification checklist + smoke results)
+- Status/error codes:
+  - N/A
+- Idempotency/retry behavior:
+  - Re-running provisioning updates existing registrations/secrets safely.
+- Versioning notes:
+  - V1 baseline provider config contract.
+
+### Constraints
+- Security constraints:
+  - Secrets never committed to repository.
+  - Least-privilege access to Key Vault.
+  - Secrets masked in logs and CI output.
+- Performance constraints:
+  - Runtime secret retrieval should not materially increase auth latency.
+- Compliance/audit constraints:
+  - Secret create/update actions auditable.
+- Environment/config constraints:
+  - Separate credentials per Dev/Test/Prod.
+  - Local development uses `.env.local` only (gitignored).
+- Time/date constraints (UTC, cooldown windows, retention timing):
+  - Rotation timestamps tracked in UTC.
+
+### Acceptance Criteria
+1. Google and Microsoft app registrations exist with correct callback URLs for Dev/Test/Prod.
+2. OAuth credentials are stored in Azure Key Vault and consumed at runtime without hardcoded secrets.
+3. Runbook documents secret rotation, required permissions, and smoke validation steps.
+
+### Test Plan
+- Unit tests:
+  - N/A
+- Integration tests:
+  - Startup config load verifies required secrets exist.
+- E2E/manual tests:
+  - Smoke auth flow for both providers in Dev and Test.
+- Test data/fixtures:
+  - Non-production OAuth apps and test users.
+- Observability checks (logs/metrics/traces):
+  - Config load errors and auth failure metrics visible.
+
+### Dependencies
+- Upstream systems/services:
+  - Google Cloud Console, Microsoft Entra app registrations.
+- Infrastructure prerequisites:
+  - Azure Key Vault access and managed identity/app identity setup.
+- Blockers:
+  - Missing platform admin permissions.
+
+### Actionable Subtasks
+1. Create provider app registrations and callback URL matrix.
+2. Create Key Vault secrets for each environment.
+3. Wire runtime secret retrieval and fail-fast config checks.
+4. Add smoke checklist for Dev/Test provider login.
+5. Document rotation runbook and ownership.
+
+### Definition of Done
+- Implementation complete and merged.
+- Tests/checks added and passing.
+- Acceptance criteria verified in Test.
+- Docs/runbook/config updates completed.
+- Monitoring/audit hooks verified.
+
+### AI Prompt (Execution-Ready)
+```text
+You are implementing story S1-09: Identity Provider Provisioning and Secret Management.
+
+Objective:
+Provision Google/Microsoft OAuth credentials securely across Dev/Test/Prod and expose them to runtime config without storing secrets in code.
+
+In Scope:
+- Provider app registrations and callback URLs
+- Azure Key Vault secret setup
+- Runtime config wiring and fail-fast checks
+- Rotation/runbook documentation
+
+Out of Scope:
+- OAuth UX flows and route behavior
+
+Inputs:
+- Environment list and callback URL matrix
+- Access to provider portals and Azure Key Vault
+
+Outputs:
+- Runtime-available secrets and validated provider setup in Dev/Test
+
+Contract:
+- Required config keys:
+  - GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+  - MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET
+- Per-environment callback URL mapping
+
+Constraints:
+- No secrets in repo/logs
+- Least-privilege Key Vault access
+- Separate credentials per environment
+
+Acceptance Criteria:
+1. Registrations and callbacks complete for all environments
+2. Secrets loaded from Key Vault at runtime
+3. Rotation and smoke-test runbook documented
+
+Required Tests:
+- Integration: startup config validation
+- Manual: auth smoke on Dev/Test for both providers
+
+Deliverables:
+- Config/infrastructure updates, validation checks, and runbook updates.
+```
