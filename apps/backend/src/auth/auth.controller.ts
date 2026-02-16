@@ -16,12 +16,14 @@ import { SessionAuthGuard } from './session-auth.guard';
 import { SessionState } from './session-user.interface';
 import { GoogleStartGuard } from './google-start.guard';
 import { buildReturnToUrl, sanitizeReturnToPath } from './redirect.util';
+import { TenantResolverService } from '../tenant/tenant-resolver.service';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly authConfig: AuthConfigService
+    private readonly authConfig: AuthConfigService,
+    private readonly tenantResolver: TenantResolverService
   ) {}
 
   @Get('google/start')
@@ -44,7 +46,8 @@ export class AuthController {
     session.user = {
       provider: 'google',
       email: user.email,
-      displayName: user.displayName
+      displayName: user.displayName,
+      tenantId: this.tenantResolver.resolveTenantId(user.email)
     };
 
     const returnTo = this.consumeReturnToUrl(session);
@@ -83,7 +86,13 @@ export class AuthController {
 
     try {
       const user = await this.authService.exchangeMicrosoftCode(code);
-      session.user = user;
+      const tenantId = this.tenantResolver.resolveTenantId(user.email);
+      session.user = {
+        provider: user.provider,
+        email: user.email,
+        displayName: user.displayName,
+        tenantId
+      };
       delete session.oauthState;
       const returnTo = this.consumeReturnToUrl(session);
       res.redirect(returnTo);
@@ -100,6 +109,7 @@ export class AuthController {
       provider: user!.provider,
       email: user!.email,
       displayName: user!.displayName,
+      tenantId: user!.tenantId,
       correlationId: randomUUID()
     };
   }

@@ -20,5 +20,8 @@ jobs:
       - name: Install backend dependencies
         run: npm install --prefix apps/backend
 
+      - name: Install frontend dependencies
+        run: npm install --prefix apps/frontend
+
       - name: Run CI checks
         run: npm run ci:checks

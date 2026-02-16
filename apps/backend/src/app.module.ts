@@ -1,27 +1,12 @@
 import { Module } from '@nestjs/common';
 import { HealthController } from './health.controller';
 import { AuthModule } from './auth/auth.module';
-import { AuthConfigService } from './config/auth-config.service';
-import { SecretProvider } from './config/secret-provider.interface';
-import { KeyVaultSecretProvider } from './config/key-vault-secret.provider';
-import { LocalSecretProvider } from './config/local-secret.provider';
+import { TenantModule } from './tenant/tenant.module';
+import { ConfigModule } from './config/config.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [ConfigModule, AuthModule, TenantModule],
   controllers: [HealthController],
-  providers: [
-    AuthConfigService,
-    {
-      provide: SecretProvider,
-      useFactory: () => {
-        const keyVaultUri = process.env.AZURE_KEY_VAULT_URI;
-        if (keyVaultUri) {
-          return new KeyVaultSecretProvider(keyVaultUri);
-        }
-        return new LocalSecretProvider();
-      }
-    }
-  ],
-  exports: [AuthConfigService, SecretProvider]
+  providers: []
 })
 export class AppModule {}

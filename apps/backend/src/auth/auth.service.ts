@@ -6,6 +6,7 @@ export interface AuthenticatedUser {
   provider: 'google' | 'microsoft';
   email: string;
   displayName: string;
+  tenantId?: string;
 }
 
 @Injectable()

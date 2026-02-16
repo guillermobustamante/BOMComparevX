@@ -12,11 +12,19 @@ Planned framework: NestJS + TypeScript with Passport strategies for Google/Micro
 - `GET /api/auth/google/callback`
 - `GET /api/auth/microsoft/start`
 - `GET /api/auth/microsoft/callback`
+- `GET /api/auth/me` (protected)
 - `GET /api/health`
+- `GET /api/tenant/me` (protected)
+- `GET /api/tenant/resource/:tenantId` (protected + tenant-scoped)
 
 Optional query support for start endpoints:
 - `returnTo` (internal path only, e.g. `/upload` or `/history`).
 - Unsafe values fall back to `/upload`.
+
+Tenant behavior:
+- Tenant ID is resolved from email domain using `TENANT_DOMAIN_MAP_JSON` when provided.
+- Fallback tenant is `DEFAULT_TENANT_ID`.
+- Cross-tenant access to `tenant/resource/:tenantId` returns `403`.
 
 ## Notes
 - Secrets are resolved via Azure Key Vault secret names from env contract.

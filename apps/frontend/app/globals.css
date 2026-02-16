@@ -1,0 +1,133 @@
+:root {
+  --bg: #f2f6fb;
+  --panel: #ffffff;
+  --ink: #11213b;
+  --muted: #5c6f8f;
+  --line: #d5dfed;
+  --accent: #0b6cff;
+  --accent-ink: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", "Calibri", "Arial", sans-serif;
+  background: radial-gradient(circle at 15% 10%, #ffffff 0%, var(--bg) 45%, #e7eef8 100%);
+  color: var(--ink);
+  min-height: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.page {
+  min-height: 100vh;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  border-right: 1px solid var(--line);
+  background: linear-gradient(165deg, #ffffff 0%, #eff4fb 100%);
+  padding: 20px;
+}
+
+.brand {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.nav {
+  margin-top: 24px;
+  display: grid;
+  gap: 10px;
+}
+
+.navLink {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--muted);
+  background: #fff;
+}
+
+.navLinkActive {
+  color: var(--ink);
+  border-color: #b7cbec;
+  background: #edf4ff;
+}
+
+.content {
+  padding: 24px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.btnPrimary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.chip {
+  display: inline-block;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}

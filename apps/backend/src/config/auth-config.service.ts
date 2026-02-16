@@ -42,27 +42,27 @@ export class AuthConfigService {
   }
 
   getGoogleClientId(): string {
-    return this.googleClientId;
+    return this.googleClientId || process.env.GOOGLE_CLIENT_ID || '';
   }
 
   getGoogleClientSecret(): string {
-    return this.googleClientSecret;
+    return this.googleClientSecret || process.env.GOOGLE_CLIENT_SECRET || '';
   }
 
   getMicrosoftClientId(): string {
-    return this.microsoftClientId;
+    return this.microsoftClientId || process.env.MICROSOFT_CLIENT_ID || '';
   }
 
   getMicrosoftClientSecret(): string {
-    return this.microsoftClientSecret;
+    return this.microsoftClientSecret || process.env.MICROSOFT_CLIENT_SECRET || '';
   }
 
   getGoogleCallbackUrl(): string {
-    return process.env.GOOGLE_CALLBACK_URL || 'http://localhost:4000/auth/google/callback';
+    return process.env.GOOGLE_CALLBACK_URL || 'http://localhost:4000/api/auth/google/callback';
   }
 
   getMicrosoftCallbackUrl(): string {
-    return process.env.MICROSOFT_CALLBACK_URL || 'http://localhost:4000/auth/microsoft/callback';
+    return process.env.MICROSOFT_CALLBACK_URL || 'http://localhost:4000/api/auth/microsoft/callback';
   }
 
   getWebBaseUrl(): string {
