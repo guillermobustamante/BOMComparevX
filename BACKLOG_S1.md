@@ -2,7 +2,12 @@
 
 ## Sprint S1 Backlog (Ticket-Ready)
 
-This backlog expands `S1-01` to `S1-08` from `SPRINT_PLAN.md` into execution-ready stories.
+This backlog expands `S1-01` to `S1-09` from `SPRINT_PLAN.md` into execution-ready stories.
+
+## Completion Snapshot
+- Last updated: `2026-02-16`
+- Completed: `S1-01`, `S1-02`, `S1-03`, `S1-04`, `S1-05`, `S1-06`, `S1-07`, `S1-08`, `S1-09`
+- Remaining in Sprint S1: `None`
 
 ---
 
@@ -16,7 +21,7 @@ This backlog expands `S1-01` to `S1-08` from `SPRINT_PLAN.md` into execution-rea
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S1`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-001`
@@ -189,7 +194,7 @@ Deliverables:
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S1`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-001`
@@ -261,7 +266,7 @@ Add tests for success/denial and ensure deterministic identity linking.
 - Estimate: `3`
 - Owner: `FE`
 - Sprint: `S1`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-001`
@@ -326,7 +331,7 @@ Add tests for default, valid returnTo, and invalid returnTo.
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S1`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-002`
@@ -392,7 +397,7 @@ Add coverage for pass/fail route access and denial audits.
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S1`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-002`
@@ -455,7 +460,7 @@ Add integration tests that prove denial for cross-tenant reads/writes.
 - Estimate: `3`
 - Owner: `FE`
 - Sprint: `S1`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): Product Plan Stage 1 foundation
@@ -515,7 +520,7 @@ Keep design-system consistency, ensure upload route visibility, and verify mobil
 - Estimate: `3`
 - Owner: `BE`
 - Sprint: `S1`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `NFR-SECURITY`, `NFR-AUDIT`
@@ -580,7 +585,7 @@ Ensure no secrets/tokens are written to logs.
 - Estimate: `5`
 - Owner: `QA/BE`
 - Sprint: `S1`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-001`, `FR-002`
@@ -665,7 +670,7 @@ A story is `Ready` only when all are true:
 - Estimate: `3`
 - Owner: `DevOps/BE`
 - Sprint: `S1`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-001`

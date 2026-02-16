@@ -3,9 +3,10 @@ import { HealthController } from './health.controller';
 import { AuthModule } from './auth/auth.module';
 import { TenantModule } from './tenant/tenant.module';
 import { ConfigModule } from './config/config.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
-  imports: [ConfigModule, AuthModule, TenantModule],
+  imports: [ConfigModule, AuthModule, TenantModule, UploadsModule],
   controllers: [HealthController],
   providers: []
 })

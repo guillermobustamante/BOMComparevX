@@ -12,6 +12,7 @@ import { AuditModule } from '../audit/audit.module';
 @Module({
   imports: [PassportModule.register({ session: true }), TenantModule, ConfigModule, AuditModule],
   controllers: [AuthController],
-  providers: [AuthService, GoogleStrategy, SessionAuthGuard, GoogleStartGuard]
+  providers: [AuthService, GoogleStrategy, SessionAuthGuard, GoogleStartGuard],
+  exports: [SessionAuthGuard]
 })
 export class AuthModule {}

@@ -17,6 +17,7 @@ Planned framework: NestJS + TypeScript with Passport strategies for Google/Micro
 - `GET /api/health`
 - `GET /api/tenant/me` (protected)
 - `GET /api/tenant/resource/:tenantId` (protected + tenant-scoped)
+- `POST /api/uploads/validate` (protected, multipart `fileA` + `fileB`)
 
 Optional query support for start endpoints:
 - `returnTo` (internal path only, e.g. `/upload` or `/history`).
@@ -37,6 +38,11 @@ Test support routes (disabled by default):
 - Set `ENABLE_TEST_ROUTES=true` to enable:
 - `POST /api/auth/test/login`
 - `POST /api/auth/test/logout`
+
+Upload validation error codes:
+- `UPLOAD_FILE_COUNT_INVALID`
+- `UPLOAD_FILE_TYPE_INVALID`
+- `UPLOAD_FILE_SIZE_EXCEEDED`
 
 ## Notes
 - Secrets are resolved via Azure Key Vault secret names from env contract.

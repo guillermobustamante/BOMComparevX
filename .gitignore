@@ -13,6 +13,7 @@ coverage/
 *.tsbuildinfo
 playwright-report/
 test-results/
+tmp-*.log
 
 # OS
 .DS_Store
