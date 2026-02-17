@@ -30,6 +30,8 @@ Execution baseline for Stage 1 with selected stack:
 
 ## Azure SQL + Key Vault Dev Setup (S2-00 Baseline)
 Use this when provisioning durable DB persistence for Dev.
+For ongoing DB operations (deploy/recover/rotate), use:
+`docs/runbooks/s2vdb-db-ops-baseline.md`.
 
 ### 1) Set Azure subscription
 ```powershell

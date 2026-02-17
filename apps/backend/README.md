@@ -69,3 +69,5 @@ Upload intake contract:
 - Planned S2-00 DB secret contract:
   - `SQL_CONNECTION_STRING_SECRET_NAME=SqlConnectionString--Dev`
   - `DATABASE_URL=` (local fallback only)
+- DB operations runbook:
+  - `docs/runbooks/s2vdb-db-ops-baseline.md`

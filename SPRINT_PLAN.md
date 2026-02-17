@@ -89,7 +89,7 @@ Deliver secure sign-in and baseline access control so authenticated users can re
 - Stage: `Stage 2 - Upload + Policy + Queue`
 - Dates: `TBD`
 - Owner: `Product + Engineering`
-- Status: `Planned`
+- Status: `Completed (including S2vDB persistence backfill)`
 
 ### Sprint Goal
 Enable two-file upload with immediate validation, enforce upload policy (including onboarding credits), and enqueue accepted jobs with visible history creation.
@@ -160,6 +160,13 @@ Enable two-file upload with immediate validation, enforce upload policy (includi
 - Feature flags: `upload_v1`, `upload_policy_v1`, `queue_enqueue_v1`.
 - Monitoring: upload rejection rate, queue enqueue success rate, policy block rate.
 - Rollback: disable `upload_v1` and keep authenticated shell operational.
+
+### Closeout Summary
+- `S2-00` persistence backfill completed:
+  - Azure SQL + Prisma migration baseline established.
+  - Stage 2 job/history/policy flows are DB-backed with tenant-safe access patterns.
+  - CI includes Prisma schema validation and durability checks.
+- `S2-01` to `S2-09` completed and verified in `verify:story`.
 
 ---
 
@@ -252,9 +259,14 @@ Implement multi-pass column detection with semantic registry + heuristic fallbac
 
 ### S2 Outcome
 - Completed:
+  - `S2-00` through `S2-09` completed.
+  - Stage 2 acceptance criteria passed with automation.
 - Deferred:
+  - None.
 - Regressions/Bugs:
+  - Prisma SQL Server migration required removal of `GO` batch separators.
 - Lessons learned:
+  - Keep SQL migrations Prisma-compatible and idempotent from first draft.
 
 ### S3 Outcome
 - Completed:
