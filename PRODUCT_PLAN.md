@@ -78,6 +78,11 @@ You want a product that is:
 9. **Cache**: query acceleration for session history/results
 10. **Admin/Audit Services**: overrides, observability, audit export
 
+Persistence conventions:
+- Azure SQL persistence managed via Prisma SQL migrations.
+- Physical table naming convention uses camelCase.
+- Stage 2 baseline persistence includes `job_runs`, history entities, `upload_policies`, `upload_events`, `audit_logs`, `bom_column_mappings`, and `column_detection_audits`.
+
 ### 5.3 Amendment 1: Semantic Registry + Multi-Pass Detection
 - **Pass 1: Semantic Registry** (95%+ target)
   - Cross-industry aliases (electronics/mechanical/aerospace/manufacturing)
@@ -88,6 +93,16 @@ You want a product that is:
   - confidence scores visible
   - manual remap supported
   - mappings saved immutably per revision
+
+Detection confidence gates for V1:
+- `>=0.90`: auto-map
+- `0.70-0.89`: review-required in preview UI
+- `<0.70`: low-confidence warning; user can proceed with explicit confirmation
+
+Canonical mapping fields for V1:
+- Required: `part_number`, `description`, `quantity`
+- Conditional required: `revision` (optional when unavailable in source/domain)
+- Optional: `supplier`, `cost`, `lifecycle_status`, tenant custom attributes
 
 Detection Strategy Order: exact → fuzzy → heuristic → user override.
 
@@ -204,6 +219,9 @@ Validation rules, cooldown/override, queued processing, restriction banners.
 
 ### Stage 3 — Detection + Mapping
 Semantic Registry + fallback detection + confirmation UI + immutable mapping persistence.
+Low-confidence mappings show warning and require explicit proceed confirmation.
+Saved mappings are reusable for future similar uploads and remain immutable per revision snapshot.
+If saved mapping conflicts with fresh detection, fresh detection is used by default.
 
 ### Stage 4 — Diff Engine + Progressive Results
 Deterministic matching, normalized diffs, progressive/streaming result delivery.
@@ -218,29 +236,10 @@ Raw-file lifecycle enforcement, audit exports, performance tuning for p95 target
 
 ## 9) Open Questions / Ambiguities to Resolve Before Build Lock
 
-<<<<<<< ours
-1. Should Phase 1 graph implementation be Azure SQL Graph immediately, or relational-only with graph migration later? Azure SQL Graph immediately 
-2. For “same format” Excel export, do you require style/formula fidelity or column/layout fidelity only? style/formulacolumn/layout fidelity, plus columns that are part of the comparision.
-3. Should 7-year retention apply to audit metadata/results only, while raw uploaded engineering files still delete at day 7? Yes.
-4. Confirm default multi-version behavior: each new upload compares against the immediately previous revision in-session. Yes, initially 2 files are required to be uploaded, but after the initial comparision has happend there is a posibility that the user adds a new file to the same comparision.
-5. Confirm upload policy for onboarding: strict 48h from first use vs initial credit-based grace period.  First 3 comparisons unrestricted, then 48h rule.
-6. Confirm launch notification default: in-app only or in-app + email.
-in-app for V1 and in-app + email for v2.
-=======
-1. Should Phase 1 graph implementation be Azure SQL Graph immediately, or relational-only with graph migration later?
-2. For “same format” Excel export, do you require style/formula fidelity or column/layout fidelity only?
-3. Should 7-year retention apply to audit metadata/results only, while raw uploaded engineering files still delete at day 7?
-4. Confirm default multi-version behavior: each new upload compares against the immediately previous revision in-session.
-5. Confirm upload policy for onboarding: strict 48h from first use vs initial credit-based grace period.
-6. Confirm launch notification default: in-app only or in-app + email.
-
->>>>>>> theirs
+1. Confirm color palette for confidence states in preview UI (current request: auto-map Red, review-required Yellow, low-confidence Red).
+2. Confirm whether optional `revision` should be recommended with warning when absent in upload templates.
 ---
 
 ## 10) Immediate Next Step
 
-Once the six questions above are confirmed, we freeze V1 scope and proceed stage-by-stage with product-owner approvals at each stage boundary.
-<<<<<<< ours
-
-=======
->>>>>>> theirs
+Once the remaining questions above are confirmed, we freeze V1 scope and proceed stage-by-stage with product-owner approvals at each stage boundary.

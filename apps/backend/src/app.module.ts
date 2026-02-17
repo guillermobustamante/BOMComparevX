@@ -4,9 +4,10 @@ import { AuthModule } from './auth/auth.module';
 import { TenantModule } from './tenant/tenant.module';
 import { ConfigModule } from './config/config.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
-  imports: [ConfigModule, AuthModule, TenantModule, UploadsModule],
+  imports: [ConfigModule, DatabaseModule, AuthModule, TenantModule, UploadsModule],
   controllers: [HealthController],
   providers: []
 })

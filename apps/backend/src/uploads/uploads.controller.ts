@@ -14,6 +14,7 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { SessionState } from '../auth/session-user.interface';
+import { AuditService } from '../audit/audit.service';
 import { UploadHistoryService } from './upload-history.service';
 import { UploadJobService } from './upload-job.service';
 import { UploadPolicyService } from './upload-policy.service';
@@ -27,7 +28,8 @@ export class UploadsController {
     private readonly uploadPolicyService: UploadPolicyService,
     private readonly uploadJobService: UploadJobService,
     private readonly uploadQueueService: UploadQueueService,
-    private readonly uploadHistoryService: UploadHistoryService
+    private readonly uploadHistoryService: UploadHistoryService,
+    private readonly auditService: AuditService
   ) {}
 
   @Post('validate')
@@ -38,18 +40,39 @@ export class UploadsController {
       { name: 'fileB', maxCount: 1 }
     ])
   )
-  validate(
+  async validate(
     @Req() req: Request,
     @UploadedFiles()
     files: {
       fileA?: Express.Multer.File[];
       fileB?: Express.Multer.File[];
     }
-  ) {
+  ): Promise<{
+    accepted: true;
+    correlationId: string;
+    files: {
+      fileA: { name: string; size: number };
+      fileB: { name: string; size: number };
+    };
+    policy: {
+      comparisonsUsed: number;
+      unrestrictedComparisonsRemaining: number;
+      cooldownUntilUtc: string | null;
+    };
+  }> {
     const validationResult = this.uploadValidationService.validate(files);
     const session = req.session as SessionState;
     const userKey = session.user?.email || 'unknown-user';
-    const policy = this.uploadPolicyService.registerAcceptedValidation(userKey);
+    const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const policy = await this.uploadPolicyService.registerAcceptedValidation(userKey, tenantId);
+    this.auditService.emit({
+      eventType: 'auth.login.success',
+      outcome: 'success',
+      actorEmail: userKey,
+      tenantId,
+      reason: 'upload.validate.accepted',
+      correlationId: validationResult.correlationId
+    });
     return {
       ...validationResult,
       policy
@@ -65,7 +88,7 @@ export class UploadsController {
       { name: 'fileB', maxCount: 1 }
     ])
   )
-  intake(
+  async intake(
     @Req() req: Request,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Headers('x-test-queue-fail') testQueueFail: string | undefined,
@@ -74,22 +97,34 @@ export class UploadsController {
       fileA?: Express.Multer.File[];
       fileB?: Express.Multer.File[];
     }
-  ) {
+  ): Promise<{
+    jobId: string;
+    sessionId: string;
+    historyId: string | null;
+    status: 'accepted';
+    correlationId: string;
+    idempotentReplay: boolean;
+    policy: {
+      comparisonsUsed: number;
+      unrestrictedComparisonsRemaining: number;
+      cooldownUntilUtc: string | null;
+    };
+  }> {
     const session = req.session as SessionState;
     const userKey = session.user?.email || 'unknown-user';
     const tenantId = session.user?.tenantId || 'unknown-tenant';
 
     if (idempotencyKey) {
-      const existing = this.uploadJobService.findByIdempotency(userKey, idempotencyKey);
+      const existing = await this.uploadJobService.findByIdempotency(userKey, idempotencyKey);
       if (existing) {
-        const existingHistory = this.uploadHistoryService.findByJobId(existing.jobId);
+        const existingHistory = await this.uploadHistoryService.findByJobId(existing.jobId, tenantId);
         return this.acceptedResponse(existing, existingHistory?.historyId || null, true);
       }
     }
 
     const validationResult = this.uploadValidationService.validate(files);
-    const policy = this.uploadPolicyService.registerAcceptedValidation(userKey);
-    const job = this.uploadJobService.createAcceptedJob({
+    const policy = await this.uploadPolicyService.registerAcceptedValidation(userKey, tenantId);
+    const job = await this.uploadJobService.createAcceptedJob({
       tenantId,
       requestedBy: userKey,
       idempotencyKey,
@@ -98,10 +133,22 @@ export class UploadsController {
     });
 
     const enqueuedMessage = this.uploadQueueService.enqueueAcceptedJob(job);
-    const queueResult = this.uploadQueueService.processAcceptedJobWithRetry(enqueuedMessage, this.uploadJobService, {
+    const queueResult = await this.uploadQueueService.processAcceptedJobWithRetry(
+      enqueuedMessage,
+      this.uploadJobService,
+      {
       forceFailure: process.env.NODE_ENV === 'test' && testQueueFail === 'always'
-    });
+      }
+    );
     if (!queueResult.queued) {
+      this.auditService.emit({
+        eventType: 'auth.login.failure',
+        outcome: 'failure',
+        actorEmail: userKey,
+        tenantId,
+        reason: 'upload.intake.queue_failed',
+        correlationId: job.correlationId
+      });
       throw new HttpException(
         {
           code: 'UPLOAD_QUEUE_ENQUEUE_FAILED',
@@ -111,7 +158,15 @@ export class UploadsController {
         HttpStatus.SERVICE_UNAVAILABLE
       );
     }
-    const historyEntry = this.uploadHistoryService.createAcceptedUploadEntry(job);
+    const historyEntry = await this.uploadHistoryService.createAcceptedUploadEntry(job);
+    this.auditService.emit({
+      eventType: 'auth.login.success',
+      outcome: 'success',
+      actorEmail: userKey,
+      tenantId,
+      reason: 'upload.intake.accepted',
+      correlationId: job.correlationId
+    });
     return this.acceptedResponse(job, historyEntry.historyId, false);
   }
 
@@ -129,7 +184,19 @@ export class UploadsController {
     },
     historyId: string | null,
     idempotentReplay: boolean
-  ) {
+  ): {
+    jobId: string;
+    sessionId: string;
+    historyId: string | null;
+    status: 'accepted';
+    correlationId: string;
+    idempotentReplay: boolean;
+    policy: {
+      comparisonsUsed: number;
+      unrestrictedComparisonsRemaining: number;
+      cooldownUntilUtc: string | null;
+    };
+  } {
     return {
       jobId: job.jobId,
       sessionId: job.sessionId,

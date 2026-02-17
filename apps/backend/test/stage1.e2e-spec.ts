@@ -247,14 +247,14 @@ describe('Stage 1 API baseline (e2e)', () => {
       .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'bom-b.csv', contentType: 'text/csv' })
       .expect(202);
 
-    const history = uploadHistoryService.findByJobId(response.body.jobId);
+    const history = await uploadHistoryService.findByJobId(response.body.jobId);
     expect(history).toBeDefined();
     expect(history?.historyId).toBe(response.body.historyId);
     expect(history?.sessionId).toBe(response.body.sessionId);
     expect(history?.status).toBe('queued');
     expect(history?.initiatorEmail).toBe(email);
 
-    const job = uploadJobService.findByJobId(response.body.jobId);
+    const job = await uploadJobService.findByJobId(response.body.jobId);
     expect(job?.status).toBe('queued');
   });
 

@@ -1,29 +1,54 @@
-## 9) Open Questions / Ambiguities to Resolve Before Build Lock
+# V1 Decisions (Locked)
 
-1. Should Phase 1 graph implementation be Azure SQL Graph immediately, or relational-only with graph migration later? Azure SQL Graph immediately 
-2. For “same format” Excel export, do you require style/formula fidelity or column/layout fidelity only? style/formulacolumn/layout fidelity, plus columns that are part of the comparision.
-3. Should 7-year retention apply to audit metadata/results only, while raw uploaded engineering files still delete at day 7? Yes.
-4. Confirm default multi-version behavior: each new upload compares against the immediately previous revision in-session. Yes, initially 2 files are required to be uploaded, but after the initial comparision has happend there is a posibility that the user adds a new file to the same comparision.
-5. Confirm upload policy for onboarding: strict 48h from first use vs initial credit-based grace period.  First 3 comparisons unrestricted, then 48h rule.
-6. Confirm launch notification default: in-app only or in-app + email.
-in-app for V1 and in-app + email for v2.
+Version: 1.1  
+Status: Locked for Stage 3 planning/execution
+
 ---
 
-8) Decisions you need to make now (product owner controls)
+## Platform and Scope
 
-1. **V1 file formats**
-   - A) CSV/Excel only (fast launch)
-   - We are going to go with Option A. We will limit V1 file formats to CSV/Excel.
+1. Deployment target is Azure-managed infrastructure for Dev/Test/Prod.
+2. Graph model in Phase 1 is Azure SQL Graph-capable.
+3. V1 launch file format scope is CSV/Excel-centric for upload/detection paths.
+4. Raw engineering files follow 7-day deletion; metadata/results/audits follow retention policy.
 
-2. **Notification in V1**
-   - A) In-app only, In-app only notifications
+## Upload, Policy, and Notifications
 
-3. **Upload limit onboarding policy**
-   - B) first 3 comparisons unrestricted, then 48h rule. 
-   - first 3 comparisons unrestricted, then 48h rule for V1
+5. Upload onboarding policy is: first 3 comparisons unrestricted, then 48-hour cooldown.
+6. Admin override/reset of upload policy is enabled and audit logged.
+7. Notifications default is in-app for V1; email expands in later phase.
+8. Sharing scope in V1 is single-recipient invite with explicit revoke.
 
-4. **Sharing scope in V1**
-   - A) single recipient per share, single recipient per share for V1.
+## Export and Revision Behavior
 
-5. **Deployment preference**
-   - The intention is to deploy this in Azure, so use technologies that are in Azure, and I want more control for V1.
+9. Excel export fidelity targets structure/layout and mapped columns; full style/formula fidelity is best-effort.
+10. Revision behavior is immutable: new upload creates a new revision, compared against immediately previous revision in-session.
+
+## Stage 3 Detection and Mapping (Locked)
+
+11. Multi-pass detection order is fixed:
+   - Pass 1: semantic registry exact/fuzzy
+   - Pass 2: heuristic fallback
+   - Pass 3: ML-assisted disabled in V1
+   - Pass 4: user confirmation/edit
+12. Semantic registry supports cross-industry aliases (electronics/mechanical/aerospace/manufacturing).
+13. Semantic registry supports multilingual aliases for EN/ES/DE/FR/JA/ZH and remains extensible.
+14. Confidence gates for V1 detection are:
+   - `>=0.90` auto-map (UI color code: Red)
+   - `0.70-0.89` review-required (UI color code: Yellow)
+   - `<0.70` low-confidence warning (UI color code: Red); user may proceed with warning
+15. Canonical mapping fields for Stage 3:
+   - Required: `part_number`, `description`, `quantity`
+   - Conditional required: `revision` (optional when unavailable in source/domain)
+   - Optional: `supplier`, `cost`, `lifecycle_status`, tenant custom attributes
+16. Confirmed mapping is immutable per revision and auditable.
+17. Mapping persistence entities for Stage 3:
+   - `bom_column_mappings` (immutable snapshot)
+   - `column_detection_audits` (strategy, confidence, user confirmation/correction)
+18. Mapping reuse conflict rule is fresh detection first (saved mapping does not override current detection by default).
+19. Mapping edit rights default is owner-only; admin override is available and audited.
+20. Low-confidence mappings do not hard-block flow; user can proceed with warning.
+21. Language detection metadata is persisted in mapping records; not required in audit records.
+22. Persistence/migration tool for this environment is Prisma with SQL migrations against Azure SQL.
+23. Physical table naming convention is camelCase.
+24. `bom_column_mappings` and `column_detection_audits` are included in the persistence baseline now (not deferred).

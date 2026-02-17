@@ -50,11 +50,11 @@ export class UploadQueueService {
     return message;
   }
 
-  processAcceptedJobWithRetry(
+  async processAcceptedJobWithRetry(
     message: QueuedUploadMessage,
     uploadJobService: UploadJobService,
     options?: { forceFailure?: boolean; maxRetries?: number }
-  ): QueueProcessResult {
+  ): Promise<QueueProcessResult> {
     const maxRetries = options?.maxRetries ?? 2;
     let attempts = 0;
     let lastError = 'unknown_queue_error';
@@ -65,7 +65,7 @@ export class UploadQueueService {
         if (options?.forceFailure) {
           throw new Error('forced_queue_failure');
         }
-        uploadJobService.markQueued(message.jobId);
+        await uploadJobService.markQueued(message.jobId);
         return {
           queued: true,
           deadLettered: false,

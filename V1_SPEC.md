@@ -49,6 +49,8 @@ V1 excludes:
 4. Multi-version behavior: newest upload compares against immediately previous revision in same session.
 5. Upload policy: 48-hour default with admin override/reset.
 6. Notifications default: in-app required; email enabled by tenant/platform configuration.
+7. Persistence layer uses Azure SQL with Prisma-managed SQL migrations.
+8. Physical table naming convention is camelCase.
 
 ---
 
@@ -96,7 +98,16 @@ V1 excludes:
 - Pass 2: Heuristic fallback for unmapped columns.
 - Pass 3: ML-assisted detection disabled by default in V1.
 - Pass 4: User confirmation/edit in preview UI.
+- Confidence gates are enforced:
+  - `>=0.90`: auto-map
+  - `0.70-0.89`: review-required in preview UI
+  - `<0.70`: low-confidence warning; user may proceed after explicit confirmation
+- Canonical mapping targets in V1:
+  - Required: `part_number`, `description`, `quantity`
+  - Conditional required: `revision` (optional when unavailable in source/domain)
+  - Optional: `supplier`, `cost`, `lifecycle_status`, tenant custom attributes
 - Confirmed mapping is saved immutably for that revision.
+- Language metadata is stored in mapping records.
 
 ### FR-007 Deterministic Matching and Diffs
 - Matching priority:
@@ -254,12 +265,15 @@ V1 excludes:
 - Invalid type/size is rejected immediately.
 - 48-hour policy blocks uploads with clear banner and disabled controls.
 - Accepted uploads enqueue processing job and create history entry.
+- Job/history/policy state is durable in database-backed persistence.
 
 ### Stage 3 — Detection + Mapping
 **Done when:**
 - Multi-pass detection runs automatically.
 - User sees confidence-based mapping preview and can edit mapping.
 - Confirmed mapping is saved immutably and auditable.
+- Detection decisions include strategy and confidence per mapped column.
+- Low-confidence mappings show warning and require explicit proceed confirmation.
 
 ### Stage 4 — Diff Engine + Results
 **Done when:**
@@ -292,12 +306,13 @@ V1 excludes:
 4. Cooldown blocked state rendering.
 5. Queue + progress state transitions.
 6. Detection preview edit + save mapping.
-7. Match strategy fallback behavior on controlled fixture data.
-8. Change filter combinations in results grid.
-9. Export file generation + download integrity.
-10. Share invite + authenticated access + revoke enforcement.
-11. Session rename/tag/delete behavior.
-12. Retention job deleting raw STEP/STP only.
+7. Confidence gate behavior (auto/review/low-confidence warning) across fixtures.
+8. Match strategy fallback behavior on controlled fixture data.
+9. Change filter combinations in results grid.
+10. Export file generation + download integrity.
+11. Share invite + authenticated access + revoke enforcement.
+12. Session rename/tag/delete behavior.
+13. Retention job deleting raw STEP/STP only.
 
 ---
 

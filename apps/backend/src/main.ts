@@ -9,6 +9,7 @@ import * as session from 'express-session';
 import * as passport from 'passport';
 import { AppModule } from './app.module';
 import { AuthConfigService } from './config/auth-config.service';
+import { DatabaseService } from './database/database.service';
 
 function loadEnvironment(): void {
   const candidates = [
@@ -34,7 +35,8 @@ async function preloadOAuthSecretsFromKeyVault(): Promise<void> {
     { envKey: 'GOOGLE_CLIENT_ID', secretNameEnvKey: 'GOOGLE_CLIENT_ID_SECRET_NAME' },
     { envKey: 'GOOGLE_CLIENT_SECRET', secretNameEnvKey: 'GOOGLE_CLIENT_SECRET_SECRET_NAME' },
     { envKey: 'MICROSOFT_CLIENT_ID', secretNameEnvKey: 'MICROSOFT_CLIENT_ID_SECRET_NAME' },
-    { envKey: 'MICROSOFT_CLIENT_SECRET', secretNameEnvKey: 'MICROSOFT_CLIENT_SECRET_SECRET_NAME' }
+    { envKey: 'MICROSOFT_CLIENT_SECRET', secretNameEnvKey: 'MICROSOFT_CLIENT_SECRET_SECRET_NAME' },
+    { envKey: 'DATABASE_URL', secretNameEnvKey: 'SQL_CONNECTION_STRING_SECRET_NAME' }
   ];
 
   for (const mapping of mappings) {
@@ -76,6 +78,8 @@ async function bootstrap() {
 
   const authConfig = app.get(AuthConfigService);
   await authConfig.initialize();
+  const databaseService = app.get(DatabaseService);
+  await databaseService.connectIfEnabled();
 
   app.setGlobalPrefix('api');
   const port = Number(process.env.PORT || 4000);

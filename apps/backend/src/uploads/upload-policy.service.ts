@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { DatabaseService } from '../database/database.service';
 
 const UNRESTRICTED_COMPARISON_LIMIT = 3;
 const DEFAULT_COOLDOWN_MS = 48 * 60 * 60 * 1000;
@@ -17,20 +18,19 @@ export interface UploadPolicySnapshot {
 
 @Injectable()
 export class UploadPolicyService {
+  constructor(private readonly databaseService: DatabaseService) {}
+
   private readonly userPolicyState = new Map<string, UploadPolicyState>();
 
-  registerAcceptedValidation(userKey: string): UploadPolicySnapshot {
-    const current = this.userPolicyState.get(userKey) || {
-      comparisonsUsed: 0,
-      cooldownUntilUtc: null
-    };
+  async registerAcceptedValidation(userKey: string, tenantId = 'unknown-tenant'): Promise<UploadPolicySnapshot> {
+    const current = await this.getState(userKey, tenantId);
     const nowMs = Date.now();
     const cooldownMs = this.cooldownMs();
 
     if (current.comparisonsUsed >= UNRESTRICTED_COMPARISON_LIMIT) {
       if (!current.cooldownUntilUtc) {
         const cooldownUntilUtc = new Date(nowMs + cooldownMs).toISOString();
-        this.userPolicyState.set(userKey, {
+        await this.persistState(userKey, tenantId, {
           ...current,
           cooldownUntilUtc
         });
@@ -50,7 +50,7 @@ export class UploadPolicyService {
           ? new Date(nowMs + cooldownMs).toISOString()
           : current.cooldownUntilUtc
     };
-    this.userPolicyState.set(userKey, next);
+    await this.persistState(userKey, tenantId, next);
 
     return {
       comparisonsUsed: next.comparisonsUsed,
@@ -59,11 +59,8 @@ export class UploadPolicyService {
     };
   }
 
-  getPolicy(userKey: string): UploadPolicySnapshot {
-    const current = this.userPolicyState.get(userKey) || {
-      comparisonsUsed: 0,
-      cooldownUntilUtc: null
-    };
+  async getPolicy(userKey: string, tenantId = 'unknown-tenant'): Promise<UploadPolicySnapshot> {
+    const current = await this.getState(userKey, tenantId);
 
     return {
       comparisonsUsed: current.comparisonsUsed,
@@ -92,5 +89,58 @@ export class UploadPolicyService {
       },
       HttpStatus.TOO_MANY_REQUESTS
     );
+  }
+
+  private async getState(userKey: string, tenantId: string): Promise<UploadPolicyState> {
+    const inMemory = this.userPolicyState.get(userKey);
+    if (inMemory && !this.databaseService.enabled) return inMemory;
+
+    if (this.databaseService.enabled) {
+      const persisted = await this.databaseService.client.uploadPolicy.findFirst({
+        where: { tenantId, userKey }
+      });
+      if (persisted) {
+        const mapped = {
+          comparisonsUsed: persisted.comparisonsUsed,
+          cooldownUntilUtc: persisted.cooldownUntilUtc ? persisted.cooldownUntilUtc.toISOString() : null
+        };
+        this.userPolicyState.set(userKey, mapped);
+        return mapped;
+      }
+    }
+
+    const initial = {
+      comparisonsUsed: 0,
+      cooldownUntilUtc: null
+    };
+    this.userPolicyState.set(userKey, initial);
+    return initial;
+  }
+
+  private async persistState(userKey: string, tenantId: string, state: UploadPolicyState): Promise<void> {
+    this.userPolicyState.set(userKey, state);
+    if (!this.databaseService.enabled) return;
+
+    await this.databaseService.client.uploadPolicy.upsert({
+      where: {
+        tenantId_userKey: {
+          tenantId,
+          userKey
+        }
+      },
+      update: {
+        comparisonsUsed: state.comparisonsUsed,
+        cooldownUntilUtc: state.cooldownUntilUtc ? new Date(state.cooldownUntilUtc) : null,
+        updatedAtUtc: new Date()
+      },
+      create: {
+        id: randomUUID(),
+        tenantId,
+        userKey,
+        comparisonsUsed: state.comparisonsUsed,
+        cooldownUntilUtc: state.cooldownUntilUtc ? new Date(state.cooldownUntilUtc) : null,
+        updatedAtUtc: new Date()
+      }
+    });
   }
 }

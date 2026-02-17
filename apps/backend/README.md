@@ -66,3 +66,6 @@ Upload intake contract:
 ## Notes
 - Secrets are resolved via Azure Key Vault secret names from env contract.
 - Local fallback supports direct `GOOGLE_*` and `MICROSOFT_*` env vars for development.
+- Planned S2-00 DB secret contract:
+  - `SQL_CONNECTION_STRING_SECRET_NAME=SqlConnectionString--Dev`
+  - `DATABASE_URL=` (local fallback only)

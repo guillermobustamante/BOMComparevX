@@ -27,3 +27,70 @@ Execution baseline for Stage 1 with selected stack:
 `npm run verify:story`
 - This executes:
 `ci:checks` (contracts + backend + frontend build checks) and Playwright browser tests.
+
+## Azure SQL + Key Vault Dev Setup (S2-00 Baseline)
+Use this when provisioning durable DB persistence for Dev.
+
+### 1) Set Azure subscription
+```powershell
+az account set --subscription 5ce30dc6-7731-4317-8540-060abd50d943
+```
+
+### 2) Create SQL Server + Database
+```powershell
+$rg="PLMChanges"
+$location="eastus"
+$sqlServerName="bomcomparedevsql01"   # must be globally unique
+$sqlAdminUser="dbplatformowner"
+$sqlAdminPass="<STRONG_PASSWORD>"
+$dbName="bomcompareDev"
+
+az sql server create `
+  --name $sqlServerName `
+  --resource-group $rg `
+  --location $location `
+  --admin-user $sqlAdminUser `
+  --admin-password $sqlAdminPass
+
+az sql db create `
+  --resource-group $rg `
+  --server $sqlServerName `
+  --name $dbName `
+  --service-objective S0
+```
+
+### 3) Add firewall rule for current public IP
+```powershell
+$myIp=(Invoke-RestMethod -Uri "https://api.ipify.org").Trim()
+az sql server firewall-rule create `
+  --resource-group $rg `
+  --server $sqlServerName `
+  --name "DevMachine" `
+  --start-ip-address $myIp `
+  --end-ip-address $myIp
+```
+
+### 4) Build SQL connection string
+```powershell
+$sqlHost="$sqlServerName.database.windows.net"
+$conn="sqlserver://$sqlHost:1433;database=$dbName;user=$sqlAdminUser;password=$sqlAdminPass;encrypt=true;trustServerCertificate=false;connection timeout=30;"
+$conn
+```
+
+### 5) Store connection string in Key Vault
+```powershell
+$kvName="<your-keyvault-name>"
+az keyvault secret set --vault-name $kvName --name "SqlConnectionString--Dev" --value $conn
+az keyvault secret show --vault-name $kvName --name "SqlConnectionString--Dev" --query id -o tsv
+```
+
+### 6) Env/secret-name contract (current)
+Add these keys to `.env.local` for DB secret resolution once S2-00 code wiring lands:
+```dotenv
+SQL_CONNECTION_STRING_SECRET_NAME=SqlConnectionString--Dev
+DATABASE_URL=
+```
+
+Notes:
+- `DATABASE_URL` is optional local fallback for non-Key-Vault runs.
+- Do not commit real DB credentials or connection strings.

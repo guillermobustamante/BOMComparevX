@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model JobRun {
+  jobId                                  String    @id
+  sessionId                              String
+  status                                 String
+  correlationId                          String
+  tenantId                               String
+  requestedBy                            String
+  createdAtUtc                           DateTime
+  idempotencyKey                         String?
+  fileAName                              String
+  fileASize                              Int
+  fileBName                              String
+  fileBSize                              Int
+  policyComparisonsUsed                  Int
+  policyUnrestrictedComparisonsRemaining Int
+  policyCooldownUntilUtc                 DateTime?
+
+  @@unique([requestedBy, idempotencyKey], map: "uq_jobRuns_requestedBy_idempotencyKey")
+  @@index([tenantId, requestedBy, createdAtUtc], map: "ix_jobRuns_tenant_user_createdAt")
+  @@map("jobRuns")
+}
+
+model HistoryEntry {
+  historyId       String   @id
+  jobId           String   @unique
+  sessionId       String
+  createdAtUtc    DateTime
+  status          String
+  initiatorEmail  String
+  tenantId        String
+
+  @@index([tenantId, initiatorEmail, createdAtUtc], map: "ix_historyEntries_tenant_user_createdAt")
+  @@map("historyEntries")
+}
+
+model UploadPolicy {
+  id               String   @id
+  tenantId         String
+  userKey          String
+  comparisonsUsed  Int
+  cooldownUntilUtc DateTime?
+  updatedAtUtc     DateTime
+
+  @@unique([tenantId, userKey], map: "uq_uploadPolicies_tenant_user")
+  @@index([tenantId, userKey, updatedAtUtc], map: "ix_uploadPolicies_tenant_user_updatedAt")
+  @@map("uploadPolicies")
+}
+
+model UploadEvent {
+  eventId         String   @id
+  tenantId        String
+  userKey         String
+  eventType       String
+  correlationId   String
+  detailsJson     String?
+  createdAtUtc    DateTime
+
+  @@index([tenantId, userKey, createdAtUtc], map: "ix_uploadEvents_tenant_user_createdAt")
+  @@map("uploadEvents")
+}
+
+model AuditLog {
+  id              String   @id
+  timestampUtc    DateTime
+  userId          String?
+  tenantId        String?
+  actionType      String
+  resourceType    String?
+  resourceId      String?
+  detailsJson     String?
+  outcome         String?
+  ipAddress       String?
+  correlationId   String?
+
+  @@index([tenantId, timestampUtc], map: "ix_auditLogs_tenant_timestamp")
+  @@map("auditLogs")
+}
+
+model BomColumnMapping {
+  mappingId            String   @id
+  tenantId             String
+  bomRevisionId        String
+  originalColumnsJson  String
+  canonicalMappingJson String
+  customColumnIndicesJson String?
+  detectionConfidence  Float?
+  languageMetadataJson String?
+  createdAtUtc         DateTime
+  createdBy            String?
+
+  @@index([tenantId, bomRevisionId, createdAtUtc], map: "ix_bomColumnMappings_tenant_revision_createdAt")
+  @@map("bomColumnMappings")
+}
+
+model ColumnDetectionAudit {
+  auditId            String   @id
+  tenantId           String
+  bomRevisionId      String
+  sourceColumn       String?
+  canonicalField     String?
+  strategy           String
+  confidence         Float?
+  reviewState        String?
+  actor              String?
+  changedFrom        String?
+  changedTo          String?
+  timestampUtc       DateTime
+  correlationId      String?
+
+  @@index([tenantId, bomRevisionId, timestampUtc], map: "ix_columnDetectionAudits_tenant_revision_timestamp")
+  @@map("columnDetectionAudits")
+}

@@ -97,6 +97,7 @@ Enable two-file upload with immediate validation, enforce upload policy (includi
 ### Scope (Committed)
 | ID | Work Item | Spec Traceability | Estimate | Owner | Priority |
 |---|---|---|---:|---|---|
+| S2-00 | Persist Stage 2 baseline in Azure SQL (Prisma migrations, camelCase tables, durable job/history/policy/audit, include mapping/audit entities) | `FR-005`; Stage 2 bullet 4; Data Entities section | 8 | BE/DBA | P0 |
 | S2-01 | Build two-file upload UI (picker + drag/drop) | `FR-003`; Stage 2 bullet 1 | 5 | FE | P0 |
 | S2-02 | Add server-side file validation (type/size) with immediate rejection UX | `FR-003`; Stage 2 bullet 2 | 5 | BE/FE | P0 |
 | S2-03 | Implement onboarding policy: first 3 comparisons unrestricted | `V1_DECISIONS.md` item 3 | 3 | BE | P0 |
@@ -124,6 +125,7 @@ Enable two-file upload with immediate validation, enforce upload policy (includi
 - Storage endpoint/container for temporary uploaded files.
 - Queue infrastructure with retry/dead-letter baseline.
 - Job/history persistence schema available.
+- Azure SQL Dev connectivity and Key Vault secret contract configured.
 
 ### Definition of Done (Sprint-Level)
 - All Stage 2 acceptance bullets in `V1_SPEC.md` are demonstrably met.
@@ -161,6 +163,85 @@ Enable two-file upload with immediate validation, enforce upload policy (includi
 
 ---
 
+## Sprint S3 - Stage 3 Detection + Mapping
+
+### Sprint Metadata
+- Sprint: `S3`
+- Stage: `Stage 3 - Detection + Mapping`
+- Dates: `TBD`
+- Owner: `Product + Engineering`
+- Status: `Planned`
+
+### Sprint Goal
+Implement multi-pass column detection with semantic registry + heuristic fallback, enforce confidence-based review gates, and persist immutable/auditable mapping confirmations.
+
+### Scope (Committed)
+| ID | Work Item | Spec Traceability | Estimate | Owner | Priority |
+|---|---|---|---:|---|---|
+| S3-01 | Define Canonical Mapping Contract + Confidence Model | `FR-006`; Stage 3 bullet 1 | 3 | BE/Architect | P0 |
+| S3-02 | Build Semantic Registry Aliases Engine | `FR-006`; Stage 3 bullets 1-2 | 5 | BE/Data | P0 |
+| S3-03 | Implement Pass-1 Registry Detection | `FR-006`; Stage 3 bullet 1 | 5 | BE | P0 |
+| S3-04 | Implement Pass-2 Heuristic Fallback + Unresolved Handling | `FR-006`; Stage 3 bullets 1-2 | 5 | BE | P0 |
+| S3-05 | Create Detection Preview API | `FR-006`; Stage 3 bullet 2 | 3 | BE | P0 |
+| S3-06 | Build Mapping Preview/Edit UI with Confidence Gates | `FR-006`; Stage 3 bullet 2 | 5 | FE | P0 |
+| S3-07 | Persist Immutable Mapping Snapshot per Revision | `FR-006`; Stage 3 bullet 3 | 5 | BE | P0 |
+| S3-08 | Add Detection and Manual-Mapping Audit Trail | `FR-006`; `NFR-AUDIT`; Stage 3 bullet 3 | 3 | BE | P0 |
+| S3-09 | Add Stage 3 Automated Tests (Backend + Browser) | QA matrix items 6-7 | 5 | QA/BE/FE | P0 |
+
+### Non-Goals (Out of Scope)
+- Deterministic diff classification and result grid behavior (Stage 4).
+- Export formatting behavior beyond mapping compatibility contracts (Stage 5).
+- ML-assisted mapping in runtime flow (disabled in V1).
+
+### Delivery Plan
+- Week 1:
+  - Detection contract + registry/fallback implementation (`S3-01` to `S3-04`).
+  - Detection preview API (`S3-05`).
+- Week 2:
+  - Preview/edit UI + immutable persistence + audits (`S3-06` to `S3-08`).
+  - Full acceptance test pass (`S3-09`).
+
+### Dependencies
+- Stage 2 upload/intake flow stable in Dev/Test.
+- Revision identifiers and tenant context available at detection time.
+- Storage/schema readiness for `bom_column_mappings` and `column_detection_audits`.
+
+### Definition of Done (Sprint-Level)
+- All Stage 3 acceptance bullets in `V1_SPEC.md` are demonstrably met.
+- Confidence gate behaviors are enforced (`auto`, `review-required`, `low-confidence warning + explicit proceed`).
+- Mapping confirmation is immutable per revision.
+- Detection and manual corrections are audit logged with strategy/confidence metadata.
+
+### QA Plan
+- Validate registry matches multilingual/industry aliases.
+- Validate heuristic fallback behavior for unmapped headers.
+- Validate confidence gates route to auto/review/warning states correctly.
+- Validate preview UI edit/confirm flow with sample rows.
+- Validate immutable mapping snapshot persistence and audit entries.
+- Validate owner-only mapping edit permissions and audited admin override behavior.
+
+### Risks and Mitigations
+| Risk | Impact | Mitigation | Owner | Trigger |
+|---|---|---|---|---|
+| Alias collisions across domains/languages | Wrong auto-mapping | Domain-weighted scoring + review-required band | BE/Data | Unexpected mappings in fixtures |
+| Over-permissive confidence threshold | False positive mappings | Conservative thresholds + mandatory confirm for medium/low | BE | QA mismatch in detection |
+| Warning-based proceed on low confidence | Incorrect downstream comparison | Persist warning state + make warning explicit and test decision path | FE/BE | High correction rate post-run |
+| Mapping mutability regression | Audit/reproducibility loss | Append-only snapshot write pattern + immutability tests | BE | Re-opened mapping changes |
+| Preview UX complexity | User errors and friction | Show sample rows, clear strategy labels, constrained controls | FE | High correction rate in QA |
+
+### Demo Plan
+- Show automatic mapping for known aliases.
+- Show review-required and low-confidence warning cases.
+- Show user correction and immutable confirmation.
+- Show audit entries for both automatic and manual mapping events.
+
+### Rollout Notes
+- Feature flags: `detection_registry_v1`, `mapping_preview_v1`.
+- Monitoring: detection confidence distribution, manual correction rate, unresolved column rate.
+- Rollback: disable Stage 3 feature flags while preserving Stage 2 flows.
+
+---
+
 ## Sprint Review Template (Complete at Sprint Close)
 
 ### S1 Outcome
@@ -170,6 +251,12 @@ Enable two-file upload with immediate validation, enforce upload policy (includi
 - Lessons learned:
 
 ### S2 Outcome
+- Completed:
+- Deferred:
+- Regressions/Bugs:
+- Lessons learned:
+
+### S3 Outcome
 - Completed:
 - Deferred:
 - Regressions/Bugs:
