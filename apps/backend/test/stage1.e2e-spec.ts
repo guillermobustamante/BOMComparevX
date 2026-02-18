@@ -17,6 +17,8 @@ import {
   resolveReviewState
 } from '../src/mapping/mapping-contract';
 import { MappingDetectionService } from '../src/mapping/mapping-detection.service';
+import { MappingAuditService } from '../src/mapping/mapping-audit.service';
+import { MappingPersistenceService } from '../src/mapping/mapping-persistence.service';
 import { SemanticRegistryService } from '../src/mapping/semantic-registry.service';
 
 describe('Stage 1 API baseline (e2e)', () => {
@@ -25,6 +27,8 @@ describe('Stage 1 API baseline (e2e)', () => {
   let uploadJobService: UploadJobService;
   let semanticRegistryService: SemanticRegistryService;
   let mappingDetectionService: MappingDetectionService;
+  let mappingPersistenceService: MappingPersistenceService;
+  let mappingAuditService: MappingAuditService;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -53,6 +57,8 @@ describe('Stage 1 API baseline (e2e)', () => {
     uploadJobService = moduleFixture.get(UploadJobService);
     semanticRegistryService = moduleFixture.get(SemanticRegistryService);
     mappingDetectionService = moduleFixture.get(MappingDetectionService);
+    mappingPersistenceService = moduleFixture.get(MappingPersistenceService);
+    mappingAuditService = moduleFixture.get(MappingAuditService);
   });
 
   afterAll(async () => {
@@ -460,5 +466,127 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(requiredStatuses.part_number?.mapped).toBe(true);
     expect(requiredStatuses.description?.mapped).toBe(true);
     expect(requiredStatuses.quantity?.mapped).toBe(true);
+  });
+
+  it('POST /api/mappings/confirm requires authentication', async () => {
+    await request(app.getHttpServer())
+      .post('/api/mappings/confirm')
+      .send({
+        contractVersion: 'v1',
+        revisionId: 'rev-unauth',
+        explicitWarningAcknowledged: true,
+        mappings: [{ sourceColumn: 'Part Number', canonicalField: 'part_number', reviewState: 'AUTO' }]
+      })
+      .expect(401);
+  });
+
+  it('mapping confirm persists immutable snapshot and retrieval returns stored mapping', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'mapping.confirm@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const confirm = await agent
+      .post('/api/mappings/confirm')
+      .send({
+        contractVersion: 'v1',
+        revisionId: 'rev-s3-immutable',
+        explicitWarningAcknowledged: true,
+        mappings: [
+          {
+            sourceColumn: 'Part Number',
+            canonicalField: 'part_number',
+            reviewState: 'AUTO',
+            strategy: 'REGISTRY_EXACT',
+            confidence: 1
+          },
+          {
+            sourceColumn: 'Mystery Header',
+            canonicalField: '__unmapped__',
+            reviewState: 'LOW_CONFIDENCE_WARNING',
+            strategy: 'HEURISTIC',
+            confidence: 0.5
+          }
+        ]
+      })
+      .expect(201);
+
+    expect(confirm.body.mappingId).toBeDefined();
+    expect(confirm.body.revisionId).toBe('rev-s3-immutable');
+    expect(confirm.body.immutable).toBe(true);
+
+    const fetchSaved = await agent.get('/api/mappings/rev-s3-immutable').expect(200);
+    expect(fetchSaved.body.mappingId).toBe(confirm.body.mappingId);
+    expect(fetchSaved.body.immutable).toBe(true);
+    expect(fetchSaved.body.mappings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ sourceColumn: 'Part Number', canonicalField: 'part_number' }),
+        expect.objectContaining({ sourceColumn: 'Mystery Header', canonicalField: null })
+      ])
+    );
+  });
+
+  it('mapping confirm rejects second confirmation for same tenant/revision', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'mapping.conflict@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const payload = {
+      contractVersion: 'v1',
+      revisionId: 'rev-s3-conflict',
+      explicitWarningAcknowledged: true,
+      mappings: [{ sourceColumn: 'Part Number', canonicalField: 'part_number', reviewState: 'AUTO' }]
+    };
+
+    await agent.post('/api/mappings/confirm').send(payload).expect(201);
+    const conflict = await agent.post('/api/mappings/confirm').send(payload).expect(409);
+    expect(conflict.body.code).toBe('MAPPING_IMMUTABLE_ALREADY_CONFIRMED');
+  });
+
+  it('mapping preview/confirm appends tenant-scoped audit entries queryable by revision', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'mapping.audit@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    await agent.get('/api/mappings/preview/rev-s3-audit-preview').expect(200);
+
+    await agent
+      .post('/api/mappings/confirm')
+      .send({
+        contractVersion: 'v1',
+        revisionId: 'rev-s3-audit-preview',
+        explicitWarningAcknowledged: true,
+        mappings: [
+          {
+            sourceColumn: 'Part Number',
+            canonicalField: 'part_number',
+            originalCanonicalField: 'part_number',
+            reviewState: 'AUTO',
+            strategy: 'REGISTRY_EXACT',
+            confidence: 1
+          },
+          {
+            sourceColumn: 'Mystery Header',
+            canonicalField: 'supplier',
+            originalCanonicalField: null,
+            reviewState: 'LOW_CONFIDENCE_WARNING',
+            strategy: 'HEURISTIC',
+            confidence: 0.5
+          }
+        ]
+      })
+      .expect(201);
+
+    const audits = await mappingAuditService.getByRevision('tenant-a', 'rev-s3-audit-preview');
+    expect(audits.length).toBeGreaterThan(0);
+    expect(audits.some((entry) => entry.strategy === 'HEURISTIC')).toBe(true);
+    expect(audits.some((entry) => entry.strategy === 'MANUAL' && entry.changedTo === 'supplier')).toBe(true);
+
+    await expect(mappingPersistenceService.getRevisionMapping('tenant-a', 'rev-s3-audit-preview')).resolves.toBeDefined();
   });
 });

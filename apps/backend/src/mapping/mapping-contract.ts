@@ -53,8 +53,31 @@ export interface MappingConfirmationContract {
   explicitWarningAcknowledged: boolean;
   mappings: Array<{
     sourceColumn: string;
-    canonicalField: CanonicalField;
+    canonicalField: CanonicalField | null;
+    originalCanonicalField?: CanonicalField | null;
+    strategy?: 'REGISTRY_EXACT' | 'REGISTRY_FUZZY' | 'HEURISTIC' | 'MANUAL';
+    confidence?: number;
+    reviewState?: MappingReviewState;
     languageMetadata?: string;
+  }>;
+}
+
+export interface MappingSnapshotContract {
+  contractVersion: string;
+  mappingId: string;
+  revisionId: string;
+  tenantId: string;
+  immutable: true;
+  confirmedAtUtc: string;
+  createdBy: string;
+  originalColumns: string[];
+  mappings: Array<{
+    sourceColumn: string;
+    canonicalField: CanonicalField | null;
+    languageMetadata?: string;
+    strategy?: 'REGISTRY_EXACT' | 'REGISTRY_FUZZY' | 'HEURISTIC' | 'MANUAL';
+    confidence?: number;
+    reviewState?: MappingReviewState;
   }>;
 }
 

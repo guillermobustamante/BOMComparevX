@@ -329,7 +329,7 @@ Allow user edits and require explicit confirmation to proceed when low-confidenc
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S3`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-006`
@@ -374,7 +374,7 @@ Reject mutation attempts for already-confirmed revision mappings.
 - Estimate: `3`
 - Owner: `BE`
 - Sprint: `S3`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-006`, `NFR-AUDIT`
@@ -428,7 +428,7 @@ Capture manual correction deltas and actor identity.
 - Estimate: `5`
 - Owner: `QA/BE/FE`
 - Sprint: `S3`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-006`

@@ -89,11 +89,9 @@ export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
 
   const canConfirm = useMemo(() => {
     if (!preview) return false;
-    const hasMissingSelection = preview.columns.some((column) => !editedMap[column.sourceColumn]);
-    if (hasMissingSelection) return false;
     if (hasLowConfidence && !ackWarnings) return false;
     return true;
-  }, [preview, editedMap, hasLowConfidence, ackWarnings]);
+  }, [preview, hasLowConfidence, ackWarnings]);
 
   async function onConfirm() {
     if (!preview) return;
@@ -106,7 +104,7 @@ export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
       explicitWarningAcknowledged: ackWarnings,
       mappings: preview.columns.map((column) => ({
         sourceColumn: column.sourceColumn,
-        canonicalField: editedMap[column.sourceColumn],
+        canonicalField: editedMap[column.sourceColumn] || '__unmapped__',
         reviewState: column.reviewState
       }))
     };
@@ -116,12 +114,20 @@ export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    const result = (await response.json()) as { code?: string; message?: string; correlationId?: string };
+    const result = (await response.json()) as {
+      code?: string;
+      message?: string;
+      correlationId?: string;
+      mappingId?: string;
+      revisionId?: string;
+    };
     if (!response.ok) {
       setConfirmError(`${result.code || 'MAPPING_CONFIRM_FAILED'}: ${result.message || 'Confirm failed.'}`);
       return;
     }
-    setConfirmSuccess(`MAPPING_CONFIRM_SUBMITTED: ${result.correlationId || 'ok'}`);
+    setConfirmSuccess(
+      `MAPPING_CONFIRM_SUBMITTED: mappingId=${result.mappingId || 'n/a'} revisionId=${result.revisionId || preview.revisionId}`
+    );
   }
 
   if (loading) {

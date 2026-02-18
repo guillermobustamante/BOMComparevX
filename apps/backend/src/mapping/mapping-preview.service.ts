@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { DatabaseService } from '../database/database.service';
 import { REQUIRED_CANONICAL_FIELDS, MappingPreviewContract, isRequiredFieldMapped, MAPPING_CONTRACT_VERSION } from './mapping-contract';
+import { MappingAuditService } from './mapping-audit.service';
 import { MappingDetectionService } from './mapping-detection.service';
 
 interface RevisionSeed {
@@ -12,7 +14,8 @@ interface RevisionSeed {
 export class MappingPreviewService {
   constructor(
     private readonly databaseService: DatabaseService,
-    private readonly mappingDetectionService: MappingDetectionService
+    private readonly mappingDetectionService: MappingDetectionService,
+    private readonly mappingAuditService: MappingAuditService
   ) {}
 
   async getPreview(revisionId: string, tenantId: string): Promise<MappingPreviewContract> {
@@ -25,6 +28,12 @@ export class MappingPreviewService {
       field,
       ...isRequiredFieldMapped(columns, field)
     }));
+    await this.mappingAuditService.recordDetectionRun({
+      tenantId,
+      revisionId,
+      correlationId: randomUUID(),
+      columns
+    });
 
     return {
       contractVersion: MAPPING_CONTRACT_VERSION,

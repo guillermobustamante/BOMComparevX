@@ -13,6 +13,8 @@ interface ConfirmPayload {
 }
 
 export async function POST(request: NextRequest) {
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+  const cookie = request.headers.get('cookie') || '';
   let payload: ConfirmPayload;
   try {
     payload = (await request.json()) as ConfirmPayload;
@@ -60,15 +62,40 @@ export async function POST(request: NextRequest) {
       reviewState: mapping.reviewState
     }));
 
-  return NextResponse.json(
-    {
-      status: 'accepted',
-      revisionId: payload.revisionId,
-      contractVersion: payload.contractVersion || 'v1',
-      explicitWarningAcknowledged: !!payload.explicitWarningAcknowledged,
-      mappings: deterministicMappings,
-      correlationId: randomUUID()
-    },
-    { status: 202 }
-  );
+  try {
+    const upstream = await fetch(`${apiBase}/api/mappings/confirm`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(cookie ? { cookie } : {})
+      },
+      body: JSON.stringify({
+        contractVersion: payload.contractVersion || 'v1',
+        revisionId: payload.revisionId,
+        explicitWarningAcknowledged: !!payload.explicitWarningAcknowledged,
+        mappings: deterministicMappings
+      }),
+      cache: 'no-store'
+    });
+    let upstreamPayload: unknown;
+    try {
+      upstreamPayload = await upstream.json();
+    } catch {
+      upstreamPayload = {
+        code: 'MAPPING_CONFIRM_UPSTREAM_INVALID',
+        message: 'Mapping confirm service returned an invalid response.',
+        correlationId: randomUUID()
+      };
+    }
+    return NextResponse.json(upstreamPayload, { status: upstream.status });
+  } catch {
+    return NextResponse.json(
+      {
+        code: 'MAPPING_CONFIRM_UPSTREAM_UNAVAILABLE',
+        message: 'Mapping confirm service is unavailable.',
+        correlationId: randomUUID()
+      },
+      { status: 502 }
+    );
+  }
 }
