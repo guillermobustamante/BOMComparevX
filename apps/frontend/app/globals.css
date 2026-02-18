@@ -175,6 +175,72 @@ a {
   cursor: not-allowed;
 }
 
+.mappingTableWrap {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+.mappingTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.mappingTable th,
+.mappingTable td {
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  padding: 10px 8px;
+}
+
+.mappingTable select {
+  min-width: 180px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.chipAuto {
+  border-color: #93d0a3;
+  background: #edf9f1;
+  color: #205133;
+}
+
+.chipReview {
+  border-color: #f1cf7e;
+  background: #fff8e6;
+  color: #6a4a00;
+}
+
+.chipWarn {
+  border-color: #e7a5a5;
+  background: #fff2f2;
+  color: #7a2222;
+}
+
+.mappingSampleRows {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  background: #f8fbff;
+}
+
+.mappingSampleRows pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 8px 0 0;
+}
+
+.mappingAck {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6a4a00;
+}
+
 @media (max-width: 900px) {
   .shell {
     grid-template-columns: 1fr;

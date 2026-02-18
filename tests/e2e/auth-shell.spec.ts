@@ -208,3 +208,70 @@ test('upload can queue a valid intake and show accepted job feedback', async ({ 
   await expect(page.getByTestId('upload-intake-success')).toContainText('Status: accepted');
   await context.close();
 });
+
+test('mapping preview shows strategy/confidence and requires warning acknowledgement', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.mapping.preview');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({
+    baseURL,
+    storageState
+  });
+  const page = await context.newPage();
+
+  await page.goto('/mappings/rev-s3-preview');
+  await expect(page.getByTestId('mapping-preview-panel')).toBeVisible();
+  await expect(page.getByTestId('mapping-row-part-number')).toBeVisible();
+  await expect(page.getByTestId('mapping-row-descriptin')).toBeVisible();
+  await expect(page.getByTestId('mapping-row-mystery-header')).toBeVisible();
+  await expect(page.getByTestId('mapping-warning-ack')).toBeVisible();
+
+  await expect(page.getByTestId('mapping-confirm-btn')).toBeDisabled();
+  await page.getByTestId('mapping-warning-ack').locator('input[type="checkbox"]').check();
+  await expect(page.getByTestId('mapping-confirm-btn')).toBeEnabled();
+
+  await context.close();
+});
+
+test('mapping preview allows edits and submits deterministic confirmation payload', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.mapping.confirm');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({
+    baseURL,
+    storageState
+  });
+  const page = await context.newPage();
+
+  await page.goto('/mappings/rev-s3-preview');
+  await page.getByTestId('mapping-select-mystery-header').selectOption('supplier');
+  await page.getByTestId('mapping-warning-ack').locator('input[type="checkbox"]').check();
+  await page.getByTestId('mapping-confirm-btn').click();
+
+  await expect(page.getByTestId('mapping-confirm-success')).toContainText('MAPPING_CONFIRM_SUBMITTED');
+  await context.close();
+});

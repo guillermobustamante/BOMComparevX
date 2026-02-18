@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 function navClass(pathname: string, href: string): string {
   const base = 'navLink';
   if (pathname === href) return `${base} navLinkActive`;
+  if (href === '/mappings' && pathname.startsWith('/mappings/')) return `${base} navLinkActive`;
   return base;
 }
 
@@ -27,6 +28,9 @@ export function AppShell(props: {
           </Link>
           <Link href="/history" className={navClass(pathname, '/history')}>
             History
+          </Link>
+          <Link href="/mappings/rev-s3-preview" className={navClass(pathname, '/mappings')}>
+            Mapping Preview
           </Link>
         </div>
         <div className="actions">

@@ -7,11 +7,24 @@ import * as passport from 'passport';
 import { AppModule } from '../src/app.module';
 import { UploadHistoryService } from '../src/uploads/upload-history.service';
 import { UploadJobService } from '../src/uploads/upload-job.service';
+import {
+  CONFIDENCE_BANDS,
+  CONDITIONAL_CANONICAL_FIELDS,
+  DETECTION_CONFLICT_POLICY,
+  MAPPING_CONTRACT_VERSION,
+  MAPPING_EDIT_POLICY,
+  REQUIRED_CANONICAL_FIELDS,
+  resolveReviewState
+} from '../src/mapping/mapping-contract';
+import { MappingDetectionService } from '../src/mapping/mapping-detection.service';
+import { SemanticRegistryService } from '../src/mapping/semantic-registry.service';
 
 describe('Stage 1 API baseline (e2e)', () => {
   let app: INestApplication;
   let uploadHistoryService: UploadHistoryService;
   let uploadJobService: UploadJobService;
+  let semanticRegistryService: SemanticRegistryService;
+  let mappingDetectionService: MappingDetectionService;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -38,6 +51,8 @@ describe('Stage 1 API baseline (e2e)', () => {
     await app.init();
     uploadHistoryService = moduleFixture.get(UploadHistoryService);
     uploadJobService = moduleFixture.get(UploadJobService);
+    semanticRegistryService = moduleFixture.get(SemanticRegistryService);
+    mappingDetectionService = moduleFixture.get(MappingDetectionService);
   });
 
   afterAll(async () => {
@@ -336,5 +351,114 @@ describe('Stage 1 API baseline (e2e)', () => {
     const acceptedAfterCooldown = await postValidPair().expect(201);
     expect(acceptedAfterCooldown.body.policy.comparisonsUsed).toBe(4);
     expect(acceptedAfterCooldown.body.policy.unrestrictedComparisonsRemaining).toBe(0);
+  });
+
+  it('stage 3 mapping contract exposes canonical fields and confidence bands', () => {
+    expect(MAPPING_CONTRACT_VERSION).toBe('v1');
+    expect(DETECTION_CONFLICT_POLICY).toBe('fresh_detection_precedence');
+    expect(MAPPING_EDIT_POLICY).toBe('owner_only');
+    expect(REQUIRED_CANONICAL_FIELDS).toEqual(['part_number', 'description', 'quantity']);
+    expect(CONDITIONAL_CANONICAL_FIELDS).toEqual(['revision']);
+    expect(CONFIDENCE_BANDS.autoMapMin).toBe(0.9);
+    expect(CONFIDENCE_BANDS.reviewRequiredMin).toBe(0.7);
+    expect(resolveReviewState(0.95)).toBe('AUTO');
+    expect(resolveReviewState(0.75)).toBe('REVIEW_REQUIRED');
+    expect(resolveReviewState(0.65)).toBe('LOW_CONFIDENCE_WARNING');
+  });
+
+  it('stage 3 semantic registry resolves multilingual aliases with metadata', () => {
+    const match = semanticRegistryService.findExact('Número de parte', {
+      domains: ['electronics'],
+      languages: ['es']
+    });
+
+    expect(match).toBeDefined();
+    expect(match?.canonicalField).toBe('part_number');
+    expect(match?.language).toBe('es');
+    expect(match?.domain).toBe('electronics');
+    expect(match?.confidence).toBeGreaterThanOrEqual(0.9);
+  });
+
+  it('stage 3 pass-1 detection runs exact before fuzzy and keeps deterministic strategies', () => {
+    const pass1 = mappingDetectionService.detectPass1(['Part Number', 'Part Numbr'], {
+      domains: ['electronics'],
+      languages: ['en']
+    });
+
+    const exact = pass1.candidates.find((candidate) => candidate.sourceColumn === 'Part Number');
+    const fuzzy = pass1.candidates.find((candidate) => candidate.sourceColumn === 'Part Numbr');
+
+    expect(exact?.strategy).toBe('REGISTRY_EXACT');
+    expect(exact?.confidence).toBeGreaterThanOrEqual(CONFIDENCE_BANDS.autoMapMin);
+    expect(fuzzy?.strategy).toBe('REGISTRY_FUZZY');
+    expect(fuzzy?.confidence).toBeGreaterThanOrEqual(CONFIDENCE_BANDS.reviewRequiredMin);
+    expect(pass1.unmappedColumns).toEqual([]);
+  });
+
+  it('stage 3 pass-2 heuristic maps likely columns and marks unresolved as warning state', () => {
+    const detected = mappingDetectionService.detectColumns(
+      ['Needed Count', 'Mystery Header'],
+      {
+        sampleRows: [
+          { 'Needed Count': 12, 'Mystery Header': 'abc' },
+          { 'Needed Count': 5, 'Mystery Header': 'def' }
+        ]
+      }
+    );
+
+    const heuristicMatch = detected.find((candidate) => candidate.sourceColumn === 'Needed Count');
+    const unresolved = detected.find((candidate) => candidate.sourceColumn === 'Mystery Header');
+
+    expect(heuristicMatch?.strategy).toBe('HEURISTIC');
+    expect(heuristicMatch?.canonicalField).toBe('quantity');
+    expect(heuristicMatch?.confidence).toBeGreaterThanOrEqual(CONFIDENCE_BANDS.reviewRequiredMin);
+    expect(unresolved?.strategy).toBe('HEURISTIC');
+    expect(unresolved?.canonicalField).toBeNull();
+    expect(unresolved?.reviewState).toBe('LOW_CONFIDENCE_WARNING');
+  });
+
+  it('GET /api/mappings/preview/:revisionId requires authentication', async () => {
+    const response = await request(app.getHttpServer()).get('/api/mappings/preview/rev-s3-preview').expect(401);
+    expect(response.body.code).toBe('AUTH_REQUIRED');
+  });
+
+  it('GET /api/mappings/preview/:revisionId returns deterministic preview payload', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'mapping.preview@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const response = await agent.get('/api/mappings/preview/rev-s3-preview').expect(200);
+    expect(response.body.contractVersion).toBe(MAPPING_CONTRACT_VERSION);
+    expect(response.body.revisionId).toBe('rev-s3-preview');
+    expect(Array.isArray(response.body.columns)).toBe(true);
+    expect(Array.isArray(response.body.sampleRows)).toBe(true);
+    expect(Array.isArray(response.body.requiredFieldsStatus)).toBe(true);
+    expect(response.body.canProceed).toBe(true);
+
+    expect(response.body.columns.map((column: { sourceColumn: string }) => column.sourceColumn)).toEqual([
+      'Part Number',
+      'Descriptin',
+      'Needed Count',
+      'Mystery Header'
+    ]);
+    expect(response.body.columns.map((column: { strategy: string }) => column.strategy)).toEqual([
+      'REGISTRY_EXACT',
+      'REGISTRY_FUZZY',
+      'HEURISTIC',
+      'HEURISTIC'
+    ]);
+
+    const requiredStatuses = response.body.requiredFieldsStatus.reduce(
+      (acc: Record<string, { mapped: boolean; warning: boolean }>, status: { field: string; mapped: boolean; warning: boolean }) => {
+        acc[status.field] = { mapped: status.mapped, warning: status.warning };
+        return acc;
+      },
+      {}
+    );
+    expect(requiredStatuses.part_number?.mapped).toBe(true);
+    expect(requiredStatuses.description?.mapped).toBe(true);
+    expect(requiredStatuses.quantity?.mapped).toBe(true);
   });
 });

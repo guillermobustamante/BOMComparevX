@@ -42,7 +42,7 @@ Source precedence:
 - Estimate: `3`
 - Owner: `BE/Architect`
 - Sprint: `S3`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-006`
@@ -93,7 +93,7 @@ Expose shared types/constants for detection, preview, and confirmation APIs.
 - Estimate: `5`
 - Owner: `BE/Data`
 - Sprint: `S3`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-006`
@@ -137,7 +137,7 @@ Return canonical field + language/domain metadata and deterministic match scores
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S3`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-006`
@@ -187,7 +187,7 @@ Emit strategy, confidence, and review-state outputs for each column.
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S3`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-006`
@@ -234,7 +234,7 @@ Respect confidence gates and required-field warning/confirmation rules.
 - Estimate: `3`
 - Owner: `BE`
 - Sprint: `S3`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-006`
@@ -282,7 +282,7 @@ Include explicit warning-confirmation flags when required fields are unresolved.
 - Estimate: `5`
 - Owner: `FE`
 - Sprint: `S3`
-- Status: `Backlog`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-006`
