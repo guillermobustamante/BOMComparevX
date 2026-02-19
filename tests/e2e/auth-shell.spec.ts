@@ -275,3 +275,75 @@ test('mapping preview allows edits and submits deterministic confirmation payloa
   await expect(page.getByTestId('mapping-confirm-success')).toContainText('MAPPING_CONFIRM_SUBMITTED');
   await context.close();
 });
+
+test('results page streams partial-to-final diff rows with rationale metadata', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.results.stream');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({
+    baseURL,
+    storageState
+  });
+  const page = await context.newPage();
+
+  await page.goto('/results');
+  await expect(page.getByTestId('results-panel')).toBeVisible();
+  await expect(page.getByTestId('results-grid-table')).toBeVisible();
+  await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('[data-testid="results-grid-table"] .chip-quantity_change').first()).toBeVisible();
+  await expect(page.getByText('matched_quantity_change')).toBeVisible();
+
+  await context.close();
+});
+
+test('results page supports search/sort/filter/change-type controls', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.results.filters');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({
+    baseURL,
+    storageState
+  });
+  const page = await context.newPage();
+
+  await page.goto('/results');
+  await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 15000 });
+
+  await page.getByTestId('results-search-input').fill('PN200');
+  await expect(page.getByTestId('results-grid-table')).toContainText('PN200');
+
+  await page.getByTestId('results-change-filter').selectOption('quantity_change');
+  await expect(page.getByTestId('results-grid-table')).toContainText('quantity_change');
+
+  await page.getByTestId('results-part-filter-input').fill('PN300');
+  await expect(page.getByTestId('results-grid-table')).not.toContainText('PN200');
+
+  await page.getByTestId('results-sort-select').selectOption('change');
+  await expect(page.getByTestId('results-grid-table')).toBeVisible();
+
+  await context.close();
+});

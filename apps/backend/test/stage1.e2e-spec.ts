@@ -20,6 +20,18 @@ import { MappingDetectionService } from '../src/mapping/mapping-detection.servic
 import { MappingAuditService } from '../src/mapping/mapping-audit.service';
 import { MappingPersistenceService } from '../src/mapping/mapping-persistence.service';
 import { SemanticRegistryService } from '../src/mapping/semantic-registry.service';
+import {
+  ATTRIBUTE_CONCORDANCE_ORDER,
+  CHANGE_TAXONOMY,
+  DIFF_CONTRACT_VERSION,
+  MATCH_STRATEGY_ORDER,
+  MatchDecision,
+  NEAR_TIE_DELTA,
+  TIE_BREAK_ORDER
+} from '../src/diff/diff-contract';
+import { MatcherService } from '../src/diff/matcher.service';
+import { NormalizationService } from '../src/diff/normalization.service';
+import { ClassificationService } from '../src/diff/classification.service';
 
 describe('Stage 1 API baseline (e2e)', () => {
   let app: INestApplication;
@@ -29,6 +41,9 @@ describe('Stage 1 API baseline (e2e)', () => {
   let mappingDetectionService: MappingDetectionService;
   let mappingPersistenceService: MappingPersistenceService;
   let mappingAuditService: MappingAuditService;
+  let normalizationService: NormalizationService;
+  let matcherService: MatcherService;
+  let classificationService: ClassificationService;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -59,6 +74,9 @@ describe('Stage 1 API baseline (e2e)', () => {
     mappingDetectionService = moduleFixture.get(MappingDetectionService);
     mappingPersistenceService = moduleFixture.get(MappingPersistenceService);
     mappingAuditService = moduleFixture.get(MappingAuditService);
+    normalizationService = moduleFixture.get(NormalizationService);
+    matcherService = moduleFixture.get(MatcherService);
+    classificationService = moduleFixture.get(ClassificationService);
   });
 
   afterAll(async () => {
@@ -588,5 +606,179 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(audits.some((entry) => entry.strategy === 'MANUAL' && entry.changedTo === 'supplier')).toBe(true);
 
     await expect(mappingPersistenceService.getRevisionMapping('tenant-a', 'rev-s3-audit-preview')).resolves.toBeDefined();
+  });
+
+  it('stage 4 deterministic contract constants are locked in order', () => {
+    expect(DIFF_CONTRACT_VERSION).toBe('v1');
+    expect(MATCH_STRATEGY_ORDER).toEqual([
+      'INTERNAL_ID',
+      'PART_NUMBER_REVISION',
+      'PART_NUMBER',
+      'FUZZY',
+      'NO_MATCH'
+    ]);
+    expect(TIE_BREAK_ORDER).toEqual([
+      'UNIQUENESS_FIRST',
+      'HIGHEST_SCORE',
+      'ATTRIBUTE_CONCORDANCE',
+      'STABLE_FALLBACK_INDEX',
+      'NEAR_TIE_REVIEW_REQUIRED'
+    ]);
+    expect(ATTRIBUTE_CONCORDANCE_ORDER).toEqual(['description', 'quantity', 'supplier']);
+    expect(NEAR_TIE_DELTA).toBe(0.01);
+    expect(CHANGE_TAXONOMY).toEqual([
+      'added',
+      'removed',
+      'replaced',
+      'modified',
+      'moved',
+      'quantity_change',
+      'no_change'
+    ]);
+  });
+
+  it('stage 4 normalization rules canonicalize text, part numbers, numeric and units', () => {
+    const normalized = normalizationService.normalizeRow({
+      rowId: 's-1',
+      partNumber: ' pn-001 ',
+      description: '  Motor   Assembly ',
+      quantity: Number('01.000'),
+      supplier: ' Acme  Corp '
+    });
+    expect(normalized.row.partNumber).toBe('PN001');
+    expect(normalized.row.description).toBe('MOTOR ASSEMBLY');
+    expect(normalized.row.quantity).toBe(1);
+    expect(normalized.row.supplier).toBe('ACME CORP');
+    expect(normalized.metadata.length).toBeGreaterThan(0);
+
+    const uom = normalizationService.normalizeWithUom(1, 'm');
+    expect(uom.value).toBe(1000);
+    expect(uom.unit).toBe('MM');
+  });
+
+  it('stage 4 matcher enforces one-to-one lock and deterministic strategy order', () => {
+    const source = [
+      { rowId: 's1', internalId: 'X1', partNumber: 'pn-1', revision: 'a', description: 'Bracket', quantity: 2 },
+      { rowId: 's2', internalId: 'X1', partNumber: 'pn-1', revision: 'a', description: 'Bracket', quantity: 2 }
+    ];
+    const target = [
+      { rowId: 't1', internalId: 'X1', partNumber: 'pn-1', revision: 'a', description: 'Bracket', quantity: 2 }
+    ];
+    const result = matcherService.match(source, target);
+    const matched = result.matches.filter((m) => !!m.targetRowId);
+    expect(matched.length).toBe(1);
+    expect(matched[0].strategy).toBe('INTERNAL_ID');
+    expect(result.unmatchedSourceIds).toEqual(['s2']);
+  });
+
+  it('stage 4 matcher marks near-tie ambiguous fuzzy candidates as review-required', () => {
+    const source = [{ rowId: 's1', description: 'gear plate', quantity: 1 }];
+    const target = [
+      { rowId: 't1', description: 'gear-plate', quantity: 1 },
+      { rowId: 't2', description: 'gear plate ', quantity: 1 }
+    ];
+    const result = matcherService.match(source, target);
+    const decision = result.matches[0];
+    expect(decision.strategy).toBe('FUZZY');
+    expect(decision.reviewRequired).toBe(true);
+    expect(decision.targetRowId).toBeNull();
+    expect(decision.reasonCode).toBe('near_tie_review_required');
+  });
+
+  it('stage 4 classification emits taxonomy rows with rationale metadata', () => {
+    const source = [
+      { rowId: 's-nochange', partNumber: 'PN-1', revision: 'A', description: 'A', quantity: 1, parentPath: '/root' },
+      { rowId: 's-qty', partNumber: 'PN-2', revision: 'A', description: 'B', quantity: 1, parentPath: '/root' },
+      { rowId: 's-moved', partNumber: 'PN-3', revision: 'A', description: 'C', quantity: 2, parentPath: '/left' },
+      { rowId: 's-removed', partNumber: 'PN-4', revision: 'A', description: 'D', quantity: 1, parentPath: '/root' },
+      { rowId: 's-replaced', partNumber: 'OLD-9', revision: 'A', description: 'SWITCH', quantity: 1, parentPath: '/p', position: '10' }
+    ];
+    const target = [
+      { rowId: 't-nochange', partNumber: 'PN-1', revision: 'A', description: 'A', quantity: 1, parentPath: '/root' },
+      { rowId: 't-qty', partNumber: 'PN-2', revision: 'A', description: 'B', quantity: 3, parentPath: '/root' },
+      { rowId: 't-moved', partNumber: 'PN-3', revision: 'A', description: 'C', quantity: 2, parentPath: '/right' },
+      { rowId: 't-added', partNumber: 'PN-5', revision: 'A', description: 'E', quantity: 1, parentPath: '/root' },
+      { rowId: 't-replaced', partNumber: 'NEW-9', revision: 'A', description: 'SWITCH', quantity: 1, parentPath: '/p', position: '10' }
+    ];
+
+    const matches: MatchDecision[] = [
+      { sourceRowId: 's-nochange', targetRowId: 't-nochange', strategy: 'PART_NUMBER_REVISION', score: 0.98, reviewRequired: false, tieBreakTrace: ['UNIQUENESS_FIRST'], reasonCode: 'ok' },
+      { sourceRowId: 's-qty', targetRowId: 't-qty', strategy: 'PART_NUMBER_REVISION', score: 0.98, reviewRequired: false, tieBreakTrace: ['UNIQUENESS_FIRST'], reasonCode: 'ok' },
+      { sourceRowId: 's-moved', targetRowId: 't-moved', strategy: 'PART_NUMBER_REVISION', score: 0.98, reviewRequired: false, tieBreakTrace: ['UNIQUENESS_FIRST'], reasonCode: 'ok' }
+    ];
+
+    const classified = classificationService.classify({
+      sourceRows: source,
+      targetRows: target,
+      matches: [...matches],
+      unmatchedSourceIds: ['s-removed', 's-replaced'],
+      unmatchedTargetIds: ['t-added', 't-replaced']
+    });
+
+    const byType = (type: string) => classified.filter((row) => row.changeType === type);
+    expect(byType('no_change').length).toBe(1);
+    expect(byType('quantity_change').length).toBe(1);
+    expect(byType('moved').length).toBe(1);
+    expect(byType('removed').length).toBe(1);
+    expect(byType('added').length).toBe(1);
+    expect(byType('replaced').length).toBe(1);
+    expect(classified.some((row) => row.cells.length >= 0 && !!row.reasonCode)).toBe(true);
+  });
+
+  it('POST /api/diff-jobs requires authentication', async () => {
+    await request(app.getHttpServer()).post('/api/diff-jobs').send({}).expect(401);
+  });
+
+  it('diff job status and rows support progressive cursor retrieval with rationale metadata', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'diff.user@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const started = await agent.post('/api/diff-jobs').send({}).expect(201);
+    expect(started.body.contractVersion).toBe('v1');
+    expect(started.body.jobId).toBeDefined();
+    expect(started.body.totalRows).toBeGreaterThan(0);
+
+    const jobId = started.body.jobId as string;
+    const status1 = await agent.get(`/api/diff-jobs/${jobId}`).expect(200);
+    expect(status1.body.phase).toBeDefined();
+    expect(status1.body.percentComplete).toBeGreaterThan(0);
+    expect(status1.body.counters.total).toBeGreaterThan(0);
+
+    const chunk1 = await agent.get(`/api/diff-jobs/${jobId}/rows?limit=2`).expect(200);
+    expect(Array.isArray(chunk1.body.rows)).toBe(true);
+    expect(chunk1.body.rows.length).toBeLessThanOrEqual(2);
+    expect(chunk1.body.rows.length).toBeGreaterThan(0);
+    expect(chunk1.body.rows[0].rationale).toBeDefined();
+    expect(Array.isArray(chunk1.body.rows[0].cells)).toBe(true);
+
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    const status2 = await agent.get(`/api/diff-jobs/${jobId}`).expect(200);
+    expect(status2.body.loadedRows).toBeGreaterThanOrEqual(status1.body.loadedRows);
+
+    const cursor = chunk1.body.nextCursor || String(chunk1.body.rows.length);
+    const chunk2 = await agent.get(`/api/diff-jobs/${jobId}/rows?cursor=${cursor}&limit=10`).expect(200);
+    const combinedIds = [...chunk1.body.rows, ...chunk2.body.rows].map((row: { rowId: string }) => row.rowId);
+    expect(new Set(combinedIds).size).toBe(combinedIds.length);
+  });
+
+  it('diff jobs enforce tenant access boundaries', async () => {
+    const agentA = request.agent(app.getHttpServer());
+    await agentA
+      .post('/api/auth/test/login')
+      .send({ email: 'tenant.a@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+    const started = await agentA.post('/api/diff-jobs').send({}).expect(201);
+    const jobId = started.body.jobId as string;
+
+    const agentB = request.agent(app.getHttpServer());
+    await agentB
+      .post('/api/auth/test/login')
+      .send({ email: 'tenant.b@example.com', tenantId: 'tenant-b', provider: 'google' })
+      .expect(201);
+    const denied = await agentB.get(`/api/diff-jobs/${jobId}`).expect(403);
+    expect(denied.body.code).toBe('TENANT_ACCESS_DENIED');
   });
 });

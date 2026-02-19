@@ -5,10 +5,11 @@ import { TenantModule } from './tenant/tenant.module';
 import { ConfigModule } from './config/config.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { DatabaseModule } from './database/database.module';
+import { DiffModule } from './diff/diff.module';
 import { MappingModule } from './mapping/mapping.module';
 
 @Module({
-  imports: [ConfigModule, DatabaseModule, AuthModule, TenantModule, UploadsModule, MappingModule],
+  imports: [ConfigModule, DatabaseModule, AuthModule, TenantModule, UploadsModule, MappingModule, DiffModule],
   controllers: [HealthController],
   providers: []
 })

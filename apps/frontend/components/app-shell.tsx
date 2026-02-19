@@ -29,6 +29,9 @@ export function AppShell(props: {
           <Link href="/history" className={navClass(pathname, '/history')}>
             History
           </Link>
+          <Link href="/results" className={navClass(pathname, '/results')}>
+            Results
+          </Link>
           <Link href="/mappings/rev-s3-preview" className={navClass(pathname, '/mappings')}>
             Mapping Preview
           </Link>

@@ -177,7 +177,7 @@ Enable two-file upload with immediate validation, enforce upload policy (includi
 - Stage: `Stage 3 - Detection + Mapping`
 - Dates: `TBD`
 - Owner: `Product + Engineering`
-- Status: `Planned`
+- Status: `Completed`
 
 ### Sprint Goal
 Implement multi-pass column detection with semantic registry + heuristic fallback, enforce confidence-based review gates, and persist immutable/auditable mapping confirmations.
@@ -353,9 +353,15 @@ Deliver deterministic BOM diffing with fixed tie-break behavior, normalization-f
 
 ### S3 Outcome
 - Completed:
+  - `S3-01` through `S3-09` completed.
+  - Stage 3 acceptance criteria passed with automated backend and browser coverage.
 - Deferred:
+  - None.
 - Regressions/Bugs:
+  - None blocking closeout; browser automation was stabilized by clearing local test port conflicts (`3100`/`4100`).
 - Lessons learned:
+  - Keep preview/edit contracts aligned with backend confirmation constraints to avoid UI gating drift.
+  - Maintain deterministic ordering and immutable snapshot behavior early to reduce rework in later stages.
 
 ### S4 Outcome
 - Completed:

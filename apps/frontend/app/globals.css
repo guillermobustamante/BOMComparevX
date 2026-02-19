@@ -241,6 +241,98 @@ a {
   color: #6a4a00;
 }
 
+.resultsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.resultsFilters {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.resultsFilters input,
+.resultsFilters select {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.diffRow-added {
+  background: #eaf7ee;
+}
+
+.diffRow-removed {
+  background: #fdecee;
+}
+
+.diffRow-replaced {
+  background: #fff2e7;
+}
+
+.diffRow-modified {
+  background: #eaf2ff;
+}
+
+.diffRow-moved {
+  background: #fff9e1;
+}
+
+.diffRow-quantity_change {
+  background: #f1ecff;
+}
+
+.diffRow-no_change {
+  background: #f8f9fa;
+}
+
+.chip-added {
+  border-color: #28a745;
+  color: #1f5b2d;
+}
+
+.chip-removed {
+  border-color: #dc3545;
+  color: #7e2020;
+}
+
+.chip-replaced {
+  border-color: #fd7e14;
+  color: #8f4708;
+}
+
+.chip-modified {
+  border-color: #007bff;
+  color: #0a4ea0;
+}
+
+.chip-moved {
+  border-color: #ffc107;
+  color: #7a5d00;
+}
+
+.chip-quantity_change {
+  border-color: #6f42c1;
+  color: #4a2d88;
+}
+
+.chip-no_change {
+  border-color: #c7d0de;
+  color: #63738f;
+}
+
+.cellChips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 900px) {
   .shell {
     grid-template-columns: 1fr;
@@ -249,5 +341,9 @@ a {
   .sidebar {
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+
+  .resultsFilters {
+    grid-template-columns: 1fr;
   }
 }

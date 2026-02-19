@@ -58,7 +58,7 @@ Source precedence:
 - Estimate: `3`
 - Owner: `BE/Architect`
 - Sprint: `S4`
-- Status: `Planned`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-007`
@@ -99,7 +99,7 @@ secondary tie-break precedence, and one-to-one target lock guarantees.
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S4`
-- Status: `Planned`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-007`
@@ -140,7 +140,7 @@ traceable strategy provenance, and ambiguity-safe tie handling.
 - Estimate: `5`
 - Owner: `BE/Product`
 - Sprint: `S4`
-- Status: `Planned`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-007`
@@ -181,7 +181,7 @@ including added/removed/replaced/modified/moved/quantity-change semantics.
 - Estimate: `3`
 - Owner: `BE/Data`
 - Sprint: `S4`
-- Status: `Planned`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-007`
@@ -222,7 +222,7 @@ that emits traceable pre/post-compare metadata.
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S4`
-- Status: `Planned`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-007`, `NFR-AUDIT`
@@ -262,7 +262,7 @@ including classification reason codes and match provenance for audits.
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S4`
-- Status: `Planned`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-008`
@@ -303,7 +303,7 @@ with deterministic ordering and retry-safe cursors.
 - Estimate: `5`
 - Owner: `FE`
 - Sprint: `S4`
-- Status: `Planned`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-008`
