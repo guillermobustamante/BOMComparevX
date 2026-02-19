@@ -1,7 +1,7 @@
 # V1 Decisions (Locked)
 
-Version: 1.1  
-Status: Locked for Stage 3 planning/execution
+Version: 1.2  
+Status: Locked for Stage 4 planning/execution
 
 ---
 
@@ -52,3 +52,45 @@ Status: Locked for Stage 3 planning/execution
 22. Persistence/migration tool for this environment is Prisma with SQL migrations against Azure SQL.
 23. Physical table naming convention is camelCase.
 24. `bom_column_mappings` and `column_detection_audits` are included in the persistence baseline now (not deferred).
+
+## Stage 4 Diff and Results (Locked)
+
+25. Deterministic matching strategy order is fixed:
+   - `INTERNAL_ID`
+   - `PART_NUMBER+REVISION`
+   - `PART_NUMBER`
+   - `FUZZY`
+   - `NO_MATCH`
+26. Deterministic tie-break inside each strategy is fixed:
+   - uniqueness first
+   - highest confidence/score
+   - attribute concordance (`description` -> `quantity` -> `supplier`)
+   - stable fallback (lowest target row index / stable UUID lexical order)
+   - near-tie ambiguity is `REVIEW_REQUIRED` (no silent auto-pick)
+27. One-to-one match lock is required: matched target rows cannot be reused in the same run.
+28. Comparison is normalization-first with deterministic canonicalization:
+   - case-fold text values
+   - trim and single-space normalization
+   - controlled punctuation normalization
+   - numeric normalization (`1`, `1.0`, `01` policy)
+   - UoM conversion where configured
+29. Stage 4 classification taxonomy is fixed:
+   - `added`
+   - `removed`
+   - `replaced`
+   - `modified`
+   - `moved`
+   - `quantity_change`
+   - `no_change`
+30. Diff outcomes require row-level and cell-level rationale metadata for non-`no_change` rows.
+31. Progressive delivery contract is locked to job polling + cursor chunking:
+   - `POST /diff-jobs` to start
+   - `GET /diff-jobs/{id}` for phase/percent/counters
+   - `GET /diff-jobs/{id}/rows?cursor=&limit=` for progressive rows
+32. Partial-results UX behavior is fixed:
+   - filters/search/sort apply to loaded rows immediately
+   - UI shows partial-state indicator until completion
+   - stable row ordering is preserved while loading
+33. Stage 4 filters are mandatory in results grid: change-type, text search, and column filters.
+34. Stage 4 sort default is unchanged from uploaded source ordering (latest uploaded file basis).
+35. Stage 4 out-of-scope lock: Stage 5 capabilities (exports/sharing/notifications/admin expansion) remain excluded.

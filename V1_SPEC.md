@@ -116,16 +116,38 @@ V1 excludes:
   3) part number
   4) fuzzy match
   5) no match
-- Every part classified as unchanged/changed/added/removed.
-- Attribute-level differences are recorded and surfaced.
+- Deterministic tie-break order within each strategy:
+  1) uniqueness first
+  2) highest confidence/score
+  3) attribute concordance (`description` -> `quantity` -> `supplier`)
+  4) stable deterministic fallback (lowest target row index / stable UUID lexical order)
+  5) near-tie ambiguity => `REVIEW_REQUIRED` (no silent auto-pick)
+- One-to-one target lock: a matched target row cannot be reused in the same run.
+- Comparison uses normalization-first canonicalization (case/whitespace, controlled punctuation, numeric normalization, UoM normalization where configured).
+- Classification taxonomy for Stage 4:
+  - `added`, `removed`, `replaced`, `modified`, `moved`, `quantity_change`, `no_change`
+- Row-level and cell-level rationale metadata is captured for every non-`no_change` classification.
+- Attribute-level differences are recorded and surfaced with provenance (strategy/tie-break/classification path).
 
 ### FR-008 Results UI
 - Result table supports:
-  - Sort on all visible columns
+  - Sort on all visible columns (default order remains uploaded-source order for latest upload)
   - Column filtering
   - Full-text search including part number
-  - Change-type filters: changed/new/removed (combinable)
-- Visual highlighting at row and cell level for changes.
+  - Change-type filters for Stage 4 taxonomy (combinable)
+- Progressive Stage 4 job/result flow is supported:
+  - `POST /diff-jobs` starts diff processing
+  - `GET /diff-jobs/{id}` returns phase, percent complete, and counters
+  - `GET /diff-jobs/{id}/rows?cursor=&limit=` returns stable progressive chunks
+- Minimum partial payload includes:
+  - `rowId`, `changeType`
+  - key fields (`part_number`, `revision`, `description`)
+  - per-cell diff summary for highlighted columns
+- Partial-state behavior:
+  - filters/search/sort apply to loaded rows immediately
+  - partial indicator is shown until completion
+  - row ordering does not jitter while loading
+- Visual highlighting at row and cell level for changes; unchanged fields are not color-highlighted.
 
 ### FR-009 Revision Chain in Session
 - User can upload additional files after first comparison.
@@ -184,7 +206,14 @@ V1 excludes:
 - p95 comparison latency:
   - <=5MB: 30s
   - 5–30MB: 90s
+- Parsing performance targets for Stage 4:
+  - 30MB Excel parse <10s
+  - 30MB CSV parse <5s
 - Initial result streaming available before full completion when feasible.
+- Progressive UX targets for Stage 4:
+  - first progress response <2s
+  - first row chunk visible <5s
+  - subsequent chunk cadence 1-3s when batch-ready
 - UI interactions target <500ms.
 - Page load target <3s under normal conditions.
 
@@ -278,7 +307,10 @@ V1 excludes:
 ### Stage 4 — Diff Engine + Results
 **Done when:**
 - Deterministic matching runs with documented strategy order.
-- Results classify added/removed/changed correctly.
+- Tie-break rules and one-to-one lock behavior are deterministic and test-covered.
+- Results classify `added`, `removed`, `replaced`, `modified`, `moved`, `quantity_change`, and `no_change` correctly.
+- Row/cell rationale metadata is persisted and queryable.
+- Progressive job polling and cursor-based retrieval work with stable ordering.
 - Search/sort/filter/change-type filters operate correctly.
 - Row/cell-level visual highlighting renders consistently.
 

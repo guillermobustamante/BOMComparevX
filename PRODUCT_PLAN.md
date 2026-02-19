@@ -123,7 +123,26 @@ Detection Strategy Order: exact → fuzzy → heuristic → user override.
 4. Fuzzy match (target ≥90%, bounded edit-distance)
 5. No match => ADDED/REMOVED classification
 
+Deterministic tie-break inside each strategy:
+- Uniqueness first
+- Highest confidence/score
+- Attribute concordance (`description` -> `quantity` -> `supplier`)
+- Stable fallback (lowest target row index / stable UUID lexical order)
+- Near-tie ambiguity => `REVIEW_REQUIRED` (no silent auto-pick)
+
+One-to-one matching lock:
+- Once a target row is matched, it cannot be reused by another source row in the same run.
+
 ### 5.6 Attribute-Level Change Detection
+Stage 4 classification taxonomy:
+- `added`
+- `removed`
+- `replaced`
+- `modified`
+- `moved`
+- `quantity_change`
+- `no_change`
+
 Default monitored attributes:
 - quantity
 - supplier
@@ -133,6 +152,7 @@ Default monitored attributes:
 - lead_time_weeks
 
 Custom tenant attributes are configurable (example: ROHS_Compliant, Certification_Level, Thermal_Rating).
+Classification outcomes persist row-level and cell-level rationale metadata for non-`no_change` rows.
 
 ### 5.7 End-to-End Runtime Flow
 1. User logs in and lands on upload screen
@@ -140,8 +160,11 @@ Custom tenant attributes are configurable (example: ROHS_Compliant, Certificatio
 3. Files stored; session + revision records created; job queued
 4. Worker parses and runs multi-pass detection
 5. Preview UI displays mapping/confidence for user confirmation
-6. Worker performs deterministic matching and diff computation
-7. Results stored; progressive data returned to UI
+6. Worker performs deterministic matching and normalization-first diff computation
+7. Diff job APIs support progressive retrieval:
+   - `POST /diff-jobs`
+   - `GET /diff-jobs/{id}` (phase/percent/counters)
+   - `GET /diff-jobs/{id}/rows?cursor=&limit=` (stable incremental chunks)
 8. Completion notification triggered (in-app/email per config)
 9. User reviews, filters, exports, shares, and revisits via history
 
@@ -177,6 +200,13 @@ Custom tenant attributes are configurable (example: ROHS_Compliant, Certificatio
 - 5–30MB BOM: 90s p95
 - Enterprise BOM: first rows quickly + remainder async
 - 30MB upload target: ~5s ingest via direct/resumable upload
+- Stage 4 parse targets:
+  - 30MB Excel parse <10s
+  - 30MB CSV parse <5s
+- Stage 4 progressive UX targets:
+  - first progress response <2s
+  - first row chunk visible <5s
+  - subsequent chunks every 1-3s (or when batch ready)
 - UI interactions: <500ms
 - Page load: <3s
 - Mobile interaction: <1s target under 4G conditions
@@ -202,7 +232,7 @@ Custom tenant attributes are configurable (example: ROHS_Compliant, Certificatio
 3. Two-file upload card with validation feedback
 4. Column detection preview screen with confidence + editable mapping
 5. Processing timeline: Uploading → Detecting → Matching → Diffing → Finalizing
-6. Results grid with color-coded row/cell deltas + filters/search/sort
+6. Results grid with color-coded row/cell deltas + mandatory change-type filter, text search, and column filters
 7. History view with reopen/rename/tags/delete
 8. Share modal with invite + revoke controls
 9. Notification center linking to completed jobs
@@ -224,7 +254,8 @@ Saved mappings are reusable for future similar uploads and remain immutable per 
 If saved mapping conflicts with fresh detection, fresh detection is used by default.
 
 ### Stage 4 — Diff Engine + Progressive Results
-Deterministic matching, normalized diffs, progressive/streaming result delivery.
+Deterministic matching with fixed tie-break + one-to-one lock, normalization-first comparison,
+full Stage 4 taxonomy classification, row/cell rationale metadata, and progressive polling + cursor chunk delivery.
 
 ### Stage 5 — Export + Sharing + Notifications + Admin
 Hybrid exports, invite/revoke sharing, admin controls, notification channels.
@@ -234,12 +265,12 @@ Raw-file lifecycle enforcement, audit exports, performance tuning for p95 target
 
 ---
 
-## 9) Open Questions / Ambiguities to Resolve Before Build Lock
+## 9) Build-Lock Notes
 
-1. Confirm color palette for confidence states in preview UI (current request: auto-map Red, review-required Yellow, low-confidence Red).
-2. Confirm whether optional `revision` should be recommended with warning when absent in upload templates.
+1. Stage 4 matching, classification, normalization, and progressive delivery behavior are now locked in `V1_DECISIONS.md`.
+2. Stage 4 execution backlog is defined in `Backlog_S4.md` (`S4-01` to `S4-10`) and mapped into `SPRINT_PLAN.md`.
 ---
 
 ## 10) Immediate Next Step
 
-Once the remaining questions above are confirmed, we freeze V1 scope and proceed stage-by-stage with product-owner approvals at each stage boundary.
+Proceed with Stage 4 execution against the locked decisions and sprint backlog, then close with Stage 4 acceptance validation.

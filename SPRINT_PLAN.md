@@ -249,6 +249,89 @@ Implement multi-pass column detection with semantic registry + heuristic fallbac
 
 ---
 
+## Sprint S4 - Stage 4 Diff Engine + Progressive Results
+
+### Sprint Metadata
+- Sprint: `S4`
+- Stage: `Stage 4 - Diff Engine + Progressive Results`
+- Dates: `TBD`
+- Owner: `Product + Engineering`
+- Status: `Planned`
+
+### Sprint Goal
+Deliver deterministic BOM diffing with fixed tie-break behavior, normalization-first comparison, full change taxonomy classification, rationale metadata, and progressive results UX.
+
+### Scope (Committed)
+| ID | Work Item | Spec Traceability | Estimate | Owner | Priority |
+|---|---|---|---:|---|---|
+| S4-01 | Define Deterministic Matching Contract + Tie-Break Policy | `FR-007`; Stage 4 bullet 1 | 3 | BE/Architect | P0 |
+| S4-02 | Implement Multi-Pass Matcher Engine (One-to-One Lock) | `FR-007`; Stage 4 bullet 1 | 5 | BE | P0 |
+| S4-03 | Implement Change Classification Taxonomy | `FR-007`; Stage 4 bullet 2 | 5 | BE/Product | P0 |
+| S4-04 | Build Normalization Rules Engine for Comparison | `FR-007`; Stage 4 bullets 1-2 | 3 | BE/Data | P0 |
+| S4-05 | Implement Diff Computation + Rationale/Audit Metadata | `FR-007`, `NFR-AUDIT`; Stage 4 bullets 2 and 4 | 5 | BE | P0 |
+| S4-06 | Create Progressive Diff Job API (Polling + Cursor Chunks) | `FR-008`; Stage 4 bullets 2-3 | 5 | BE | P0 |
+| S4-07 | Build Results Grid UI (Partial + Final States) | `FR-008`; Stage 4 bullets 3-4 | 5 | FE | P0 |
+| S4-08 | Performance and Scalability Hardening for Diff Workloads | `NFR-PERF`; Stage 4 bullets 2-4 | 3 | BE/FE | P0 |
+| S4-09 | Add Stage 4 Automated Tests (Backend + Browser) | QA matrix items 8-9; Stage 4 bullets 1-4 | 5 | QA/BE/FE | P0 |
+| S4-10 | Rollout, Observability, and Risk Controls for Stage 4 | `NFR-OBS`, `NFR-AUDIT`; Stage 4 bullets 1-4 | 3 | BE/DevOps | P1 |
+
+### Non-Goals (Out of Scope)
+- Stage 5 capabilities: export expansion, sharing enhancements, notifications expansion, admin UI expansion.
+- PLM integrations and ML-assisted matching behaviors.
+- Regulatory hardening work beyond current V1 controls.
+
+### Delivery Plan
+- Week 1:
+  - Lock contract + core engine behavior (`S4-01` to `S4-04`).
+  - Start rationale persistence (`S4-05`) in parallel with API scaffolding (`S4-06`).
+- Week 2:
+  - Complete progressive API + results grid integration (`S4-06`, `S4-07`).
+  - Execute performance hardening and full automation pass (`S4-08`, `S4-09`).
+  - Finalize rollout controls and operational readiness (`S4-10`).
+
+### Dependencies
+- Stage 3 mapping confirmations available and immutable per revision.
+- Queue/worker execution pipeline stable from Stage 2/3.
+- Tenant/RBAC enforcement baseline already active in APIs and data access.
+- Fixture catalog for deterministic matching and taxonomy edge-cases.
+
+### Definition of Done (Sprint-Level)
+- All Stage 4 acceptance bullets in `V1_SPEC.md` are demonstrably met.
+- Matching hierarchy, tie-break semantics, and one-to-one lock are deterministic and test-covered.
+- Classification taxonomy (`added`, `removed`, `replaced`, `modified`, `moved`, `quantity_change`, `no_change`) is implemented and surfaced.
+- Row/cell rationale metadata is persisted and queryable.
+- Progressive polling + cursor chunk UX behaves correctly for partial and final states.
+
+### QA Plan
+- Validate deterministic strategy order and tie-break behavior, including near-tie `REVIEW_REQUIRED`.
+- Validate one-to-one target lock prevents duplicate target assignment.
+- Validate taxonomy classification outputs on baseline and edge fixtures.
+- Validate normalization rules for case, whitespace, punctuation, numeric representation, and UoM where configured.
+- Validate progressive partial-state UX: status polling, chunk retrieval, stable ordering, and completion transition.
+- Validate results grid mandatory filters: change-type, text search, and column filters.
+
+### Risks and Mitigations
+| Risk | Impact | Mitigation | Owner | Trigger |
+|---|---|---|---|---|
+| Tie-break ambiguity leaks into silent auto-matches | Incorrect results trust | Enforce near-tie `REVIEW_REQUIRED` and add deterministic fixtures | BE | Mismatch in repeated runs |
+| One-to-one lock gaps under concurrency | Duplicate target assignment | Central lock handling in matcher contract + concurrency tests | BE | Duplicate target IDs in output |
+| Progressive chunks reorder rows | Confusing UX and incorrect filters | Cursor contract with stable ordering and retry-safe semantics | BE/FE | Row jitter during partial load |
+| Rationale metadata missing/incomplete | Auditability loss | Required reason-code assertions in API and persistence tests | BE/QA | Changed row without reason codes |
+| Performance degrades on large files | SLA misses | Batch tuning, DB/query profiling, and virtualization checks | BE/FE | Parse or interaction latency breach |
+
+### Demo Plan
+- Show deterministic matching across repeated runs with identical outputs.
+- Show taxonomy coverage including replaced/moved/quantity-change examples.
+- Show progressive load from partial to complete with stable row order.
+- Show row/cell rationale metadata traceability in results.
+
+### Rollout Notes
+- Feature flags: `diff_engine_v1`, `diff_progressive_api_v1`, `results_grid_stage4_v1`.
+- Monitoring: diff duration, ambiguity rate, chunk cadence, rationale completeness rate.
+- Rollback: disable Stage 4 feature flags and keep Stage 3 outputs/history intact.
+
+---
+
 ## Sprint Review Template (Complete at Sprint Close)
 
 ### S1 Outcome
@@ -269,6 +352,12 @@ Implement multi-pass column detection with semantic registry + heuristic fallbac
   - Keep SQL migrations Prisma-compatible and idempotent from first draft.
 
 ### S3 Outcome
+- Completed:
+- Deferred:
+- Regressions/Bugs:
+- Lessons learned:
+
+### S4 Outcome
 - Completed:
 - Deferred:
 - Regressions/Bugs:
