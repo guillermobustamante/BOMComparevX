@@ -19,6 +19,7 @@ export interface AcceptedUploadJob {
     comparisonsUsed: number;
     unrestrictedComparisonsRemaining: number;
     cooldownUntilUtc: string | null;
+    isUnlimited: boolean;
   };
 }
 
@@ -172,7 +173,8 @@ export class UploadJobService {
       policy: {
         comparisonsUsed: row.policyComparisonsUsed,
         unrestrictedComparisonsRemaining: row.policyUnrestrictedComparisonsRemaining,
-        cooldownUntilUtc: row.policyCooldownUntilUtc ? row.policyCooldownUntilUtc.toISOString() : null
+        cooldownUntilUtc: row.policyCooldownUntilUtc ? row.policyCooldownUntilUtc.toISOString() : null,
+        isUnlimited: false
       }
     };
   }

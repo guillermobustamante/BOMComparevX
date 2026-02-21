@@ -76,6 +76,7 @@ V1 excludes:
 
 ### FR-004 Upload Policy Enforcement
 - Default user upload limit enforced at one comparison action every 48 hours.
+- Dev/Test operational override: accounts listed in `UPLOAD_UNLIMITED_USER_EMAILS` bypass credits/cooldown limits.
 - When blocked:
   - Upload controls disabled
   - Banner explains restriction

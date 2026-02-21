@@ -344,6 +344,7 @@ Deliver deterministic BOM diffing with fixed tie-break behavior, normalization-f
 ### S2 Outcome
 - Completed:
   - `S2-00` through `S2-09` completed.
+  - `S2-10` operational unlimited-account override for Dev/Test (`UPLOAD_UNLIMITED_USER_EMAILS`) completed.
   - Stage 2 acceptance criteria passed with automation.
 - Deferred:
   - None.

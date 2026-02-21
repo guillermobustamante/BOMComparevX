@@ -28,6 +28,26 @@ Execution baseline for Stage 1 with selected stack:
 - This executes:
 `ci:checks` (contracts + backend + frontend build checks) and Playwright browser tests.
 
+## Unlimited Test Accounts (Dev/Test)
+Use this when selected tester accounts must bypass upload credits/cooldown.
+
+1. Add emails to `.env.local`:
+```dotenv
+UPLOAD_UNLIMITED_USER_EMAILS=qa1@example.com,qa2@example.com
+```
+2. Restart backend:
+```powershell
+npm --prefix apps/backend run start:dev
+```
+3. Validate from browser:
+- Sign in as an allowlisted email.
+- Run more than 3 upload validations.
+- Confirm no cooldown block appears and policy reports unlimited override.
+
+Notes:
+- Matching is case-insensitive (`QA1@example.com` works).
+- This is an ops-managed Dev/Test bridge until full admin override UI is implemented.
+
 ## Stage 4 Real XLSX Regression Runbook
 
 Supported ingestion parser behavior:

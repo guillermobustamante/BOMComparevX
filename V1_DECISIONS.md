@@ -94,3 +94,4 @@ Status: Locked for Stage 4 planning/execution
 33. Stage 4 filters are mandatory in results grid: change-type, text search, and column filters.
 34. Stage 4 sort default is unchanged from uploaded source ordering (latest uploaded file basis).
 35. Stage 4 out-of-scope lock: Stage 5 capabilities (exports/sharing/notifications/admin expansion) remain excluded.
+36. Until full admin policy UI ships, Dev/Test supports ops-managed unlimited upload accounts through `UPLOAD_UNLIMITED_USER_EMAILS` (comma-separated allowlist), with backend-enforced bypass.

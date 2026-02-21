@@ -60,6 +60,7 @@ export class UploadsController {
       comparisonsUsed: number;
       unrestrictedComparisonsRemaining: number;
       cooldownUntilUtc: string | null;
+      isUnlimited: boolean;
     };
   }> {
     const validationResult = this.uploadValidationService.validate(files);
@@ -112,6 +113,7 @@ export class UploadsController {
       comparisonsUsed: number;
       unrestrictedComparisonsRemaining: number;
       cooldownUntilUtc: string | null;
+      isUnlimited: boolean;
     };
   }> {
     const session = req.session as SessionState;
@@ -201,6 +203,7 @@ export class UploadsController {
         comparisonsUsed: number;
         unrestrictedComparisonsRemaining: number;
         cooldownUntilUtc: string | null;
+        isUnlimited: boolean;
       };
     },
     historyId: string | null,
@@ -219,6 +222,7 @@ export class UploadsController {
       comparisonsUsed: number;
       unrestrictedComparisonsRemaining: number;
       cooldownUntilUtc: string | null;
+      isUnlimited: boolean;
     };
   } {
     return {

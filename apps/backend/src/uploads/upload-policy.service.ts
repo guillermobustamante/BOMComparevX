@@ -14,6 +14,7 @@ export interface UploadPolicySnapshot {
   comparisonsUsed: number;
   unrestrictedComparisonsRemaining: number;
   cooldownUntilUtc: string | null;
+  isUnlimited: boolean;
 }
 
 @Injectable()
@@ -24,8 +25,23 @@ export class UploadPolicyService {
 
   async registerAcceptedValidation(userKey: string, tenantId = 'unknown-tenant'): Promise<UploadPolicySnapshot> {
     const current = await this.getState(userKey, tenantId);
+    const isUnlimited = this.isUnlimitedUser(userKey);
     const nowMs = Date.now();
     const cooldownMs = this.cooldownMs();
+
+    if (isUnlimited) {
+      const next: UploadPolicyState = {
+        comparisonsUsed: current.comparisonsUsed + 1,
+        cooldownUntilUtc: null
+      };
+      await this.persistState(userKey, tenantId, next);
+      return {
+        comparisonsUsed: next.comparisonsUsed,
+        unrestrictedComparisonsRemaining: Number.MAX_SAFE_INTEGER,
+        cooldownUntilUtc: null,
+        isUnlimited: true
+      };
+    }
 
     if (current.comparisonsUsed >= UNRESTRICTED_COMPARISON_LIMIT) {
       if (!current.cooldownUntilUtc) {
@@ -55,18 +71,34 @@ export class UploadPolicyService {
     return {
       comparisonsUsed: next.comparisonsUsed,
       unrestrictedComparisonsRemaining: Math.max(0, UNRESTRICTED_COMPARISON_LIMIT - next.comparisonsUsed),
-      cooldownUntilUtc: next.cooldownUntilUtc
+      cooldownUntilUtc: next.cooldownUntilUtc,
+      isUnlimited: false
     };
   }
 
   async getPolicy(userKey: string, tenantId = 'unknown-tenant'): Promise<UploadPolicySnapshot> {
     const current = await this.getState(userKey, tenantId);
+    const isUnlimited = this.isUnlimitedUser(userKey);
 
     return {
       comparisonsUsed: current.comparisonsUsed,
-      unrestrictedComparisonsRemaining: Math.max(0, UNRESTRICTED_COMPARISON_LIMIT - current.comparisonsUsed),
-      cooldownUntilUtc: current.cooldownUntilUtc
+      unrestrictedComparisonsRemaining: isUnlimited
+        ? Number.MAX_SAFE_INTEGER
+        : Math.max(0, UNRESTRICTED_COMPARISON_LIMIT - current.comparisonsUsed),
+      cooldownUntilUtc: isUnlimited ? null : current.cooldownUntilUtc,
+      isUnlimited
     };
+  }
+
+  private isUnlimitedUser(userKey: string): boolean {
+    const normalized = userKey.trim().toLowerCase();
+    if (!normalized) return false;
+    const raw = process.env.UPLOAD_UNLIMITED_USER_EMAILS || '';
+    const allowed = raw
+      .split(/[,\n;]+/)
+      .map((entry) => entry.trim().toLowerCase())
+      .filter((entry) => entry.length > 0);
+    return allowed.includes(normalized);
   }
 
   private cooldownMs(): number {

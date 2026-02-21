@@ -438,6 +438,44 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(acceptedAfterCooldown.body.policy.unrestrictedComparisonsRemaining).toBe(0);
   });
 
+  it('upload policy allows configured unlimited users without cooldown blocking', async () => {
+    const email = `unlimited.user.${Date.now()}@example.com`;
+    const previous = process.env.UPLOAD_UNLIMITED_USER_EMAILS;
+    process.env.UPLOAD_UNLIMITED_USER_EMAILS = email.toUpperCase();
+
+    try {
+      const agent = request.agent(app.getHttpServer());
+      await agent
+        .post('/api/auth/test/login')
+        .send({ email, tenantId: 'tenant-a', provider: 'google' })
+        .expect(201);
+
+      const postValidPair = () =>
+        agent
+          .post('/api/uploads/validate')
+          .attach('fileA', Buffer.from('part_number,quantity\nA,1\n'), {
+            filename: 'allow-a.csv',
+            contentType: 'text/csv'
+          })
+          .attach('fileB', Buffer.from('part_number,quantity\nB,1\n'), {
+            filename: 'allow-b.csv',
+            contentType: 'text/csv'
+          });
+
+      for (let i = 0; i < 5; i += 1) {
+        const response = await postValidPair().expect(201);
+        expect(response.body.policy.isUnlimited).toBe(true);
+        expect(response.body.policy.cooldownUntilUtc).toBeNull();
+      }
+    } finally {
+      if (previous === undefined) {
+        delete process.env.UPLOAD_UNLIMITED_USER_EMAILS;
+      } else {
+        process.env.UPLOAD_UNLIMITED_USER_EMAILS = previous;
+      }
+    }
+  });
+
   it('stage 3 mapping contract exposes canonical fields and confidence bands', () => {
     expect(MAPPING_CONTRACT_VERSION).toBe('v1');
     expect(DETECTION_CONFLICT_POLICY).toBe('fresh_detection_precedence');

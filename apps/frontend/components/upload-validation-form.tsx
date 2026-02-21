@@ -22,6 +22,7 @@ interface ValidationSuccess {
     comparisonsUsed: number;
     unrestrictedComparisonsRemaining: number;
     cooldownUntilUtc: string | null;
+    isUnlimited: boolean;
   };
 }
 
@@ -283,7 +284,10 @@ export function UploadValidationForm() {
           <div>fileB: {success.files.fileB.name}</div>
           {success.policy && (
             <div>
-              Policy: used {success.policy.comparisonsUsed}, remaining {success.policy.unrestrictedComparisonsRemaining}
+              Policy:{' '}
+              {success.policy.isUnlimited
+                ? 'unlimited override active'
+                : `used ${success.policy.comparisonsUsed}, remaining ${success.policy.unrestrictedComparisonsRemaining}`}
             </div>
           )}
           <div>Correlation ID: {success.correlationId}</div>

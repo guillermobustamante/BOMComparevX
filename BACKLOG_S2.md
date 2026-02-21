@@ -470,6 +470,55 @@ Map tests directly to Stage 2 acceptance bullets and ensure failures are diagnos
 
 ---
 
+## S2-10 Add Dev/Test Unlimited-Account Policy Override
+
+### Story Metadata
+- Story ID: `S2-10`
+- Title: `Add Dev/Test Unlimited-Account Policy Override`
+- Type: `Story`
+- Priority: `P1`
+- Estimate: `3`
+- Owner: `BE`
+- Sprint: `S2`
+- Status: `Done`
+
+### Traceability
+- Requirement link(s): `FR-004`, `FR-014`
+- Decision link(s): `V1_DECISIONS.md` items `6` and `36`
+
+### Scope
+- In scope:
+  - Backend allowlist override for unlimited uploads in Dev/Test.
+  - API policy payload includes unlimited indicator.
+  - Documentation and env contract updates.
+- Out of scope:
+  - Full admin UI for policy override management.
+  - Tenant self-service billing controls.
+
+### Contract
+- New env key:
+  - `UPLOAD_UNLIMITED_USER_EMAILS` (comma-separated emails)
+- Behavior:
+  - Matching users bypass onboarding/cooldown blocks.
+  - Policy response includes `isUnlimited=true`.
+
+### Acceptance Criteria
+1. Allowlisted users are never blocked by cooldown policy.
+2. Non-allowlisted users retain existing onboarding/cooldown behavior.
+3. Override behavior is documented in spec/decisions/readme.
+
+### Test Plan
+- Backend e2e verifies 5+ consecutive validations for allowlisted account without cooldown block.
+
+### AI Prompt (Execution-Ready)
+```text
+Implement an operational unlimited-account policy override for Dev/Test using
+a comma-separated email allowlist env var. Keep default policy unchanged for all other users,
+expose an isUnlimited indicator, and add automated regression coverage plus docs.
+```
+
+---
+
 ## Sequencing and Parallelization
 
 - Lane A (FE): `S2-01` -> `S2-05`
