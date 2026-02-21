@@ -4,6 +4,8 @@ import * as request from 'supertest';
 import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
 import * as passport from 'passport';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { AppModule } from '../src/app.module';
 import { UploadHistoryService } from '../src/uploads/upload-history.service';
 import { UploadJobService } from '../src/uploads/upload-job.service';
@@ -231,13 +233,21 @@ describe('Stage 1 API baseline (e2e)', () => {
 
     const response = await agent
       .post('/api/uploads/intake')
-      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'bom-a.csv', contentType: 'text/csv' })
-      .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'bom-b.csv', contentType: 'text/csv' })
+      .attach('fileA', Buffer.from('part_number,description,quantity\nBOM-A,Widget A,2\n'), {
+        filename: 'bom-a.csv',
+        contentType: 'text/csv'
+      })
+      .attach('fileB', Buffer.from('part_number,description,quantity\nBOM-A,Widget A,3\n'), {
+        filename: 'bom-b.csv',
+        contentType: 'text/csv'
+      })
       .expect(202);
 
     expect(response.body.status).toBe('accepted');
     expect(response.body.jobId).toBeDefined();
     expect(response.body.sessionId).toBeDefined();
+    expect(response.body.leftRevisionId).toBeDefined();
+    expect(response.body.rightRevisionId).toBeDefined();
     expect(response.body.historyId).toBeDefined();
     expect(response.body.correlationId).toBeDefined();
     expect(response.body.idempotentReplay).toBe(false);
@@ -255,20 +265,34 @@ describe('Stage 1 API baseline (e2e)', () => {
     const first = await agent
       .post('/api/uploads/intake')
       .set('Idempotency-Key', idempotencyKey)
-      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'bom-a.csv', contentType: 'text/csv' })
-      .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'bom-b.csv', contentType: 'text/csv' })
+      .attach('fileA', Buffer.from('part_number,description,quantity\nBOM-A,Widget A,2\n'), {
+        filename: 'bom-a.csv',
+        contentType: 'text/csv'
+      })
+      .attach('fileB', Buffer.from('part_number,description,quantity\nBOM-A,Widget A,3\n'), {
+        filename: 'bom-b.csv',
+        contentType: 'text/csv'
+      })
       .expect(202);
 
     const second = await agent
       .post('/api/uploads/intake')
       .set('Idempotency-Key', idempotencyKey)
-      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'bom-a.csv', contentType: 'text/csv' })
-      .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'bom-b.csv', contentType: 'text/csv' })
+      .attach('fileA', Buffer.from('part_number,description,quantity\nBOM-A,Widget A,2\n'), {
+        filename: 'bom-a.csv',
+        contentType: 'text/csv'
+      })
+      .attach('fileB', Buffer.from('part_number,description,quantity\nBOM-A,Widget A,3\n'), {
+        filename: 'bom-b.csv',
+        contentType: 'text/csv'
+      })
       .expect(202);
 
     expect(second.body.idempotentReplay).toBe(true);
     expect(second.body.jobId).toBe(first.body.jobId);
     expect(second.body.sessionId).toBe(first.body.sessionId);
+    expect(second.body.leftRevisionId).toBe(first.body.leftRevisionId);
+    expect(second.body.rightRevisionId).toBe(first.body.rightRevisionId);
     expect(second.body.historyId).toBe(first.body.historyId);
   });
 
@@ -282,8 +306,14 @@ describe('Stage 1 API baseline (e2e)', () => {
 
     const response = await agent
       .post('/api/uploads/intake')
-      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'bom-a.csv', contentType: 'text/csv' })
-      .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'bom-b.csv', contentType: 'text/csv' })
+      .attach('fileA', Buffer.from('part_number,description,quantity\nBOM-A,Widget A,2\n'), {
+        filename: 'bom-a.csv',
+        contentType: 'text/csv'
+      })
+      .attach('fileB', Buffer.from('part_number,description,quantity\nBOM-A,Widget A,3\n'), {
+        filename: 'bom-b.csv',
+        contentType: 'text/csv'
+      })
       .expect(202);
 
     const history = await uploadHistoryService.findByJobId(response.body.jobId);
@@ -308,12 +338,43 @@ describe('Stage 1 API baseline (e2e)', () => {
     const response = await agent
       .post('/api/uploads/intake')
       .set('x-test-queue-fail', 'always')
-      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'bom-a.csv', contentType: 'text/csv' })
-      .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'bom-b.csv', contentType: 'text/csv' })
+      .attach('fileA', Buffer.from('part_number,description,quantity\nBOM-A,Widget A,2\n'), {
+        filename: 'bom-a.csv',
+        contentType: 'text/csv'
+      })
+      .attach('fileB', Buffer.from('part_number,description,quantity\nBOM-A,Widget A,3\n'), {
+        filename: 'bom-b.csv',
+        contentType: 'text/csv'
+      })
       .expect(503);
 
     expect(response.body.code).toBe('UPLOAD_QUEUE_ENQUEUE_FAILED');
     expect(response.body.correlationId).toBeDefined();
+  });
+
+  it('upload intake rejects corrupt xlsx with structured parse error', async () => {
+    const email = `parse.fail.${Date.now()}@example.com`;
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email, tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const response = await agent
+      .post('/api/uploads/intake')
+      .attach('fileA', Buffer.from('PK\x03\x04not-a-real-workbook'), {
+        filename: 'broken-a.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      .attach('fileB', Buffer.from('PK\x03\x04also-broken'), {
+        filename: 'broken-b.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      .expect(400);
+
+    expect(response.body.code).toBe('UPLOAD_PARSE_WORKBOOK_INVALID');
+    expect(response.body.correlationId).toBeDefined();
+    expect(response.body.parserMode).toBe('xlsx');
   });
 
   it('upload policy allows first three comparisons unrestricted and tracks usage', async () => {
@@ -780,5 +841,91 @@ describe('Stage 1 API baseline (e2e)', () => {
       .expect(201);
     const denied = await agentB.get(`/api/diff-jobs/${jobId}`).expect(403);
     expect(denied.body.code).toBe('TENANT_ACCESS_DENIED');
+  });
+
+  it('diff jobs can run against uploaded revision pair rows from intake', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'diff.real.upload@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const intake = await agent
+      .post('/api/uploads/intake')
+      .attach('fileA', Buffer.from('part_number,revision,description,quantity\nAAA-1,A,Widget,2\n'), {
+        filename: 'real-a.csv',
+        contentType: 'text/csv'
+      })
+      .attach('fileB', Buffer.from('part_number,revision,description,quantity\nAAA-1,A,Widget,3\n'), {
+        filename: 'real-b.csv',
+        contentType: 'text/csv'
+      })
+      .expect(202);
+
+    const started = await agent
+      .post('/api/diff-jobs')
+      .send({
+        sessionId: intake.body.sessionId,
+        leftRevisionId: intake.body.leftRevisionId,
+        rightRevisionId: intake.body.rightRevisionId
+      })
+      .expect(201);
+
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    const rows = await agent
+      .get(`/api/diff-jobs/${started.body.jobId}/rows?limit=50`)
+      .expect(200);
+    expect(rows.body.rows.some((row: { keyFields: { partNumber: string } }) => row.keyFields.partNumber === 'AAA1')).toBe(true);
+    expect(rows.body.rows.some((row: { changeType: string }) => row.changeType === 'quantity_change')).toBe(true);
+  });
+
+  it('diff jobs parse real xlsx fixtures and detect color/quantity/cost changes', async () => {
+    const fixtureA = readFileSync(
+      resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'stage4', 'bill-of-materials.xlsx')
+    );
+    const fixtureB = readFileSync(
+      resolve(process.cwd(), '..', '..', 'tests', 'fixtures', 'stage4', 'bill-of-materialsv2.xlsx')
+    );
+
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'diff.real.xlsx@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const intake = await agent
+      .post('/api/uploads/intake')
+      .attach('fileA', fixtureA, {
+        filename: 'bill-of-materials.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      .attach('fileB', fixtureB, {
+        filename: 'bill-of-materialsv2.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      .expect(202);
+
+    const started = await agent
+      .post('/api/diff-jobs')
+      .send({
+        sessionId: intake.body.sessionId,
+        leftRevisionId: intake.body.leftRevisionId,
+        rightRevisionId: intake.body.rightRevisionId
+      })
+      .expect(201);
+
+    await new Promise((resolveDone) => setTimeout(resolveDone, 1200));
+    const rowsResponse = await agent.get(`/api/diff-jobs/${started.body.jobId}/rows?limit=2000`).expect(200);
+    const rows = rowsResponse.body.rows as Array<{
+      keyFields: { partNumber: string | null };
+      changeType: string;
+      rationale: { changedFields: string[] };
+    }>;
+
+    expect(rows.length).toBeGreaterThan(0);
+    const target = rows.find((row) => row.keyFields.partNumber === '3023');
+    expect(target).toBeDefined();
+    expect(target?.changeType).toBe('modified');
+    expect(target?.rationale.changedFields).toEqual(expect.arrayContaining(['color', 'quantity', 'cost']));
   });
 });

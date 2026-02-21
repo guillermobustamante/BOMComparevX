@@ -116,6 +116,12 @@ export class ClassificationService {
       source.revision === target.revision &&
       source.description === target.description &&
       source.supplier === target.supplier &&
+      source.color === target.color &&
+      source.units === target.units &&
+      source.cost === target.cost &&
+      source.category === target.category &&
+      source.parentPath === target.parentPath &&
+      source.position === target.position &&
       source.quantity !== target.quantity
     );
   }
@@ -164,6 +170,10 @@ export class ClassificationService {
       'description',
       'quantity',
       'supplier',
+      'color',
+      'units',
+      'cost',
+      'category',
       'parentPath',
       'position'
     ];

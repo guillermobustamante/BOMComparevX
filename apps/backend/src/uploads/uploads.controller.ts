@@ -19,6 +19,7 @@ import { UploadHistoryService } from './upload-history.service';
 import { UploadJobService } from './upload-job.service';
 import { UploadPolicyService } from './upload-policy.service';
 import { UploadQueueService } from './upload-queue.service';
+import { UploadRevisionService } from './upload-revision.service';
 import { UploadValidationService } from './upload-validation.service';
 
 @Controller('uploads')
@@ -29,6 +30,7 @@ export class UploadsController {
     private readonly uploadJobService: UploadJobService,
     private readonly uploadQueueService: UploadQueueService,
     private readonly uploadHistoryService: UploadHistoryService,
+    private readonly uploadRevisionService: UploadRevisionService,
     private readonly auditService: AuditService
   ) {}
 
@@ -100,6 +102,8 @@ export class UploadsController {
   ): Promise<{
     jobId: string;
     sessionId: string;
+    leftRevisionId: string | null;
+    rightRevisionId: string | null;
     historyId: string | null;
     status: 'accepted';
     correlationId: string;
@@ -118,7 +122,12 @@ export class UploadsController {
       const existing = await this.uploadJobService.findByIdempotency(userKey, idempotencyKey);
       if (existing) {
         const existingHistory = await this.uploadHistoryService.findByJobId(existing.jobId, tenantId);
-        return this.acceptedResponse(existing, existingHistory?.historyId || null, true);
+        return this.acceptedResponse(
+          existing,
+          existingHistory?.historyId || null,
+          true,
+          this.uploadRevisionService.findPairByJobId(tenantId, existing.jobId)
+        );
       }
     }
 
@@ -159,6 +168,18 @@ export class UploadsController {
       );
     }
     const historyEntry = await this.uploadHistoryService.createAcceptedUploadEntry(job);
+    const fileA = files.fileA?.[0];
+    const fileB = files.fileB?.[0];
+    const revisionPair =
+      fileA && fileB
+        ? this.uploadRevisionService.storeRevisionPair({
+            tenantId,
+            sessionId: job.sessionId,
+            jobId: job.jobId,
+            fileA,
+            fileB
+          })
+        : null;
     this.auditService.emit({
       eventType: 'auth.login.success',
       outcome: 'success',
@@ -167,7 +188,7 @@ export class UploadsController {
       reason: 'upload.intake.accepted',
       correlationId: job.correlationId
     });
-    return this.acceptedResponse(job, historyEntry.historyId, false);
+    return this.acceptedResponse(job, historyEntry.historyId, false, revisionPair);
   }
 
   private acceptedResponse(
@@ -183,10 +204,13 @@ export class UploadsController {
       };
     },
     historyId: string | null,
-    idempotentReplay: boolean
+    idempotentReplay: boolean,
+    revisionPair: { leftRevisionId: string; rightRevisionId: string } | null
   ): {
     jobId: string;
     sessionId: string;
+    leftRevisionId: string | null;
+    rightRevisionId: string | null;
     historyId: string | null;
     status: 'accepted';
     correlationId: string;
@@ -200,6 +224,8 @@ export class UploadsController {
     return {
       jobId: job.jobId,
       sessionId: job.sessionId,
+      leftRevisionId: revisionPair?.leftRevisionId || null,
+      rightRevisionId: revisionPair?.rightRevisionId || null,
       historyId,
       status: 'accepted',
       correlationId: job.correlationId,

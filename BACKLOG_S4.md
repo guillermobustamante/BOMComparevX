@@ -385,7 +385,7 @@ ensuring deterministic behavior while meeting agreed performance budgets.
 - Estimate: `5`
 - Owner: `QA/BE/FE`
 - Sprint: `S4`
-- Status: `Planned`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-007`, `FR-008`
@@ -394,6 +394,9 @@ ensuring deterministic behavior while meeting agreed performance budgets.
 
 ### Inputs
 - Stage 4 fixture catalog and deterministic expected outputs.
+- Real XLSX regression fixtures:
+  - `tests/fixtures/stage4/bill-of-materials.xlsx`
+  - `tests/fixtures/stage4/bill-of-materialsv2.xlsx`
 
 ### Outputs
 - API/engine tests + browser tests for grid interactions and highlighting.

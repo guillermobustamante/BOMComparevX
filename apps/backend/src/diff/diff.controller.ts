@@ -15,6 +15,9 @@ export class DiffController {
     @Req() req: Request,
     @Body()
     body: {
+      sessionId?: string;
+      leftRevisionId?: string;
+      rightRevisionId?: string;
       sourceRows?: DiffComparableRow[];
       targetRows?: DiffComparableRow[];
     }
@@ -25,6 +28,9 @@ export class DiffController {
     return this.diffJobService.startJob({
       tenantId,
       requestedBy: actor,
+      sessionId: body?.sessionId,
+      leftRevisionId: body?.leftRevisionId,
+      rightRevisionId: body?.rightRevisionId,
       sourceRows: body?.sourceRows,
       targetRows: body?.targetRows
     });

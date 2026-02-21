@@ -28,6 +28,30 @@ Execution baseline for Stage 1 with selected stack:
 - This executes:
 `ci:checks` (contracts + backend + frontend build checks) and Playwright browser tests.
 
+## Stage 4 Real XLSX Regression Runbook
+
+Supported ingestion parser behavior:
+- `.csv`: parsed via CSV parser.
+- `.xlsx` / `.xls`: parsed via workbook parser (first sheet, deterministic row order).
+- Corrupt/unsupported parse paths fail fast with structured error codes and `correlationId`.
+
+Locked regression fixtures:
+- `tests/fixtures/stage4/bill-of-materials.xlsx`
+- `tests/fixtures/stage4/bill-of-materialsv2.xlsx`
+
+Browser validation flow:
+1. Start app stack:
+   - `npm --prefix apps/backend run start:dev`
+   - `npm --prefix apps/frontend run dev`
+2. Sign in and open `/upload`.
+3. Upload fixture A/B above and click `Queue Job`.
+4. Click `View Results`.
+5. Verify results show part `3023` as `modified` with changed fields including `color`, `quantity`, and `cost`.
+
+Automation hooks:
+- Backend e2e regression: `apps/backend/test/stage1.e2e-spec.ts`
+- Playwright regression: `tests/e2e/auth-shell.spec.ts`
+
 ## Azure SQL + Key Vault Dev Setup (S2-00 Baseline)
 Use this when provisioning durable DB persistence for Dev.
 For ongoing DB operations (deploy/recover/rotate), use:

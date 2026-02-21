@@ -43,6 +43,10 @@ export interface DiffComparableRow {
   description?: string | null;
   quantity?: number | null;
   supplier?: string | null;
+  color?: string | null;
+  units?: string | null;
+  cost?: number | null;
+  category?: string | null;
   parentPath?: string | null;
   position?: string | null;
 }

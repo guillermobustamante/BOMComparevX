@@ -126,6 +126,9 @@ V1 excludes:
 - Comparison uses normalization-first canonicalization (case/whitespace, controlled punctuation, numeric normalization, UoM normalization where configured).
 - Classification taxonomy for Stage 4:
   - `added`, `removed`, `replaced`, `modified`, `moved`, `quantity_change`, `no_change`
+- Stage 4 baseline comparable attributes include:
+  - `internal_id`, `part_number`, `revision`, `description`, `quantity`, `supplier`
+  - business fields: `color`, `units`, `cost`, `category` (when present/mapped)
 - Row-level and cell-level rationale metadata is captured for every non-`no_change` classification.
 - Attribute-level differences are recorded and surfaced with provenance (strategy/tie-break/classification path).
 

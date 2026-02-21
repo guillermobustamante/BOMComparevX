@@ -256,7 +256,7 @@ Implement multi-pass column detection with semantic registry + heuristic fallbac
 - Stage: `Stage 4 - Diff Engine + Progressive Results`
 - Dates: `TBD`
 - Owner: `Product + Engineering`
-- Status: `Planned`
+- Status: `In Progress (S4-01..S4-07 and S4-09 completed; S4-08 and S4-10 pending)`
 
 ### Sprint Goal
 Deliver deterministic BOM diffing with fixed tie-break behavior, normalization-first comparison, full change taxonomy classification, rationale metadata, and progressive results UX.
@@ -329,6 +329,7 @@ Deliver deterministic BOM diffing with fixed tie-break behavior, normalization-f
 - Feature flags: `diff_engine_v1`, `diff_progressive_api_v1`, `results_grid_stage4_v1`.
 - Monitoring: diff duration, ambiguity rate, chunk cadence, rationale completeness rate.
 - Rollback: disable Stage 4 feature flags and keep Stage 3 outputs/history intact.
+- Regression fixtures: `tests/fixtures/stage4/bill-of-materials.xlsx` and `tests/fixtures/stage4/bill-of-materialsv2.xlsx` are locked and must remain in CI.
 
 ---
 
@@ -365,9 +366,16 @@ Deliver deterministic BOM diffing with fixed tie-break behavior, normalization-f
 
 ### S4 Outcome
 - Completed:
+- `S4-01` through `S4-07` completed and verified.
+- `S4-09` completed, including backend + Playwright regression coverage for real XLSX uploads.
+- `V1` fix sprint (`FX-01`..`FX-06`) completed with format-aware parser, header alias hardening, diff field expansion, and parser guardrails.
 - Deferred:
+- `S4-08` performance hardening.
+- `S4-10` rollout/observability closeout.
 - Regressions/Bugs:
+- Real XLSX parsing regression fixed (previous `.xlsx` bytes parsed as CSV text).
 - Lessons learned:
+- Keep real user fixture files in automated tests to prevent parser/contract drift.
 
 ---
 

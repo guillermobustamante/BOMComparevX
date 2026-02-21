@@ -35,9 +35,13 @@ export class NormalizationService {
       revision: this.normalizeText(input.revision, true),
       description: this.normalizeText(input.description, true),
       supplier: this.normalizeText(input.supplier, true),
+      color: this.normalizeText(input.color, true),
+      units: this.normalizeText(input.units, true),
+      category: this.normalizeText(input.category, true),
       parentPath: this.normalizeText(input.parentPath, false),
       position: this.normalizeText(input.position, false),
-      quantity: this.normalizeNumber(input.quantity)
+      quantity: this.normalizeNumber(input.quantity),
+      cost: this.normalizeNumber(input.cost)
     };
 
     push('internalId', input.internalId, normalized.internalId ?? null, 'text_trim_space');
@@ -45,9 +49,13 @@ export class NormalizationService {
     push('revision', input.revision, normalized.revision ?? null, 'text_upper_trim_space');
     push('description', input.description, normalized.description ?? null, 'text_upper_trim_space');
     push('supplier', input.supplier, normalized.supplier ?? null, 'text_upper_trim_space');
+    push('color', input.color, normalized.color ?? null, 'text_upper_trim_space');
+    push('units', input.units, normalized.units ?? null, 'text_upper_trim_space');
+    push('category', input.category, normalized.category ?? null, 'text_upper_trim_space');
     push('parentPath', input.parentPath, normalized.parentPath ?? null, 'text_trim_space');
     push('position', input.position, normalized.position ?? null, 'text_trim_space');
     push('quantity', input.quantity ?? null, normalized.quantity ?? null, 'numeric_normalization');
+    push('cost', input.cost ?? null, normalized.cost ?? null, 'numeric_normalization');
 
     return { row: normalized, metadata };
   }

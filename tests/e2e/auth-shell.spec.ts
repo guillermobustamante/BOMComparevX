@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { resolve } from 'node:path';
 
 const e2eApiBaseUrl = process.env.E2E_API_BASE_URL || 'http://localhost:4100';
 const uniqueEmail = (prefix: string) => `${prefix}.${Date.now()}@example.com`;
+const fixturePath = (name: string) => resolve(process.cwd(), 'tests', 'fixtures', 'stage4', name);
 
 test('upload route redirects to login when unauthenticated', async ({ page }) => {
   await page.goto('/upload');
@@ -206,6 +208,47 @@ test('upload can queue a valid intake and show accepted job feedback', async ({ 
 
   await expect(page.getByTestId('upload-intake-success')).toContainText('UPLOAD_ACCEPTED');
   await expect(page.getByTestId('upload-intake-success')).toContainText('Status: accepted');
+  await expect(page.getByTestId('upload-view-results-link')).toBeVisible();
+  await context.close();
+});
+
+test('upload can open results using uploaded revision pair (real file rows)', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.upload.results');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({
+    baseURL,
+    storageState
+  });
+  const page = await context.newPage();
+
+  await page.goto('/upload');
+  await page.setInputFiles('[data-testid="file-input-a"]', fixturePath('bill-of-materials.xlsx'));
+  await page.setInputFiles('[data-testid="file-input-b"]', fixturePath('bill-of-materialsv2.xlsx'));
+
+  await page.getByTestId('queue-upload-btn').click();
+  await expect(page.getByTestId('upload-view-results-link')).toBeVisible();
+  await page.getByTestId('upload-view-results-link').click();
+
+  await expect(page).toHaveURL(/\/results\?/);
+  await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 15000 });
+  await expect(page.getByTestId('results-grid-table')).toContainText('3023');
+  await expect(page.getByTestId('results-grid-table')).toContainText('modified');
+  await expect(page.getByTestId('results-grid-table')).toContainText('color');
+  await expect(page.getByTestId('results-grid-table')).toContainText('quantity');
+  await expect(page.getByTestId('results-grid-table')).toContainText('cost');
   await context.close();
 });
 

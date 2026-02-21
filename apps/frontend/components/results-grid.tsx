@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 type ChangeType = 'added' | 'removed' | 'replaced' | 'modified' | 'moved' | 'quantity_change' | 'no_change';
 
@@ -54,6 +55,10 @@ const CHANGE_FILTERS: Array<{ value: 'all' | ChangeType; label: string }> = [
 ];
 
 export function ResultsGrid() {
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get('sessionId');
+  const leftRevisionId = searchParams.get('leftRevisionId');
+  const rightRevisionId = searchParams.get('rightRevisionId');
   const [jobId, setJobId] = useState<string | null>(null);
   const [status, setStatus] = useState<DiffStatus | null>(null);
   const [rows, setRows] = useState<DiffRow[]>([]);
@@ -80,7 +85,11 @@ export function ResultsGrid() {
       const response = await fetch('/api/diff-jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({
+          ...(sessionId ? { sessionId } : {}),
+          ...(leftRevisionId ? { leftRevisionId } : {}),
+          ...(rightRevisionId ? { rightRevisionId } : {})
+        })
       });
       const payload = (await response.json()) as DiffStatus | { code?: string; message?: string };
       if (!response.ok) {
@@ -132,7 +141,7 @@ export function ResultsGrid() {
 
   useEffect(() => {
     void startDiffJob();
-  }, []);
+  }, [sessionId, leftRevisionId, rightRevisionId]);
 
   useEffect(() => {
     if (!jobId) return;

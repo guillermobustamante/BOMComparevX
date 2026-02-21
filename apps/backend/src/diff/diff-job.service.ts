@@ -1,6 +1,7 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { DatabaseService } from '../database/database.service';
+import { UploadRevisionService } from '../uploads/upload-revision.service';
 import {
   DIFF_CONTRACT_VERSION,
   DiffComparableRow,
@@ -24,7 +25,8 @@ interface DiffJobRecord {
 export class DiffJobService {
   constructor(
     private readonly diffComputationService: DiffComputationService,
-    private readonly databaseService: DatabaseService
+    private readonly databaseService: DatabaseService,
+    private readonly uploadRevisionService: UploadRevisionService
   ) {}
 
   private readonly jobs = new Map<string, DiffJobRecord>();
@@ -32,11 +34,52 @@ export class DiffJobService {
   async startJob(input: {
     tenantId: string;
     requestedBy: string;
+    sessionId?: string;
+    leftRevisionId?: string;
+    rightRevisionId?: string;
     sourceRows?: DiffComparableRow[];
     targetRows?: DiffComparableRow[];
   }): Promise<DiffJobStatusPayload> {
-    const sourceRows = input.sourceRows?.length ? input.sourceRows : this.defaultSourceRows();
-    const targetRows = input.targetRows?.length ? input.targetRows : this.defaultTargetRows();
+    const revisionPair =
+      input.leftRevisionId && input.rightRevisionId
+        ? { leftRevisionId: input.leftRevisionId, rightRevisionId: input.rightRevisionId }
+        : input.sessionId
+          ? this.uploadRevisionService.findLatestPairBySession(input.tenantId, input.sessionId)
+          : null;
+
+    const revisionRows =
+      revisionPair && revisionPair.leftRevisionId && revisionPair.rightRevisionId
+        ? {
+            sourceRows:
+              this.uploadRevisionService.getRevisionRows(input.tenantId, revisionPair.leftRevisionId) || [],
+            targetRows:
+              this.uploadRevisionService.getRevisionRows(input.tenantId, revisionPair.rightRevisionId) || []
+          }
+        : null;
+
+    if (
+      (input.leftRevisionId || input.rightRevisionId || input.sessionId) &&
+      (!revisionRows || !revisionRows.sourceRows.length || !revisionRows.targetRows.length) &&
+      !(input.sourceRows?.length && input.targetRows?.length)
+    ) {
+      throw new BadRequestException({
+        code: 'DIFF_JOB_REVISION_ROWS_UNAVAILABLE',
+        message: 'Revision rows are unavailable for requested session/revisions.'
+      });
+    }
+
+    const sourceRows =
+      input.sourceRows?.length
+        ? input.sourceRows
+        : revisionRows?.sourceRows?.length
+          ? revisionRows.sourceRows
+          : this.defaultSourceRows();
+    const targetRows =
+      input.targetRows?.length
+        ? input.targetRows
+        : revisionRows?.targetRows?.length
+          ? revisionRows.targetRows
+          : this.defaultTargetRows();
     const computed = this.diffComputationService.compute({ sourceRows, targetRows });
 
     const jobId = randomUUID();

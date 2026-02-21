@@ -28,6 +28,8 @@ interface ValidationSuccess {
 interface IntakeSuccess {
   jobId: string;
   sessionId: string;
+  leftRevisionId: string | null;
+  rightRevisionId: string | null;
   historyId: string | null;
   status: 'accepted';
   correlationId: string;
@@ -294,7 +296,18 @@ export function UploadValidationForm() {
           <div>Status: {intakeSuccess.status}</div>
           <div>Job ID: {intakeSuccess.jobId}</div>
           <div>History ID: {intakeSuccess.historyId || 'n/a'}</div>
+          <div>Left Revision: {intakeSuccess.leftRevisionId || 'n/a'}</div>
+          <div>Right Revision: {intakeSuccess.rightRevisionId || 'n/a'}</div>
           <div>Correlation ID: {intakeSuccess.correlationId}</div>
+          {intakeSuccess.leftRevisionId && intakeSuccess.rightRevisionId && (
+            <a
+              className="linkInline"
+              href={`/results?sessionId=${encodeURIComponent(intakeSuccess.sessionId)}&leftRevisionId=${encodeURIComponent(intakeSuccess.leftRevisionId)}&rightRevisionId=${encodeURIComponent(intakeSuccess.rightRevisionId)}`}
+              data-testid="upload-view-results-link"
+            >
+              View Results
+            </a>
+          )}
         </div>
       )}
     </form>

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { AuditModule } from '../audit/audit.module';
+import { UploadsModule } from '../uploads/uploads.module';
 import { ClassificationService } from './classification.service';
 import { DiffController } from './diff.controller';
 import { DiffComputationService } from './diff-computation.service';
@@ -9,7 +10,7 @@ import { MatcherService } from './matcher.service';
 import { NormalizationService } from './normalization.service';
 
 @Module({
-  imports: [AuditModule],
+  imports: [AuditModule, UploadsModule],
   controllers: [DiffController],
   providers: [
     NormalizationService,
