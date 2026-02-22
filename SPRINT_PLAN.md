@@ -336,6 +336,90 @@ Deliver deterministic BOM diffing with fixed tie-break behavior, normalization-f
 
 ---
 
+## Sprint S5 - Stage 5 Export + Sharing + Notifications + Admin
+
+### Sprint Metadata
+- Sprint: `S5`
+- Stage: `Stage 5 - Export + Sharing + Notifications + Admin`
+- Dates: `TBD`
+- Owner: `Product + Engineering`
+- Status: `Planned`
+
+### Sprint Goal
+Deliver production-ready Stage 5 capabilities for synchronous exports, multi-recipient same-tenant sharing with revoke, completion/failure notifications, and full admin UI policy controls.
+
+### Scope (Committed)
+| ID | Work Item | Spec Traceability | Estimate | Owner | Priority |
+|---|---|---|---:|---|---|
+| S5-01 | Define/export API contract and implement synchronous CSV export (full dataset default) | `FR-010`; Stage 5 bullet 1 | 3 | BE | P0 |
+| S5-02 | Implement Excel export with source-structure fidelity contract | `FR-010`; Stage 5 bullet 1 | 5 | BE | P0 |
+| S5-03 | Implement sharing data model and permissions for multi-recipient same-tenant view-only invites | `FR-012`; Stage 5 bullets 2-3 | 5 | BE | P0 |
+| S5-04 | Implement share invite/revoke APIs with exact invited-email auth gate and unregistered invite handling | `FR-012`; Stage 5 bullets 2-3 | 5 | BE | P0 |
+| S5-05 | Build sharing UI (multi-invite, recipient list, revoke controls, state feedback) | `FR-012`; Stage 5 bullets 2-3 | 5 | FE | P0 |
+| S5-06 | Implement notifications baseline (comparison complete/fail) with in-app required and email optional by config | `FR-013`; Stage 5 bullet 4 | 5 | BE/FE | P0 |
+| S5-07 | Build full admin UI for upload-policy reset/override with DB role-claim authorization | `FR-014`; Stage 5 bullet 5 | 5 | FE/BE | P0 |
+| S5-08 | Implement Stage 5 artifact retention defaults (export 7d, notifications 90d, share lifecycle) | `FR-015`; Stage 5 bullets 1-5 | 3 | BE | P1 |
+| S5-09 | Add Stage 5 automated tests (backend + browser) and CI coverage | QA matrix items 10-11; Stage 5 bullets 1-5 | 5 | QA/BE/FE | P0 |
+| S5-10 | Stage 5 rollout, observability, and runbook closeout | `NFR-AUDIT`, `NFR-RELIABILITY`; Stage 5 bullets 1-5 | 3 | BE/DevOps | P1 |
+
+### Non-Goals (Out of Scope)
+- Async/hybrid export job architecture.
+- Notification trigger expansion beyond comparison complete/fail.
+- Notification retry/backoff/dead-letter hardening beyond baseline.
+- Cross-tenant sharing and editor permissions for invitees.
+- Entra-group admin-role authority (deferred beyond V1).
+
+### Delivery Plan
+- Week 1:
+  - Lock export and sharing contracts (`S5-01` to `S5-04`).
+  - Start sharing UI and notification baseline (`S5-05`, `S5-06`).
+- Week 2:
+  - Complete admin UI and retention defaults (`S5-07`, `S5-08`).
+  - Finalize automation and rollout readiness (`S5-09`, `S5-10`).
+
+### Dependencies
+- Stable Stage 4 diff/result persistence and retrieval.
+- Tenant/RBAC baseline from Stage 1.
+- Durable DB baseline from `S2-00` / `S2vDB`.
+- Email provider configuration available for environments that enable email notifications.
+
+### Definition of Done (Sprint-Level)
+- All Stage 5 acceptance bullets in `V1_SPEC.md` are demonstrably met.
+- Export behavior is deterministic and contract-consistent across CSV and Excel.
+- Sharing access controls enforce same-tenant, view-only, and revoke semantics.
+- Admin UI policy actions are role-protected and audit logged.
+- Stage 5 automation passes in CI with regression diagnostics.
+
+### QA Plan
+- Validate CSV and Excel download behavior and contract fidelity.
+- Validate full-dataset export default (independent of active grid filters/sorts).
+- Validate multi-invite share flow, exact-email auth gate, and revoke enforcement.
+- Validate in-app completion/failure notifications and optional email behavior by config.
+- Validate admin UI role gating, reset/override behavior, and audit traces.
+- Validate Stage 5 retention policies for export artifacts and notifications.
+
+### Risks and Mitigations
+| Risk | Impact | Mitigation | Owner | Trigger |
+|---|---|---|---|---|
+| Export fidelity drifts from uploaded structure | User trust erosion | Contract tests over fixture families and deterministic header/order assertions | BE/QA | Export mismatch defects |
+| Share authorization gaps | Confidential data exposure | Same-tenant guard + exact email binding + revoke integration tests | BE | Unauthorized share access |
+| Admin role misconfiguration | Over-privileged access | DB role-claim checks + denied-path tests + audit monitoring | BE | Non-admin admin-action success |
+| Notification config ambiguity | Missing user signals | Explicit config matrix and fallback to in-app baseline | BE/FE | Environment-specific notification failures |
+
+### Demo Plan
+- Show CSV and Excel exports from a completed comparison.
+- Show multi-recipient share invite and recipient access.
+- Show revoke behavior and denied access after revocation.
+- Show in-app completion/failure notification behavior.
+- Show admin UI policy reset/override and associated audit log event.
+
+### Rollout Notes
+- Feature flags: `export_stage5_v1`, `sharing_stage5_v1`, `notifications_stage5_v1`, `admin_policy_ui_stage5_v1`.
+- Monitor: export success/failure, share invite/revoke events, admin override actions, notification delivery counts.
+- Rollback: disable Stage 5 flags without impacting Stage 1-4 flows.
+
+---
+
 ## Sprint Review Template (Complete at Sprint Close)
 
 ### S1 Outcome

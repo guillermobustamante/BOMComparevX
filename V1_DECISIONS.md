@@ -1,7 +1,7 @@
 # V1 Decisions (Locked)
 
-Version: 1.2  
-Status: Locked for Stage 4 planning/execution
+Version: 1.3  
+Status: Locked through Stage 5 planning
 
 ---
 
@@ -16,12 +16,12 @@ Status: Locked for Stage 4 planning/execution
 
 5. Upload onboarding policy is: first 3 comparisons unrestricted, then 48-hour cooldown.
 6. Admin override/reset of upload policy is enabled and audit logged.
-7. Notifications default is in-app for V1; email expands in later phase.
-8. Sharing scope in V1 is single-recipient invite with explicit revoke.
+7. Notifications baseline in V1 is in-app required; email is optional by tenant/platform configuration.
+8. Sharing scope in V1 is multi-recipient invite by email with explicit revoke.
 
 ## Export and Revision Behavior
 
-9. Excel export fidelity targets structure/layout and mapped columns; full style/formula fidelity is best-effort.
+9. Export contract in V1 is CSV plus Excel-compatible output; Excel preserves source structure (sheet layout, column order, headers, mapped custom columns) with style/formula fidelity as best-effort.
 10. Revision behavior is immutable: new upload creates a new revision, compared against immediately previous revision in-session.
 
 ## Stage 3 Detection and Mapping (Locked)
@@ -104,3 +104,23 @@ Status: Locked for Stage 4 planning/execution
    - `stage4.diff.first_status`
    - `stage4.diff.first_rows`
    - `stage4.diff.completed`
+
+## Stage 5 Export, Sharing, Notifications, and Admin (Locked)
+
+39. Sharing boundary for V1 is same-tenant only; cross-tenant sharing is excluded.
+40. Invite flow allows inviting unregistered emails; access is granted only after authentication with the exact invited email.
+41. Share permission model for V1 invitees is view-only.
+42. Export mode in V1 is synchronous download only; async/hybrid export modes are deferred.
+43. Export default scope is full dataset (not current filtered/sorted view).
+44. Admin source of truth in V1 is database role claim (Entra group mapping deferred).
+45. Stage 5 admin capability requires full admin UI for user search/list plus upload policy reset/override actions.
+46. Retention defaults for Stage 5 artifacts are:
+   - export artifacts: 7 days
+   - notifications: 90 days
+   - share records: retained until explicit revoke or owning session deletion
+47. Revocation enforcement default is hard revoke on next authorized request (no new access after revoke).
+48. Minimum notification triggers in Stage 5 are comparison completion and failure only.
+49. Parked to V2/V3:
+   - notification trigger expansion (share/export events)
+   - notification reliability expansion (retry/backoff/dead-letter policy)
+   - detailed compliance payload schema expansion for Stage 5 actions

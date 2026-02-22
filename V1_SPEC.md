@@ -27,7 +27,7 @@ V1 includes:
 8. Deterministic BOM matching + attribute-level diffing
 9. CSV + Excel-compatible export
 10. History management (reopen/rename/tags/delete)
-11. Sharing via invite with authentication requirement
+11. Sharing via multi-recipient same-tenant invite with authentication requirement
 12. Notifications (in-app; email optional by config)
 13. Admin controls for upload policy override/reset
 14. Raw STEP/STP deletion after 7 days
@@ -44,13 +44,20 @@ V1 excludes:
 ## 3. Product Decisions Locked for V1
 
 1. Graph model: Azure SQL Graph-capable model in Phase 1.
-2. Excel export fidelity: preserve structure/order and mapped columns; full style/formula fidelity is best-effort, not guaranteed.
+2. Export contract is CSV plus Excel-compatible output; Excel preserves source structure (sheet layout, column order, headers, mapped custom columns), while style/formula fidelity remains best-effort.
 3. Retention: raw engineering files deleted at day 7; metadata/results/audits retained per policy.
 4. Multi-version behavior: newest upload compares against immediately previous revision in same session.
 5. Upload policy: 48-hour default with admin override/reset.
 6. Notifications default: in-app required; email enabled by tenant/platform configuration.
 7. Persistence layer uses Azure SQL with Prisma-managed SQL migrations.
 8. Physical table naming convention is camelCase.
+9. Sharing in V1 is multi-recipient, same-tenant, view-only invite with explicit revoke.
+10. Stage 5 admin source of truth is database role claim.
+11. Stage 5 export mode is synchronous download; async/hybrid is deferred.
+12. Stage 5 retention defaults:
+   - export artifacts: 7 days
+   - notifications: 90 days
+   - share records until explicit revoke or owning session deletion
 
 ---
 
@@ -167,7 +174,9 @@ V1 excludes:
 - Export available for:
   - Comparison diff CSV
   - Version-level CSV where applicable
-  - Excel-compatible output preserving mapped structure
+  - Excel-compatible output preserving source sheet layout, column order, headers, and mapped custom columns
+- Export mode in V1 is synchronous download.
+- Export default is full dataset (not current filtered/sorted view).
 
 ### FR-011 History and Management
 - Every session stores:
@@ -184,27 +193,36 @@ V1 excludes:
 - Deleting session removes access to associated results.
 
 ### FR-012 Sharing
-- Owner can share specific comparison by inviting email.
+- Owner can share specific comparison by inviting one or more emails in the same tenant.
 - Recipient must authenticate.
-- Access restricted to invited identity.
+- Access restricted to invited identity (exact invited email match).
+- Invited users have view-only access.
+- Invites may target unregistered emails; access is granted only after successful authentication as that invited identity.
 - Share has no expiry by default.
 - Owner can revoke share at any time.
+- Revocation default is hard revoke on next authorized request.
 
 ### FR-013 Notifications
 - In-app notification generated when processing completes/fails.
 - Notification links to corresponding session result.
 - Email notification configurable and supported when enabled.
+- Stage 5 minimum triggers are comparison completion and failure only.
 
 ### FR-014 Administration
 - Admin can:
-  - view user list
+  - view/search user list in admin UI
   - reset upload cooldown
   - apply per-user policy overrides
+- Admin role authorization source in V1 is database role claim.
 - Admin actions are audit logged.
 
 ### FR-015 Data Retention
 - STEP/STP raw files deleted automatically at 7 days.
 - Derived results and metadata persist until user deletion or policy action.
+- Stage 5 retention defaults:
+  - export artifacts deleted at 7 days
+  - notifications retained for 90 days
+  - share records retained until explicit revoke or owning session deletion
 
 ---
 
@@ -326,11 +344,15 @@ V1 excludes:
 
 ### Stage 5 — Export + Sharing + Notifications + Admin
 **Done when:**
-- CSV and Excel-compatible exports are downloadable.
-- Owner can invite/revoke sharing access.
+- CSV and Excel-compatible exports are downloadable as synchronous downloads.
+- Excel export preserves source sheet layout/column order/headers/mapped custom columns (style/formulas best-effort).
+- Export output is full dataset by default.
+- Owner can invite/revoke multiple same-tenant sharing recipients.
 - Recipient authentication required for shared access.
-- In-app completion notifications are delivered and deep-link correctly.
+- Invited recipients are view-only and revoked access is denied on subsequent access check.
+- In-app completion/failure notifications are delivered and deep-link correctly.
 - Admin can reset/override upload limits.
+- Admin actions are available through admin UI with database role claim enforcement.
 
 ### Stage 6 — Retention + Hardening
 **Done when:**

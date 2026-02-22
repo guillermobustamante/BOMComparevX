@@ -28,13 +28,14 @@ You want a product that is:
 5. Async job processing with queue + progress timeline
 6. BOM results table with search/sort/filter and change filters
 7. Visual change indicators for new/changed/removed (row + column level)
-8. CSV export and Excel-compatible export
+8. CSV export and Excel-compatible export preserving uploaded source structure
 9. History (status, timestamps, reopen, rename, tags, delete)
-10. Sharing by invited email, auth required, manual revoke
+10. Sharing by invited email (multi-recipient, same-tenant, view-only), auth required, manual revoke
 11. Upload limit policy (48-hour default) with admin reset/override
 12. 7-day deletion of raw STEP/STP files; metadata/results persist
 13. Immutable revisions (new upload = new revision)
 14. Multi-version chain behavior: additional file compares to prior revision in same analysis
+15. Stage 5 retention defaults: export artifacts 7 days, notifications 90 days, share records until revoke/session deletion
 
 ### 3.2 Post-Launch (V1.1/V2)
 1. PLM integrations
@@ -187,7 +188,7 @@ Classification outcomes persist row-level and cell-level rationale metadata for 
 ### 5.9 Security and Isolation
 - Tenant filter required on every data path
 - No cross-tenant query behavior in Phase 1
-- Sharing is explicit and auditable
+- Sharing is explicit, same-tenant, and auditable
 - Append-only audit trail with synchronized timestamps
 - Audit export supported (CSV/JSON)
 
@@ -258,7 +259,7 @@ Deterministic matching with fixed tie-break + one-to-one lock, normalization-fir
 full Stage 4 taxonomy classification, row/cell rationale metadata, and progressive polling + cursor chunk delivery.
 
 ### Stage 5 — Export + Sharing + Notifications + Admin
-Hybrid exports, invite/revoke sharing, admin controls, notification channels.
+Sync export downloads (CSV + Excel source-structure fidelity), multi-recipient same-tenant invite/revoke sharing (view-only), completion/failure notifications (in-app with optional email), and full admin UI controls backed by DB role claims.
 
 ### Stage 6 — Retention + Hardening
 Raw-file lifecycle enforcement, audit exports, performance tuning for p95 targets.
@@ -273,4 +274,4 @@ Raw-file lifecycle enforcement, audit exports, performance tuning for p95 target
 
 ## 10) Immediate Next Step
 
-Proceed with Stage 4 execution against the locked decisions and sprint backlog, then close with Stage 4 acceptance validation.
+Proceed with Stage 5 backlog creation and execution against the locked export/sharing/notification/admin defaults.
