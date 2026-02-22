@@ -353,24 +353,71 @@ full filter/sort/search capability, and consistent row/cell diff highlighting.
 
 ### Inputs
 - Representative BOM fixtures and runtime telemetry.
+- Fixture tiers (locked for perf tests):
+  - Small: <=5MB CSV/XLSX
+  - Medium: 5-30MB CSV/XLSX
+  - Real regression fixtures:
+    - `tests/fixtures/stage4/bill-of-materials.xlsx`
+    - `tests/fixtures/stage4/bill-of-materialsv2.xlsx`
+- Progressive API behavior from `S4-06` and results grid behavior from `S4-07`.
 
 ### Outputs
 - Benchmarked limits and tuned query/render behavior.
+- Published baseline report with p50/p95 metrics and dataset references.
+- Repeatable perf test procedure documented in `docs/runbooks/s4-08-performance-baseline.md`.
+
+### Contract
+- Stage 4 performance budgets (from `V1_SPEC.md` + PreviousDocs):
+  - Diff end-to-end p95 for <=5MB fixtures: <=30s
+  - Diff end-to-end p95 for 5-30MB fixtures: <=90s
+  - First progress response: <2s
+  - First rows visible in results grid: <5s
+  - Search/sort/filter interaction in loaded grid: <500ms
+- Capture and report at minimum:
+  - `datasetId`, `fileSizeBytes`, `rowCountSource`, `rowCountTarget`
+  - `diffDurationMs`, `firstProgressMs`, `firstChunkMs`
+  - `rowsPerSecond`, `browserInteractionMs`
 
 ### Constraints
 - Must preserve deterministic result fidelity under load.
 - Must not degrade Stage 2/3 stability.
+- No relaxation of tie-break or classification contract for speed gains.
+- Perf tests must run with tenant safety on and real auth/session path.
 
 ### Acceptance Criteria
-1. Initial results page load and interaction targets are measured and met.
-2. Large fixture runs complete within defined Stage 4 budget.
-3. Grid rendering remains responsive under high-row scenarios.
-4. Performance regression tests are added to CI/nightly where feasible.
+1. Baseline and tuned runs are captured for small and medium fixtures with p50/p95 metrics.
+2. p95 budgets are met (`<=30s` for <=5MB, `<=90s` for 5-30MB) without classification regressions.
+3. Progressive UX budgets are met (`firstProgress <2s`, `firstChunk <5s`, grid interactions <500ms).
+4. Perf procedure is documented and runnable by team members using one command sequence.
+5. At least one regression guard is added (CI or scheduled/nightly path).
+
+### Test Plan
+- Backend:
+  - Repeat `POST /diff-jobs` + poll + rows retrieval across fixture tiers and record durations.
+  - Validate counters/classifications remain unchanged versus functional baseline.
+- Browser:
+  - Time first render and interaction latency on `/results` with staged datasets.
+- CI:
+  - Keep `npm run verify:story` as functional gate.
+  - Add/plan perf gate command in runbook for nightly if PR-time gate is too expensive.
+
+### Dependencies
+- Stable Dev/Test environment with DB and queue baseline (`S2-00`).
+- Real fixture catalog available in repo.
+- Telemetry sink available for duration/error capture (prepared in `S4-10`).
+
+### Actionable Subtasks
+1. Add instrumentation points for job duration and first-chunk timings.
+2. Create repeatable perf harness script/process and fixture matrix.
+3. Run baseline and tuned passes; document deltas.
+4. Add regression guard (CI/nightly) and publish threshold ownership.
 
 ### AI Prompt (Execution-Ready)
 ```text
-Tune diff generation and results rendering for large BOM datasets,
-ensuring deterministic behavior while meeting agreed performance budgets.
+Implement Stage 4 performance hardening with explicit p95 budgets:
+<=30s for <=5MB, <=90s for 5-30MB, firstProgress<2s, firstChunk<5s, and grid interactions<500ms.
+Do not change deterministic matching/classification behavior.
+Produce benchmark evidence and add a repeatable perf regression process.
 ```
 
 ---
@@ -437,24 +484,78 @@ classification correctness, progressive loading, and results-grid behaviors.
 
 ### Inputs
 - Telemetry framework and feature flag framework.
+- PreviousDocs guidance:
+  - Azure Monitor + Application Insights for metrics/traces/logs.
+  - Alerting for availability, error rate, latency, queue depth.
+  - Incident runbooks for high latency, outage, and corruption paths.
 
 ### Outputs
 - Feature flags, dashboards, and runbook for Stage 4.
+- Operational docs:
+  - `docs/runbooks/s4-10-rollout-observability.md`
+  - rollback and incident checklists with owners/escalation path.
 
 ### Constraints
 - All metrics tenant-safe and privacy-compliant.
 - Kill-switch rollback path must preserve historical diff visibility.
+- Rollout must be progressive (Dev -> Test -> Prod), no big-bang enablement.
+
+### Contract
+- Feature flags (minimum):
+  - `diff_engine_v1`
+  - `diff_progressive_api_v1`
+  - `results_grid_stage4_v1`
+- Required Stage 4 operational metrics:
+  - `diffJobDurationMs` (p50/p95 by dataset tier)
+  - `diffJobErrorRate`
+  - `diffAmbiguityRate` (review-required share)
+  - `firstChunkLatencyMs`
+  - `queueDepth`
+  - `api5xxRate`
+- Initial alert thresholds (inferred defaults, tune after baseline):
+  - Availability/health endpoint down >5m
+  - API 5xx rate >2% for 5m
+  - Diff p95 breach for 15m:
+    - >30s (<=5MB tier)
+    - >90s (5-30MB tier)
+  - Queue depth >20 for 10m
+  - Dead-letter count >0 sustained 10m
+- Dashboard minimum panels:
+  - Uptime, active sessions/jobs, p50/p95 diff duration, queue depth, error rate, ambiguity rate
 
 ### Acceptance Criteria
-1. Feature flags control Stage 4 API/UI rollout independently.
-2. Dashboards track diff duration, ambiguity rate, and correction rate.
-3. Alert thresholds are defined for failure/latency anomalies.
-4. Rollback runbook is validated in non-prod.
+1. Feature flags are implemented and validated independently across API/UI components.
+2. Dashboard panels and metric queries are documented and visible in non-prod.
+3. Alert rules are configured with thresholds, windows, and owner/escalation routing.
+4. Rollback runbook is executed in non-prod and evidence is captured.
+5. Post-rollout checklist includes monitoring sign-off and kill-switch verification.
+
+### Test Plan
+- Flag tests:
+  - Validate each Stage 4 surface can be disabled independently without breaking auth/upload/history.
+- Observability tests:
+  - Emit synthetic failures/latency and verify alert trigger + notification path.
+  - Validate dashboard reflects live metric changes.
+- Rollback drill:
+  - Disable Stage 4 flags in Test and verify system degrades gracefully to safe behavior.
+
+### Dependencies
+- Access to Azure Monitor/Application Insights resources.
+- On-call destination (email/Teams/PagerDuty) and owner rotation.
+- CI pipeline permissions for artifacting/report links.
+
+### Actionable Subtasks
+1. Add/confirm feature flag reads in backend/frontend boundaries.
+2. Define metric schema and emitters for Stage 4 operations.
+3. Build dashboard with agreed panels and links.
+4. Configure alerts + action groups.
+5. Execute and document rollback drill.
 
 ### AI Prompt (Execution-Ready)
 ```text
-Implement Stage 4 rollout controls with observability, alerting, and safe rollback,
-including deterministic diff quality metrics and operational runbooks.
+Implement Stage 4 rollout controls using feature flags and Azure Monitor/Application Insights.
+Deliver metric emitters, dashboard, actionable alerts, and a validated rollback drill in Test.
+Preserve tenant safety and deterministic diff behavior during all rollout states.
 ```
 
 ---

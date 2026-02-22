@@ -330,6 +330,9 @@ Deliver deterministic BOM diffing with fixed tie-break behavior, normalization-f
 - Monitoring: diff duration, ambiguity rate, chunk cadence, rationale completeness rate.
 - Rollback: disable Stage 4 feature flags and keep Stage 3 outputs/history intact.
 - Regression fixtures: `tests/fixtures/stage4/bill-of-materials.xlsx` and `tests/fixtures/stage4/bill-of-materialsv2.xlsx` are locked and must remain in CI.
+- Pending execution runbooks:
+  - `docs/runbooks/s4-08-performance-baseline.md`
+  - `docs/runbooks/s4-10-rollout-observability.md`
 
 ---
 
