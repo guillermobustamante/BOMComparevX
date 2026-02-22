@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 type ChangeType = 'added' | 'removed' | 'replaced' | 'modified' | 'moved' | 'quantity_change' | 'no_change';
 
@@ -58,6 +58,8 @@ export function ResultsGrid() {
   const resultsGridEnabled =
     (process.env.NEXT_PUBLIC_RESULTS_GRID_STAGE4_V1 || 'true').trim().toLowerCase() !== 'false';
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const sessionId = searchParams.get('sessionId');
   const leftRevisionId = searchParams.get('leftRevisionId');
   const rightRevisionId = searchParams.get('rightRevisionId');
@@ -103,6 +105,10 @@ export function ResultsGrid() {
       const started = payload as DiffStatus;
       setJobId(started.jobId);
       setStatus(started);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('comparisonId', started.jobId);
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
       await pullRows(started.jobId, '0', started.loadedRows);
     } catch {
       setError('DIFF_START_FAILED: Could not start diff job.');
