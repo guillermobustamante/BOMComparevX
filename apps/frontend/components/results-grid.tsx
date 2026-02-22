@@ -60,6 +60,7 @@ export function ResultsGrid() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
+  const comparisonIdParam = searchParams.get('comparisonId');
   const sessionId = searchParams.get('sessionId');
   const leftRevisionId = searchParams.get('leftRevisionId');
   const rightRevisionId = searchParams.get('rightRevisionId');
@@ -73,6 +74,7 @@ export function ResultsGrid() {
   const [sortMode, setSortMode] = useState<'source' | 'part' | 'change'>('source');
   const [isStarting, setIsStarting] = useState(false);
   const rowsCountRef = useRef(0);
+  const activeComparisonId = jobId || comparisonIdParam;
 
   useEffect(() => {
     rowsCountRef.current = rows.length;
@@ -230,9 +232,38 @@ export function ResultsGrid() {
     <section className="panel" data-testid="results-panel">
       <div className="resultsHeader">
         <h1 className="h1">Results</h1>
-        <button className="btn" type="button" onClick={() => void startDiffJob()} disabled={isStarting} data-testid="results-run-btn">
-          {isStarting ? 'Starting...' : 'Run Diff'}
-        </button>
+        <div className="resultsActions">
+          {activeComparisonId ? (
+            <>
+              <a
+                className="btn"
+                href={`/api/exports/csv/${encodeURIComponent(activeComparisonId)}`}
+                data-testid="results-export-csv-link"
+              >
+                Export CSV
+              </a>
+              <a
+                className="btn"
+                href={`/api/exports/excel/${encodeURIComponent(activeComparisonId)}`}
+                data-testid="results-export-excel-link"
+              >
+                Export Excel
+              </a>
+            </>
+          ) : (
+            <>
+              <button className="btn" type="button" disabled data-testid="results-export-csv-disabled">
+                Export CSV
+              </button>
+              <button className="btn" type="button" disabled data-testid="results-export-excel-disabled">
+                Export Excel
+              </button>
+            </>
+          )}
+          <button className="btn" type="button" onClick={() => void startDiffJob()} disabled={isStarting} data-testid="results-run-btn">
+            {isStarting ? 'Starting...' : 'Run Diff'}
+          </button>
+        </div>
       </div>
 
       {status && status.status === 'running' && (

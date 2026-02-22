@@ -390,3 +390,49 @@ test('results page supports search/sort/filter/change-type controls', async ({
 
   await context.close();
 });
+
+test('results page exposes csv/excel export actions bound to comparisonId', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.results.exports');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({
+    baseURL,
+    storageState,
+    acceptDownloads: true
+  });
+  const page = await context.newPage();
+
+  await page.goto('/results');
+  await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 15000 });
+
+  const currentUrl = new URL(page.url());
+  const comparisonId = currentUrl.searchParams.get('comparisonId');
+  expect(comparisonId).toBeTruthy();
+
+  const csvLink = page.getByTestId('results-export-csv-link');
+  const excelLink = page.getByTestId('results-export-excel-link');
+  await expect(csvLink).toBeVisible();
+  await expect(excelLink).toBeVisible();
+  await expect(csvLink).toHaveAttribute('href', new RegExp(`/api/exports/csv/${comparisonId}$`));
+  await expect(excelLink).toHaveAttribute('href', new RegExp(`/api/exports/excel/${comparisonId}$`));
+
+  const [csvDownload] = await Promise.all([page.waitForEvent('download'), csvLink.click()]);
+  expect(csvDownload.suggestedFilename().toLowerCase()).toContain('.csv');
+
+  const [excelDownload] = await Promise.all([page.waitForEvent('download'), excelLink.click()]);
+  expect(excelDownload.suggestedFilename().toLowerCase()).toContain('.xlsx');
+
+  await context.close();
+});

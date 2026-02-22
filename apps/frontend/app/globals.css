@@ -248,6 +248,13 @@ a {
   gap: 12px;
 }
 
+.resultsActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .resultsFilters {
   margin-top: 14px;
   display: grid;

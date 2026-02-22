@@ -343,7 +343,7 @@ Deliver deterministic BOM diffing with fixed tie-break behavior, normalization-f
 - Stage: `Stage 5 - Export + Sharing + Notifications + Admin`
 - Dates: `TBD`
 - Owner: `Product + Engineering`
-- Status: `In Progress (S5-01 and S5-02 completed)`
+- Status: `In Progress (S5-01, S5-02, and S5-02b completed)`
 
 ### Sprint Goal
 Deliver production-ready Stage 5 capabilities for synchronous exports, multi-recipient same-tenant sharing with revoke, completion/failure notifications, and full admin UI policy controls.
@@ -353,6 +353,7 @@ Deliver production-ready Stage 5 capabilities for synchronous exports, multi-rec
 |---|---|---|---:|---|---|
 | S5-01 | Define/export API contract and implement synchronous CSV export (full dataset default) | `FR-010`; Stage 5 bullet 1 | 3 | BE | P0 |
 | S5-02 | Implement Excel export with source-structure fidelity contract | `FR-010`; Stage 5 bullet 1 | 5 | BE | P0 |
+| S5-02b | Add lightweight Results UI actions for CSV/Excel downloads bound to `comparisonId` | `FR-010`; Stage 5 bullet 1 | 2 | FE | P0 |
 | S5-03 | Implement sharing data model and permissions for multi-recipient same-tenant view-only invites | `FR-012`; Stage 5 bullets 2-3 | 5 | BE | P0 |
 | S5-04 | Implement share invite/revoke APIs with exact invited-email auth gate and unregistered invite handling | `FR-012`; Stage 5 bullets 2-3 | 5 | BE | P0 |
 | S5-05 | Build sharing UI (multi-invite, recipient list, revoke controls, state feedback) | `FR-012`; Stage 5 bullets 2-3 | 5 | FE | P0 |

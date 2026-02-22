@@ -187,6 +187,61 @@ Preserve source structure contract (layout/order/headers/custom mapped columns) 
 
 ---
 
+## S5-02b Build Results UI Export Actions (CSV/Excel)
+
+### Story Metadata
+- Story ID: `S5-02b`
+- Title: `Build Results UI Export Actions (CSV/Excel)`
+- Type: `Story`
+- Priority: `P0`
+- Estimate: `2`
+- Owner: `FE`
+- Sprint: `S5`
+- Status: `Done`
+
+### Traceability
+- Requirement link(s): `FR-010`
+- Stage acceptance link(s): `Stage 5 bullet 1`
+- Decision link(s): `V1_DECISIONS.md` items `9`, `42`, `43`
+
+### Inputs
+- `comparisonId` from `/results` URL query.
+- Existing frontend export proxy routes:
+  - `/api/exports/csv/:comparisonId`
+  - `/api/exports/excel/:comparisonId`
+
+### Outputs
+- Results UI shows actionable download controls for CSV and Excel.
+
+### Contract
+- UI actions use the current `comparisonId` and call existing proxy routes.
+- Controls are disabled when no comparison is available.
+
+### Constraints
+- Keep implementation lightweight and replaceable (future UI revamp expected).
+- No changes to export payload contracts.
+
+### Acceptance Criteria
+1. Results page exposes both CSV and Excel download actions.
+2. Actions are bound to the active `comparisonId`.
+3. Browser automation verifies visibility/binding and successful download starts.
+
+### AI Prompt (Execution-Ready)
+```text
+Add lightweight export controls to the results page that trigger existing CSV and Excel export routes for the active comparisonId.
+Keep the UI change minimal and future-replaceable, and add Playwright coverage for link binding and download behavior.
+```
+
+### Completion Evidence
+- Results header now includes export controls:
+  - `apps/frontend/components/results-grid.tsx`
+- Layout support for action group:
+  - `apps/frontend/app/globals.css`
+- Browser automation added:
+  - `tests/e2e/auth-shell.spec.ts` (`results page exposes csv/excel export actions bound to comparisonId`)
+
+---
+
 ## S5-03 Implement Sharing Data Model + Permission Rules
 
 ### Story Metadata
