@@ -206,6 +206,33 @@ export class DiffJobService {
     };
   }
 
+  getRowsForExport(
+    jobId: string,
+    tenantId: string,
+    requestedBy: string
+  ): {
+    contractVersion: string;
+    jobId: string;
+    rows: PersistedDiffRow[];
+    counters: DiffJobCounters;
+  } {
+    const job = this.requireTenantJob(jobId, tenantId);
+    if (job.requestedBy !== requestedBy) {
+      throw new ForbiddenException({
+        code: 'EXPORT_ACCESS_DENIED',
+        message: 'Access to this comparison export is not allowed.',
+        correlationId: randomUUID()
+      });
+    }
+
+    return {
+      contractVersion: job.contractVersion,
+      jobId: job.jobId,
+      rows: job.rows,
+      counters: job.counters
+    };
+  }
+
   private requireTenantJob(jobId: string, tenantId: string): DiffJobRecord {
     const job = this.jobs.get(jobId);
     if (!job) {

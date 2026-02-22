@@ -60,7 +60,7 @@ Source precedence:
 - Estimate: `3`
 - Owner: `BE`
 - Sprint: `S5`
-- Status: `Ready`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-010`
@@ -94,6 +94,26 @@ Implement the Stage 5 CSV export contract as synchronous download.
 Default to full dataset export and enforce tenant/share authorization.
 Keep error payloads standardized with correlation IDs.
 ```
+
+### Completion Evidence
+- Backend endpoint implemented: `GET /api/exports/csv/:comparisonId`.
+- Comparison export contract implemented against diff job artifacts:
+  - synchronous CSV download
+  - full dataset default
+  - tenant + owner authorization enforcement.
+- Backend implementation files:
+  - `apps/backend/src/exports/exports.controller.ts`
+  - `apps/backend/src/exports/exports.service.ts`
+  - `apps/backend/src/exports/exports.module.ts`
+  - `apps/backend/src/diff/diff-job.service.ts` (export authorization/data access method)
+  - `apps/backend/src/app.module.ts` (module wiring)
+- Frontend proxy route added for browser usage:
+  - `apps/frontend/app/api/exports/csv/[comparisonId]/route.ts`
+- Automated coverage added and passing:
+  - auth required for export endpoint
+  - successful CSV download for owner
+  - same-tenant non-owner denied (`EXPORT_ACCESS_DENIED`)
+  - tests in `apps/backend/test/stage1.e2e-spec.ts`.
 
 ---
 

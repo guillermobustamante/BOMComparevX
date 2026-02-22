@@ -7,9 +7,19 @@ import { UploadsModule } from './uploads/uploads.module';
 import { DatabaseModule } from './database/database.module';
 import { DiffModule } from './diff/diff.module';
 import { MappingModule } from './mapping/mapping.module';
+import { ExportsModule } from './exports/exports.module';
 
 @Module({
-  imports: [ConfigModule, DatabaseModule, AuthModule, TenantModule, UploadsModule, MappingModule, DiffModule],
+  imports: [
+    ConfigModule,
+    DatabaseModule,
+    AuthModule,
+    TenantModule,
+    UploadsModule,
+    MappingModule,
+    DiffModule,
+    ExportsModule
+  ],
   controllers: [HealthController],
   providers: []
 })

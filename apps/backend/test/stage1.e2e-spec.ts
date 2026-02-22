@@ -828,6 +828,10 @@ describe('Stage 1 API baseline (e2e)', () => {
     await request(app.getHttpServer()).post('/api/diff-jobs').send({}).expect(401);
   });
 
+  it('GET /api/exports/csv/:comparisonId requires authentication', async () => {
+    await request(app.getHttpServer()).get('/api/exports/csv/not-authenticated').expect(401);
+  });
+
   it('diff engine flag can disable diff job start endpoint', async () => {
     const previous = process.env.DIFF_ENGINE_V1;
     process.env.DIFF_ENGINE_V1 = 'false';
@@ -965,6 +969,52 @@ describe('Stage 1 API baseline (e2e)', () => {
       .expect(201);
     const denied = await agentB.get(`/api/diff-jobs/${jobId}`).expect(403);
     expect(denied.body.code).toBe('TENANT_ACCESS_DENIED');
+  });
+
+  it('csv export downloads full comparison dataset synchronously for owner', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'export.owner@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const started = await agent.post('/api/diff-jobs').send({}).expect(201);
+    const comparisonId = started.body.jobId as string;
+
+    const exported = await agent.get(`/api/exports/csv/${comparisonId}`).expect(200);
+    expect(exported.headers['content-type']).toContain('text/csv');
+    expect(exported.headers['content-disposition']).toContain('attachment;');
+    expect(exported.headers['content-disposition']).toContain('.csv');
+
+    const csv = exported.text;
+    expect(csv).toContain('comparisonId,rowId,changeType,sourceIndex,targetIndex,partNumber,revision,description');
+    expect(csv).toContain(comparisonId);
+
+    const dataLines = csv
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    expect(dataLines.length).toBeGreaterThan(1);
+  });
+
+  it('csv export denies same-tenant non-owner access', async () => {
+    const owner = request.agent(app.getHttpServer());
+    await owner
+      .post('/api/auth/test/login')
+      .send({ email: 'export.owner2@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const started = await owner.post('/api/diff-jobs').send({}).expect(201);
+    const comparisonId = started.body.jobId as string;
+
+    const otherUser = request.agent(app.getHttpServer());
+    await otherUser
+      .post('/api/auth/test/login')
+      .send({ email: 'export.viewer@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const denied = await otherUser.get(`/api/exports/csv/${comparisonId}`).expect(403);
+    expect(denied.body.code).toBe('EXPORT_ACCESS_DENIED');
   });
 
   it('diff jobs can run against uploaded revision pair rows from intake', async () => {

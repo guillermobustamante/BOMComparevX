@@ -19,6 +19,7 @@ Planned framework: NestJS + TypeScript with Passport strategies for Google/Micro
 - `GET /api/tenant/resource/:tenantId` (protected + tenant-scoped)
 - `POST /api/uploads/validate` (protected, multipart `fileA` + `fileB`)
 - `POST /api/uploads/intake` (protected, multipart `fileA` + `fileB`, async accept)
+- `GET /api/exports/csv/:comparisonId` (protected, synchronous CSV download; full dataset default)
 
 Optional query support for start endpoints:
 - `returnTo` (internal path only, e.g. `/upload` or `/history`).
