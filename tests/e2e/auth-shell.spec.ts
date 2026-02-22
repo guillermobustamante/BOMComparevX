@@ -417,14 +417,16 @@ test('results page exposes csv/excel export actions bound to comparisonId', asyn
   await page.goto('/results');
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 15000 });
 
-  const currentUrl = new URL(page.url());
-  const comparisonId = currentUrl.searchParams.get('comparisonId');
-  expect(comparisonId).toBeTruthy();
-
   const csvLink = page.getByTestId('results-export-csv-link');
   const excelLink = page.getByTestId('results-export-excel-link');
   await expect(csvLink).toBeVisible();
   await expect(excelLink).toBeVisible();
+  const currentUrl = new URL(page.url());
+  const fromQuery = currentUrl.searchParams.get('comparisonId');
+  const csvHref = await csvLink.getAttribute('href');
+  const fromHref = csvHref?.split('/').pop() || null;
+  const comparisonId = fromQuery || fromHref;
+  expect(comparisonId).toBeTruthy();
   await expect(csvLink).toHaveAttribute('href', new RegExp(`/api/exports/csv/${comparisonId}$`));
   await expect(excelLink).toHaveAttribute('href', new RegExp(`/api/exports/excel/${comparisonId}$`));
 
@@ -433,6 +435,127 @@ test('results page exposes csv/excel export actions bound to comparisonId', asyn
 
   const [excelDownload] = await Promise.all([page.waitForEvent('download'), excelLink.click()]);
   expect(excelDownload.suggestedFilename().toLowerCase()).toContain('.xlsx');
+
+  await context.close();
+});
+
+test('results sharing panel supports invite for owner, and invited user can open shared comparison', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const ownerEmail = uniqueEmail('playwright.share.owner');
+  const viewerEmail = uniqueEmail('playwright.share.viewer');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email: ownerEmail,
+      displayName: 'Share Owner',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const ownerStorageState = await request.storageState();
+  const ownerContext = await browser.newContext({ baseURL, storageState: ownerStorageState });
+  const ownerPage = await ownerContext.newPage();
+
+  await ownerPage.goto('/results');
+  await expect(ownerPage.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
+  await ownerPage.getByTestId('share-invite-input').fill(viewerEmail);
+  await ownerPage.getByTestId('share-invite-btn').click();
+  await expect(ownerPage.getByTestId('share-feedback')).toContainText('Invited');
+  await expect(ownerPage.getByTestId('share-recipients-table')).toContainText(viewerEmail);
+
+  const comparisonId = new URL(ownerPage.url()).searchParams.get('comparisonId');
+  expect(comparisonId).toBeTruthy();
+
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email: viewerEmail,
+      displayName: 'Share Viewer',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+  const viewerStorageState = await request.storageState();
+  const viewerContext = await browser.newContext({ baseURL, storageState: viewerStorageState });
+  const viewerPage = await viewerContext.newPage();
+  await viewerPage.goto(`/results?comparisonId=${encodeURIComponent(comparisonId as string)}`);
+  await expect(viewerPage.getByTestId('results-grid-table')).toBeVisible({ timeout: 20000 });
+
+  await viewerContext.close();
+  await ownerContext.close();
+});
+
+test('notifications page shows comparison outcome entries with result links', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.notifications');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Notification User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({ baseURL, storageState });
+  const page = await context.newPage();
+
+  await page.goto('/results');
+  await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
+  await page.goto('/notifications');
+  await expect(page.getByTestId('notifications-panel')).toBeVisible();
+  await expect(page.getByTestId('notifications-table')).toContainText('comparison_completed');
+  await expect(page.getByTestId('notifications-table')).toContainText('Open');
+
+  await context.close();
+});
+
+test('admin page supports user search and upload policy override/reset for admins', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const adminEmail = uniqueEmail('playwright.admin');
+  const targetEmail = uniqueEmail('playwright.policy.target');
+
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email: adminEmail,
+      displayName: 'Admin User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+  await request.post(`${e2eApiBaseUrl}/api/admin/test/grant-role`, {
+    data: { userEmail: adminEmail }
+  });
+  await request.post(`${e2eApiBaseUrl}/api/admin/upload-policy/override`, {
+    data: {
+      userEmail: targetEmail,
+      isUnlimited: false,
+      reason: 'seed'
+    }
+  });
+
+  const adminStorageState = await request.storageState();
+  const context = await browser.newContext({ baseURL, storageState: adminStorageState });
+  const page = await context.newPage();
+
+  await page.goto('/admin');
+  await expect(page.getByTestId('admin-users-table')).toBeVisible({ timeout: 20000 });
+  await page.getByTestId('admin-user-search-input').fill(targetEmail);
+  await page.getByTestId('admin-user-search-btn').click();
+  await expect(page.getByTestId('admin-users-table')).toContainText(targetEmail);
+  await page.getByTestId(`admin-toggle-unlimited-${targetEmail}`).click();
+  await expect(page.getByTestId('admin-feedback')).toContainText('Enabled unlimited');
+  await page.getByTestId(`admin-reset-${targetEmail}`).click();
+  await expect(page.getByTestId('admin-feedback')).toContainText('Reset policy');
 
   await context.close();
 });

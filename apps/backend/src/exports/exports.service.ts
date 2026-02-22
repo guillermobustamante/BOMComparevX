@@ -7,7 +7,6 @@ import { UploadRevisionService } from '../uploads/upload-revision.service';
 interface BuildCsvInput {
   comparisonId: string;
   tenantId: string;
-  requestedBy: string;
 }
 
 interface CsvExportPayload {
@@ -30,8 +29,7 @@ export class ExportsService {
   buildComparisonCsv(input: BuildCsvInput): CsvExportPayload {
     const exportRows = this.diffJobService.getRowsForExport(
       input.comparisonId,
-      input.tenantId,
-      input.requestedBy
+      input.tenantId
     );
 
     const headers = [
@@ -82,8 +80,7 @@ export class ExportsService {
   buildComparisonExcel(input: BuildCsvInput): ExcelExportPayload {
     const exportRows = this.diffJobService.getRowsForExport(
       input.comparisonId,
-      input.tenantId,
-      input.requestedBy
+      input.tenantId
     );
 
     const template =

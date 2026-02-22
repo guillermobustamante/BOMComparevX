@@ -43,6 +43,13 @@ interface DiffStatus {
   status: 'running' | 'completed';
 }
 
+interface ShareRecipient {
+  invitedEmail: string;
+  permission: 'view';
+  createdAtUtc: string;
+  updatedAtUtc: string;
+}
+
 const CHANGE_FILTERS: Array<{ value: 'all' | ChangeType; label: string }> = [
   { value: 'all', label: 'All changes' },
   { value: 'added', label: 'Added' },
@@ -75,10 +82,101 @@ export function ResultsGrid() {
   const [isStarting, setIsStarting] = useState(false);
   const rowsCountRef = useRef(0);
   const activeComparisonId = jobId || comparisonIdParam;
+  const [shareInput, setShareInput] = useState('');
+  const [shareRecipients, setShareRecipients] = useState<ShareRecipient[]>([]);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     rowsCountRef.current = rows.length;
   }, [rows.length]);
+
+  async function loadShareRecipients(comparisonId: string) {
+    setShareError(null);
+    try {
+      const response = await fetch(`/api/shares/${encodeURIComponent(comparisonId)}`, {
+        method: 'GET',
+        cache: 'no-store'
+      });
+      const payload = (await response.json()) as
+        | { recipients?: ShareRecipient[] }
+        | { code?: string; message?: string };
+      if (!response.ok) {
+        const err = payload as { code?: string; message?: string };
+        setShareError(`${err.code || 'SHARE_LIST_FAILED'}: ${err.message || 'Could not load recipients.'}`);
+        setShareRecipients([]);
+        return;
+      }
+      setShareRecipients((payload as { recipients?: ShareRecipient[] }).recipients || []);
+    } catch {
+      setShareError('SHARE_LIST_FAILED: Could not load recipients.');
+      setShareRecipients([]);
+    }
+  }
+
+  async function inviteRecipients() {
+    if (!activeComparisonId) return;
+    const invitedEmails = shareInput
+      .split(/[,\n;]+/)
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+    if (invitedEmails.length === 0) {
+      setShareError('SHARE_INVITE_INVALID: Enter at least one email.');
+      return;
+    }
+
+    setShareError(null);
+    setShareFeedback(null);
+    try {
+      const response = await fetch('/api/shares/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          comparisonId: activeComparisonId,
+          invitedEmails
+        })
+      });
+      const payload = (await response.json()) as
+        | { invited?: Array<{ invitedEmail: string }> }
+        | { code?: string; message?: string };
+      if (!response.ok) {
+        const err = payload as { code?: string; message?: string };
+        setShareError(`${err.code || 'SHARE_INVITE_FAILED'}: ${err.message || 'Invite failed.'}`);
+        return;
+      }
+      const invited = (payload as { invited?: Array<{ invitedEmail: string }> }).invited || [];
+      setShareFeedback(`Invited ${invited.length} recipient(s).`);
+      setShareInput('');
+      await loadShareRecipients(activeComparisonId);
+    } catch {
+      setShareError('SHARE_INVITE_FAILED: Invite failed.');
+    }
+  }
+
+  async function revokeRecipient(invitedEmail: string) {
+    if (!activeComparisonId) return;
+    setShareError(null);
+    setShareFeedback(null);
+    try {
+      const response = await fetch('/api/shares/revoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          comparisonId: activeComparisonId,
+          invitedEmails: [invitedEmail]
+        })
+      });
+      const payload = (await response.json()) as { code?: string; message?: string };
+      if (!response.ok) {
+        setShareError(`${payload.code || 'SHARE_REVOKE_FAILED'}: ${payload.message || 'Revoke failed.'}`);
+        return;
+      }
+      setShareFeedback(`Revoked ${invitedEmail}.`);
+      await loadShareRecipients(activeComparisonId);
+    } catch {
+      setShareError('SHARE_REVOKE_FAILED: Revoke failed.');
+    }
+  }
 
   async function startDiffJob() {
     setIsStarting(true);
@@ -150,6 +248,13 @@ export function ResultsGrid() {
   }
 
   useEffect(() => {
+    if (comparisonIdParam && !sessionId && !leftRevisionId && !rightRevisionId) {
+      setJobId(comparisonIdParam);
+      setRows([]);
+      setStatus(null);
+      setError(null);
+      return;
+    }
     void startDiffJob();
   }, [sessionId, leftRevisionId, rightRevisionId]);
 
@@ -179,6 +284,15 @@ export function ResultsGrid() {
 
     return () => clearInterval(timer);
   }, [jobId]);
+
+  useEffect(() => {
+    if (!activeComparisonId) {
+      setShareRecipients([]);
+      setShareError(null);
+      return;
+    }
+    void loadShareRecipients(activeComparisonId);
+  }, [activeComparisonId]);
 
   const visibleRows = useMemo(() => {
     let filtered = rows;
@@ -281,6 +395,75 @@ export function ResultsGrid() {
           {error}
         </div>
       )}
+
+      <section className="panel sectionSubtle" data-testid="share-panel">
+        <div className="resultsHeader">
+          <h2 className="h2">Sharing</h2>
+        </div>
+        {!activeComparisonId && <p className="p">Run diff first to enable sharing for this comparison.</p>}
+        {activeComparisonId && (
+          <>
+            <p className="p">Invite same-tenant recipients (view-only). Access is bound to exact invited email.</p>
+            <div className="resultsFilters">
+              <input
+                value={shareInput}
+                onChange={(event) => setShareInput(event.target.value)}
+                placeholder="alice@example.com, bob@example.com"
+                data-testid="share-invite-input"
+              />
+              <button className="btn" type="button" onClick={() => void inviteRecipients()} data-testid="share-invite-btn">
+                Invite
+              </button>
+            </div>
+            {shareError && (
+              <div className="alertError" data-testid="share-error">
+                {shareError}
+              </div>
+            )}
+            {shareFeedback && (
+              <div className="alertSuccess" data-testid="share-feedback">
+                {shareFeedback}
+              </div>
+            )}
+            <div className="mappingTableWrap">
+              <table className="mappingTable" data-testid="share-recipients-table">
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Permission</th>
+                    <th>Invited</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shareRecipients.length === 0 && (
+                    <tr>
+                      <td colSpan={4}>No active recipients.</td>
+                    </tr>
+                  )}
+                  {shareRecipients.map((recipient) => (
+                    <tr key={recipient.invitedEmail}>
+                      <td>{recipient.invitedEmail}</td>
+                      <td>{recipient.permission}</td>
+                      <td>{new Date(recipient.createdAtUtc).toLocaleString()}</td>
+                      <td>
+                        <button
+                          className="btn"
+                          type="button"
+                          onClick={() => void revokeRecipient(recipient.invitedEmail)}
+                          data-testid={`share-revoke-${recipient.invitedEmail}`}
+                        >
+                          Revoke
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </section>
 
       <div className="resultsFilters">
         <input

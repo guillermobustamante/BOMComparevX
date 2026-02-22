@@ -252,7 +252,7 @@ Keep the UI change minimal and future-replaceable, and add Playwright coverage f
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S5`
-- Status: `Ready`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-012`
@@ -287,6 +287,16 @@ Implement Stage 5 sharing persistence and permission rules.
 Support multi-recipient same-tenant invites with view-only access and deny cross-tenant sharing.
 ```
 
+### Completion Evidence
+- Sharing data model implemented with durable records and view-only permission:
+  - `apps/backend/src/shares/share-record.interface.ts`
+  - `apps/backend/src/shares/shares.service.ts`
+- Prisma schema/migration added for `comparisonShares`:
+  - `apps/backend/prisma/schema.prisma`
+  - `apps/backend/prisma/migrations/202602220001_s5_sharing_notifications_admin/migration.sql`
+- Backend tests verify same-tenant share behavior:
+  - `apps/backend/test/stage1.e2e-spec.ts` (`sharing invite grants same-tenant exact-email read access and revoke removes access`)
+
 ---
 
 ## S5-04 Implement Share Invite/Revoke APIs + Exact-Email Access Gate
@@ -299,7 +309,7 @@ Support multi-recipient same-tenant invites with view-only access and deny cross
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S5`
-- Status: `Ready`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-012`
@@ -335,6 +345,19 @@ Implement invite/revoke sharing APIs and enforce exact-email identity checks for
 Support unregistered invite emails and enforce hard revoke on next authorized request.
 ```
 
+### Completion Evidence
+- Invite/revoke/list APIs implemented:
+  - `apps/backend/src/shares/shares.controller.ts`
+- Exact-email access gate enforced on read paths:
+  - `apps/backend/src/diff/diff.controller.ts`
+  - `apps/backend/src/exports/exports.controller.ts`
+- Frontend proxy routes added:
+  - `apps/frontend/app/api/shares/invite/route.ts`
+  - `apps/frontend/app/api/shares/revoke/route.ts`
+  - `apps/frontend/app/api/shares/[comparisonId]/route.ts`
+- Automated tests cover invite/revoke/access and owner-only listing:
+  - `apps/backend/test/stage1.e2e-spec.ts`
+
 ---
 
 ## S5-05 Build Sharing UI (Multi-Invite + Revoke)
@@ -347,7 +370,7 @@ Support unregistered invite emails and enforce hard revoke on next authorized re
 - Estimate: `5`
 - Owner: `FE`
 - Sprint: `S5`
-- Status: `Ready`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-012`
@@ -379,6 +402,14 @@ Build Stage 5 sharing UI with multi-email invite, recipient list, and revoke con
 Keep invitee permission as view-only and handle API errors with deterministic UI states.
 ```
 
+### Completion Evidence
+- Results UI now includes sharing panel with multi-email invite and recipient list:
+  - `apps/frontend/components/results-grid.tsx`
+- Revoke action wired in UI with deterministic error/feedback states:
+  - `apps/frontend/components/results-grid.tsx`
+- Browser coverage added for owner invite and invitee access:
+  - `tests/e2e/auth-shell.spec.ts` (`results sharing panel supports invite for owner, and invited user can open shared comparison`)
+
 ---
 
 ## S5-06 Implement Notifications Baseline (Complete/Fail)
@@ -391,7 +422,7 @@ Keep invitee permission as view-only and handle API errors with deterministic UI
 - Estimate: `5`
 - Owner: `BE/FE`
 - Sprint: `S5`
-- Status: `Ready`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-013`
@@ -426,6 +457,24 @@ Implement Stage 5 notifications baseline for comparison complete/fail events.
 In-app notifications are required, email is optional by config, and links must remain auth-protected.
 ```
 
+### Completion Evidence
+- Notifications backend module added (list + mark read):
+  - `apps/backend/src/notifications/notifications.module.ts`
+  - `apps/backend/src/notifications/notifications.service.ts`
+  - `apps/backend/src/notifications/notifications.controller.ts`
+- Complete/fail event creation integrated into diff flow:
+  - `apps/backend/src/diff/diff-job.service.ts`
+  - `apps/backend/src/diff/diff.controller.ts`
+- Email optional behavior implemented via `NOTIFICATIONS_EMAIL_ENABLED` flag in notification records.
+- In-app notifications UI and proxies added:
+  - `apps/frontend/app/api/notifications/route.ts`
+  - `apps/frontend/app/api/notifications/[notificationId]/read/route.ts`
+  - `apps/frontend/components/notifications-panel.tsx`
+  - `apps/frontend/app/(app)/notifications/page.tsx`
+- Automated coverage added:
+  - backend: `apps/backend/test/stage1.e2e-spec.ts`
+  - browser: `tests/e2e/auth-shell.spec.ts`
+
 ---
 
 ## S5-07 Build Full Admin UI for Upload Policy Overrides
@@ -438,7 +487,7 @@ In-app notifications are required, email is optional by config, and links must r
 - Estimate: `5`
 - Owner: `FE/BE`
 - Sprint: `S5`
-- Status: `Ready`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-014`
@@ -471,6 +520,22 @@ In-app notifications are required, email is optional by config, and links must r
 Implement full Stage 5 admin UI for upload policy reset/override actions.
 Enforce DB role-claim authorization, deny non-admin access, and persist audit events.
 ```
+
+### Completion Evidence
+- Admin DB role-claim and API surface implemented:
+  - `apps/backend/src/admin/admin.module.ts`
+  - `apps/backend/src/admin/admin-role.service.ts`
+  - `apps/backend/src/admin/admin.controller.ts`
+- Upload policy override/reset operations integrated:
+  - `apps/backend/src/uploads/upload-policy.service.ts`
+  - `apps/backend/prisma/schema.prisma` (`adminRoleClaims`, `uploadPolicyOverrides`)
+- Frontend admin UI + proxy routes implemented:
+  - `apps/frontend/components/admin-policy-panel.tsx`
+  - `apps/frontend/app/(app)/admin/page.tsx`
+  - `apps/frontend/app/api/admin/*`
+- Automated coverage added:
+  - backend: `apps/backend/test/stage1.e2e-spec.ts`
+  - browser: `tests/e2e/auth-shell.spec.ts`
 
 ---
 

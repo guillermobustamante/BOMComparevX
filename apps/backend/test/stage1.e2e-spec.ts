@@ -1130,6 +1130,191 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(denied.body.code).toBe('EXPORT_ACCESS_DENIED');
   });
 
+  it('sharing invite grants same-tenant exact-email read access and revoke removes access', async () => {
+    const owner = request.agent(app.getHttpServer());
+    await owner
+      .post('/api/auth/test/login')
+      .send({ email: 'share.owner@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+    const started = await owner.post('/api/diff-jobs').send({}).expect(201);
+    const comparisonId = started.body.jobId as string;
+
+    const notInvited = request.agent(app.getHttpServer());
+    await notInvited
+      .post('/api/auth/test/login')
+      .send({ email: 'share.blocked@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+    const deniedBeforeInvite = await notInvited.get(`/api/diff-jobs/${comparisonId}`).expect(403);
+    expect(deniedBeforeInvite.body.code).toBe('SHARE_ACCESS_DENIED');
+
+    await owner
+      .post('/api/shares/invite')
+      .send({
+        comparisonId,
+        invitedEmails: ['share.viewer@example.com']
+      })
+      .expect(201);
+
+    const viewer = request.agent(app.getHttpServer());
+    await viewer
+      .post('/api/auth/test/login')
+      .send({ email: 'share.viewer@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+    await viewer.get(`/api/diff-jobs/${comparisonId}`).expect(200);
+    await viewer.get(`/api/exports/csv/${comparisonId}`).expect(200);
+
+    await owner
+      .post('/api/shares/revoke')
+      .send({
+        comparisonId,
+        invitedEmails: ['share.viewer@example.com']
+      })
+      .expect(201);
+
+    const deniedAfterRevoke = await viewer.get(`/api/diff-jobs/${comparisonId}`).expect(403);
+    expect(deniedAfterRevoke.body.code).toBe('SHARE_ACCESS_DENIED');
+  });
+
+  it('share listing is owner-only and enforces owner gate', async () => {
+    const owner = request.agent(app.getHttpServer());
+    await owner
+      .post('/api/auth/test/login')
+      .send({ email: 'share.owner.list@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+    const started = await owner.post('/api/diff-jobs').send({}).expect(201);
+    const comparisonId = started.body.jobId as string;
+    await owner
+      .post('/api/shares/invite')
+      .send({
+        comparisonId,
+        invitedEmails: ['share.recipient.list@example.com']
+      })
+      .expect(201);
+
+    const ownerList = await owner.get(`/api/shares/${comparisonId}`).expect(200);
+    expect(Array.isArray(ownerList.body.recipients)).toBe(true);
+    expect(ownerList.body.recipients[0].invitedEmail).toBe('share.recipient.list@example.com');
+    expect(ownerList.body.recipients[0].permission).toBe('view');
+
+    const other = request.agent(app.getHttpServer());
+    await other
+      .post('/api/auth/test/login')
+      .send({ email: 'share.not.owner@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+    const denied = await other.get(`/api/shares/${comparisonId}`).expect(403);
+    expect(denied.body.code).toBe('SHARE_OWNER_REQUIRED');
+  });
+
+  it('notifications include comparison completed events with deep link', async () => {
+    const user = request.agent(app.getHttpServer());
+    await user
+      .post('/api/auth/test/login')
+      .send({ email: 'notify.completed@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const started = await user.post('/api/diff-jobs').send({}).expect(201);
+    const comparisonId = started.body.jobId as string;
+    let completed = false;
+    for (let i = 0; i < 15; i += 1) {
+      await new Promise((resolveDone) => setTimeout(resolveDone, 250));
+      const status = await user.get(`/api/diff-jobs/${comparisonId}`).expect(200);
+      if (status.body.status === 'completed') {
+        completed = true;
+        break;
+      }
+    }
+    expect(completed).toBe(true);
+
+    const notifications = await user.get('/api/notifications').expect(200);
+    const completedNotifications = (notifications.body.notifications as Array<{ type: string; linkPath: string | null }>)
+      .filter((row) => row.type === 'comparison_completed');
+    expect(completedNotifications.length).toBeGreaterThan(0);
+    expect(completedNotifications[0].linkPath).toContain(`/results?comparisonId=${comparisonId}`);
+  });
+
+  it('notifications include comparison failed events when diff start fails', async () => {
+    const user = request.agent(app.getHttpServer());
+    await user
+      .post('/api/auth/test/login')
+      .send({ email: 'notify.failed@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    await user
+      .post('/api/diff-jobs')
+      .send({
+        sessionId: 'missing-session',
+        leftRevisionId: 'missing-left',
+        rightRevisionId: 'missing-right'
+      })
+      .expect(400);
+
+    const notifications = await user.get('/api/notifications').expect(200);
+    const failed = (notifications.body.notifications as Array<{ type: string; message: string }>)
+      .filter((row) => row.type === 'comparison_failed');
+    expect(failed.length).toBeGreaterThan(0);
+    expect(failed[0].message).toContain('failed');
+  });
+
+  it('admin role claim gates admin APIs and supports upload policy override/reset actions', async () => {
+    const admin = request.agent(app.getHttpServer());
+    await admin
+      .post('/api/auth/test/login')
+      .send({ email: 'admin.user@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const deniedBeforeGrant = await admin.get('/api/admin/users').expect(403);
+    expect(deniedBeforeGrant.body.code).toBe('ADMIN_REQUIRED');
+
+    await admin
+      .post('/api/admin/test/grant-role')
+      .send({ userEmail: 'admin.user@example.com' })
+      .expect(201);
+
+    const me = await admin.get('/api/admin/me').expect(200);
+    expect(me.body.isAdmin).toBe(true);
+
+    const target = request.agent(app.getHttpServer());
+    await target
+      .post('/api/auth/test/login')
+      .send({ email: 'policy.target@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    await admin
+      .post('/api/admin/upload-policy/override')
+      .send({
+        userEmail: 'policy.target@example.com',
+        isUnlimited: true,
+        reason: 'qa'
+      })
+      .expect(201);
+
+    const validateUnlimited = await target
+      .post('/api/uploads/validate')
+      .attach('fileA', Buffer.from('part,qty\nA,1\n'), { filename: 'admin-a.csv', contentType: 'text/csv' })
+      .attach('fileB', Buffer.from('part,qty\nB,1\n'), { filename: 'admin-b.csv', contentType: 'text/csv' })
+      .expect(201);
+    expect(validateUnlimited.body.policy.isUnlimited).toBe(true);
+
+    await admin
+      .post('/api/admin/upload-policy/override')
+      .send({
+        userEmail: 'policy.target@example.com',
+        isUnlimited: false,
+        reason: 'qa'
+      })
+      .expect(201);
+
+    await admin
+      .post('/api/admin/upload-policy/reset')
+      .send({
+        userEmail: 'policy.target@example.com'
+      })
+      .expect(201);
+
+    const users = await admin.get('/api/admin/users?query=policy.target').expect(200);
+    expect(users.body.users.some((row: { email: string }) => row.email === 'policy.target@example.com')).toBe(true);
+  });
+
   it('diff jobs can run against uploaded revision pair rows from intake', async () => {
     const agent = request.agent(app.getHttpServer());
     await agent

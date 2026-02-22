@@ -1,6 +1,8 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { DatabaseService } from '../database/database.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { SharesService } from '../shares/shares.service';
 import { UploadRevisionService } from '../uploads/upload-revision.service';
 import {
   DIFF_CONTRACT_VERSION,
@@ -28,6 +30,7 @@ interface DiffJobRecord {
   firstRowsLatencyMs?: number;
   completionLatencyMs?: number;
   completionMetricEmitted: boolean;
+  completionNotificationEmitted: boolean;
 }
 
 @Injectable()
@@ -35,7 +38,9 @@ export class DiffJobService {
   constructor(
     private readonly diffComputationService: DiffComputationService,
     private readonly databaseService: DatabaseService,
-    private readonly uploadRevisionService: UploadRevisionService
+    private readonly uploadRevisionService: UploadRevisionService,
+    private readonly sharesService: SharesService,
+    private readonly notificationsService: NotificationsService
   ) {}
 
   private readonly logger = new Logger(DiffJobService.name);
@@ -110,9 +115,15 @@ export class DiffJobService {
       contractVersion: computed.contractVersion,
       rows: computed.rows,
       counters: computed.counters,
-      completionMetricEmitted: false
+      completionMetricEmitted: false,
+      completionNotificationEmitted: false
     };
     this.jobs.set(jobId, record);
+    this.sharesService.registerOwnerContext({
+      tenantId: input.tenantId,
+      comparisonId: jobId,
+      ownerEmail: input.requestedBy
+    });
     this.emitMetricEvent(record, 'stage4.diff.compute', {
       computeDurationMs,
       sourceRows: sourceRows.length,
@@ -157,6 +168,18 @@ export class DiffJobService {
         totalRows: job.rows.length,
         counters: job.counters
       });
+    }
+    if (progress.status === 'completed' && !job.completionNotificationEmitted) {
+      job.completionNotificationEmitted = true;
+      void this.notificationsService
+        .createComparisonCompleted({
+          tenantId: job.tenantId,
+          userEmail: job.requestedBy,
+          comparisonId: job.jobId
+        })
+        .catch(() => {
+          // Best-effort notification creation.
+        });
     }
     const nextCursor = progress.loadedRows < job.rows.length ? String(progress.loadedRows) : null;
 
@@ -214,8 +237,7 @@ export class DiffJobService {
 
   getRowsForExport(
     jobId: string,
-    tenantId: string,
-    requestedBy: string
+    tenantId: string
   ): {
     contractVersion: string;
     jobId: string;
@@ -226,13 +248,6 @@ export class DiffJobService {
     counters: DiffJobCounters;
   } {
     const job = this.requireTenantJob(jobId, tenantId);
-    if (job.requestedBy !== requestedBy) {
-      throw new ForbiddenException({
-        code: 'EXPORT_ACCESS_DENIED',
-        message: 'Access to this comparison export is not allowed.',
-        correlationId: randomUUID()
-      });
-    }
 
     return {
       contractVersion: job.contractVersion,
@@ -243,6 +258,11 @@ export class DiffJobService {
       rows: job.rows,
       counters: job.counters
     };
+  }
+
+  getOwnerEmail(jobId: string, tenantId: string): string {
+    const job = this.requireTenantJob(jobId, tenantId);
+    return job.requestedBy;
   }
 
   private requireTenantJob(jobId: string, tenantId: string): DiffJobRecord {

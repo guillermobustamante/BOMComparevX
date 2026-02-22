@@ -8,6 +8,9 @@ import { DatabaseModule } from './database/database.module';
 import { DiffModule } from './diff/diff.module';
 import { MappingModule } from './mapping/mapping.module';
 import { ExportsModule } from './exports/exports.module';
+import { SharesModule } from './shares/shares.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -18,7 +21,10 @@ import { ExportsModule } from './exports/exports.module';
     UploadsModule,
     MappingModule,
     DiffModule,
-    ExportsModule
+    ExportsModule,
+    SharesModule,
+    NotificationsModule,
+    AdminModule
   ],
   controllers: [HealthController],
   providers: []

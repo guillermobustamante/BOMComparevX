@@ -21,6 +21,6 @@ import { UploadValidationService } from './upload-validation.service';
     UploadRevisionService,
     SessionAuthGuard
   ],
-  exports: [UploadHistoryService, UploadRevisionService]
+  exports: [UploadHistoryService, UploadRevisionService, UploadPolicyService]
 })
 export class UploadsModule {}

@@ -1,7 +1,13 @@
 export type AuditEventType =
   | 'auth.login.success'
   | 'auth.login.failure'
-  | 'auth.access.denied';
+  | 'auth.access.denied'
+  | 'share.invite'
+  | 'share.revoke'
+  | 'notification.created'
+  | 'admin.policy.reset'
+  | 'admin.policy.override'
+  | 'admin.role.grant';
 
 export interface AuditEvent {
   eventType: AuditEventType;

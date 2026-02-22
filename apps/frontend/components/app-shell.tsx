@@ -35,6 +35,12 @@ export function AppShell(props: {
           <Link href="/mappings/rev-s3-preview" className={navClass(pathname, '/mappings')}>
             Mapping Preview
           </Link>
+          <Link href="/notifications" className={navClass(pathname, '/notifications')}>
+            Notifications
+          </Link>
+          <Link href="/admin" className={navClass(pathname, '/admin')}>
+            Admin
+          </Link>
         </div>
         <div className="actions">
           <span className="chip">{props.userEmail}</span>

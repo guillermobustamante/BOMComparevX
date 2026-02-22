@@ -119,3 +119,71 @@ model ColumnDetectionAudit {
   @@index([tenantId, bomRevisionId, timestampUtc], map: "ix_columnDetectionAudits_tenant_revision_timestamp")
   @@map("columnDetectionAudits")
 }
+
+model ComparisonShare {
+  shareId        String   @id
+  tenantId       String
+  comparisonId   String
+  ownerEmail     String
+  invitedEmail   String
+  permission     String
+  createdAtUtc   DateTime
+  updatedAtUtc   DateTime
+  revokedAtUtc   DateTime?
+  createdBy      String?
+  revokedBy      String?
+
+  @@unique([tenantId, comparisonId, invitedEmail], map: "uq_comparisonShares_tenant_comparison_invitedEmail")
+  @@index([tenantId, ownerEmail, comparisonId], map: "ix_comparisonShares_tenant_owner_comparison")
+  @@index([tenantId, invitedEmail, revokedAtUtc], map: "ix_comparisonShares_tenant_invited_revokedAt")
+  @@map("comparisonShares")
+}
+
+model Notification {
+  notificationId       String   @id
+  tenantId             String
+  userEmail            String
+  type                 String
+  comparisonId         String?
+  title                String
+  message              String
+  linkPath             String?
+  isRead               Boolean
+  createdAtUtc         DateTime
+  emailDispatchedAtUtc DateTime?
+  detailsJson          String?
+
+  @@index([tenantId, userEmail, createdAtUtc], map: "ix_notifications_tenant_user_createdAt")
+  @@index([tenantId, type, createdAtUtc], map: "ix_notifications_tenant_type_createdAt")
+  @@map("notifications")
+}
+
+model AdminRoleClaim {
+  claimId       String   @id
+  tenantId      String
+  userEmail     String
+  role          String
+  isActive      Boolean
+  createdAtUtc  DateTime
+  updatedAtUtc  DateTime
+  createdBy     String?
+
+  @@unique([tenantId, userEmail, role], map: "uq_adminRoleClaims_tenant_user_role")
+  @@index([tenantId, role, isActive], map: "ix_adminRoleClaims_tenant_role_active")
+  @@map("adminRoleClaims")
+}
+
+model UploadPolicyOverride {
+  overrideId     String   @id
+  tenantId       String
+  userKey        String
+  isUnlimited    Boolean
+  reason         String?
+  createdBy      String?
+  createdAtUtc   DateTime
+  updatedAtUtc   DateTime
+
+  @@unique([tenantId, userKey], map: "uq_uploadPolicyOverrides_tenant_user")
+  @@index([tenantId, isUnlimited, updatedAtUtc], map: "ix_uploadPolicyOverrides_tenant_unlimited_updatedAt")
+  @@map("uploadPolicyOverrides")
+}
