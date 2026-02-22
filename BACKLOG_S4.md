@@ -345,7 +345,7 @@ full filter/sort/search capability, and consistent row/cell diff highlighting.
 - Estimate: `3`
 - Owner: `BE/FE`
 - Sprint: `S4`
-- Status: `Planned`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `NFR-PERF`
@@ -420,6 +420,15 @@ Do not change deterministic matching/classification behavior.
 Produce benchmark evidence and add a repeatable perf regression process.
 ```
 
+### Completion Evidence
+- Perf harness implemented: `tools/perf/stage4-perf-benchmark.mjs`.
+- Runbook implemented: `docs/runbooks/s4-08-performance-baseline.md`.
+- Command added: `npm run stage4:perf`.
+- Baseline report artifact generated: `test-results/stage4-perf-report.json`.
+- API progressive delivery tuned for larger result sets via adaptive chunk cadence in `apps/backend/src/diff/diff-job.service.ts`.
+- CI safety guard added in backend e2e:
+  - `stage 4 baseline timings stay within agreed small-fixture budgets`.
+
 ---
 
 ## S4-09 Add Stage 4 Automated Tests (Backend + Browser)
@@ -476,7 +485,7 @@ classification correctness, progressive loading, and results-grid behaviors.
 - Estimate: `3`
 - Owner: `BE/DevOps`
 - Sprint: `S4`
-- Status: `Planned`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `NFR-OBS`, `NFR-AUDIT`
@@ -557,6 +566,21 @@ Implement Stage 4 rollout controls using feature flags and Azure Monitor/Applica
 Deliver metric emitters, dashboard, actionable alerts, and a validated rollback drill in Test.
 Preserve tenant safety and deterministic diff behavior during all rollout states.
 ```
+
+### Completion Evidence
+- Feature flags implemented:
+  - Backend: `DIFF_ENGINE_V1`, `DIFF_PROGRESSIVE_API_V1` in `apps/backend/src/diff/diff.controller.ts`.
+  - Frontend UI: `NEXT_PUBLIC_RESULTS_GRID_STAGE4_V1` in `apps/frontend/components/results-grid.tsx`.
+- Feature-flag behavior test coverage added in `apps/backend/test/stage1.e2e-spec.ts`:
+  - `diff engine flag can disable diff job start endpoint`
+  - `progressive diff API flag can disable status/rows endpoints`
+- Operational metric emitters added to diff pipeline:
+  - `stage4.diff.compute`, `stage4.diff.first_status`, `stage4.diff.first_rows`, `stage4.diff.completed`
+  - implemented in `apps/backend/src/diff/diff-job.service.ts`.
+- Rollout/observability runbook added:
+  - `docs/runbooks/s4-10-rollout-observability.md`.
+- Deferred fine-tuning items parked for later without blocking execution:
+  - `docs/S4_ParkedClarifications.md`.
 
 ---
 

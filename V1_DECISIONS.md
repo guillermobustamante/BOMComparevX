@@ -95,3 +95,12 @@ Status: Locked for Stage 4 planning/execution
 34. Stage 4 sort default is unchanged from uploaded source ordering (latest uploaded file basis).
 35. Stage 4 out-of-scope lock: Stage 5 capabilities (exports/sharing/notifications/admin expansion) remain excluded.
 36. Until full admin policy UI ships, Dev/Test supports ops-managed unlimited upload accounts through `UPLOAD_UNLIMITED_USER_EMAILS` (comma-separated allowlist), with backend-enforced bypass.
+37. Stage 4 rollout controls are feature-flagged:
+   - `DIFF_ENGINE_V1` (backend diff start)
+   - `DIFF_PROGRESSIVE_API_V1` (backend status/rows API)
+   - `NEXT_PUBLIC_RESULTS_GRID_STAGE4_V1` (frontend results UI)
+38. Stage 4 operational metric names are standardized for rollout/perf monitoring:
+   - `stage4.diff.compute`
+   - `stage4.diff.first_status`
+   - `stage4.diff.first_rows`
+   - `stage4.diff.completed`

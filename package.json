@@ -9,6 +9,7 @@
     "frontend:test:e2e": "npx playwright test",
     "frontend:test:e2e:install": "npx playwright install chromium",
     "frontend:ci": "npm --prefix apps/frontend run ci",
+    "stage4:perf": "node tools/perf/stage4-perf-benchmark.mjs",
     "check:env-contract": "node tools/validate-env-contract.mjs",
     "check:required-files": "node tools/check-required-files.mjs",
     "ci:checks": "npm run check:env-contract && npm run check:required-files && npm run backend:ci && npm run frontend:ci",

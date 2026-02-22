@@ -55,6 +55,8 @@ const CHANGE_FILTERS: Array<{ value: 'all' | ChangeType; label: string }> = [
 ];
 
 export function ResultsGrid() {
+  const resultsGridEnabled =
+    (process.env.NEXT_PUBLIC_RESULTS_GRID_STAGE4_V1 || 'true').trim().toLowerCase() !== 'false';
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('sessionId');
   const leftRevisionId = searchParams.get('leftRevisionId');
@@ -206,6 +208,17 @@ export function ResultsGrid() {
     }
     return sorted;
   }, [rows, changeFilter, search, partFilter, sortMode]);
+
+  if (!resultsGridEnabled) {
+    return (
+      <section className="panel" data-testid="results-panel">
+        <h1 className="h1">Results</h1>
+        <div className="alertWarning" data-testid="results-feature-disabled">
+          STAGE4_RESULTS_GRID_DISABLED: Results grid is currently disabled by feature flag.
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="panel" data-testid="results-panel">

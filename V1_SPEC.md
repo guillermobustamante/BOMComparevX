@@ -152,6 +152,10 @@ V1 excludes:
   - partial indicator is shown until completion
   - row ordering does not jitter while loading
 - Visual highlighting at row and cell level for changes; unchanged fields are not color-highlighted.
+- Stage 4 rollout controls:
+  - Backend flags: `DIFF_ENGINE_V1`, `DIFF_PROGRESSIVE_API_V1`
+  - Frontend flag: `NEXT_PUBLIC_RESULTS_GRID_STAGE4_V1`
+  - When disabled, APIs/UI return deterministic feature-disabled responses (no silent failure).
 
 ### FR-009 Revision Chain in Session
 - User can upload additional files after first comparison.
@@ -238,6 +242,8 @@ V1 excludes:
 ### NFR-AUDIT
 - Audit logs for critical actions (share/revoke, admin overrides, policy changes).
 - Detection mapping strategy and confidence events logged.
+- Stage 4 operational metrics are emitted as structured events:
+  - `stage4.diff.compute`, `stage4.diff.first_status`, `stage4.diff.first_rows`, `stage4.diff.completed`.
 
 ---
 

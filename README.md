@@ -72,6 +72,27 @@ Automation hooks:
 - Backend e2e regression: `apps/backend/test/stage1.e2e-spec.ts`
 - Playwright regression: `tests/e2e/auth-shell.spec.ts`
 
+## Stage 4 Rollout Controls + Perf Harness
+
+Feature flags (default enabled):
+```dotenv
+DIFF_ENGINE_V1=true
+DIFF_PROGRESSIVE_API_V1=true
+NEXT_PUBLIC_RESULTS_GRID_STAGE4_V1=true
+```
+
+Operational runbooks:
+- `docs/runbooks/s4-08-performance-baseline.md`
+- `docs/runbooks/s4-10-rollout-observability.md`
+
+Perf benchmark command:
+```powershell
+npm run stage4:perf
+```
+
+Parked clarifications for later refinement:
+- `docs/S4_ParkedClarifications.md`
+
 ## Azure SQL + Key Vault Dev Setup (S2-00 Baseline)
 Use this when provisioning durable DB persistence for Dev.
 For ongoing DB operations (deploy/recover/rotate), use:

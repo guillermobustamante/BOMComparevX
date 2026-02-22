@@ -828,6 +828,58 @@ describe('Stage 1 API baseline (e2e)', () => {
     await request(app.getHttpServer()).post('/api/diff-jobs').send({}).expect(401);
   });
 
+  it('diff engine flag can disable diff job start endpoint', async () => {
+    const previous = process.env.DIFF_ENGINE_V1;
+    process.env.DIFF_ENGINE_V1 = 'false';
+
+    try {
+      const agent = request.agent(app.getHttpServer());
+      await agent
+        .post('/api/auth/test/login')
+        .send({ email: 'flag.diff.engine@example.com', tenantId: 'tenant-a', provider: 'google' })
+        .expect(201);
+
+      const response = await agent.post('/api/diff-jobs').send({}).expect(503);
+      expect(response.body.code).toBe('DIFF_ENGINE_DISABLED');
+      expect(response.body.featureFlag).toBe('DIFF_ENGINE_V1');
+    } finally {
+      if (previous === undefined) {
+        delete process.env.DIFF_ENGINE_V1;
+      } else {
+        process.env.DIFF_ENGINE_V1 = previous;
+      }
+    }
+  });
+
+  it('progressive diff API flag can disable status/rows endpoints', async () => {
+    const previous = process.env.DIFF_PROGRESSIVE_API_V1;
+    delete process.env.DIFF_PROGRESSIVE_API_V1;
+
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'flag.diff.progressive@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+    const started = await agent.post('/api/diff-jobs').send({}).expect(201);
+
+    process.env.DIFF_PROGRESSIVE_API_V1 = 'off';
+    try {
+      const statusDisabled = await agent.get(`/api/diff-jobs/${started.body.jobId}`).expect(503);
+      expect(statusDisabled.body.code).toBe('DIFF_PROGRESSIVE_API_DISABLED');
+      expect(statusDisabled.body.featureFlag).toBe('DIFF_PROGRESSIVE_API_V1');
+
+      const rowsDisabled = await agent.get(`/api/diff-jobs/${started.body.jobId}/rows?limit=10`).expect(503);
+      expect(rowsDisabled.body.code).toBe('DIFF_PROGRESSIVE_API_DISABLED');
+      expect(rowsDisabled.body.featureFlag).toBe('DIFF_PROGRESSIVE_API_V1');
+    } finally {
+      if (previous === undefined) {
+        delete process.env.DIFF_PROGRESSIVE_API_V1;
+      } else {
+        process.env.DIFF_PROGRESSIVE_API_V1 = previous;
+      }
+    }
+  });
+
   it('diff job status and rows support progressive cursor retrieval with rationale metadata', async () => {
     const agent = request.agent(app.getHttpServer());
     await agent
@@ -861,6 +913,40 @@ describe('Stage 1 API baseline (e2e)', () => {
     const chunk2 = await agent.get(`/api/diff-jobs/${jobId}/rows?cursor=${cursor}&limit=10`).expect(200);
     const combinedIds = [...chunk1.body.rows, ...chunk2.body.rows].map((row: { rowId: string }) => row.rowId);
     expect(new Set(combinedIds).size).toBe(combinedIds.length);
+  });
+
+  it('stage 4 baseline timings stay within agreed small-fixture budgets', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'diff.perf.small@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const startedAt = Date.now();
+    const started = await agent.post('/api/diff-jobs').send({}).expect(201);
+    const firstProgressMs = Date.now() - startedAt;
+    expect(firstProgressMs).toBeLessThan(2000);
+
+    let firstChunkMs: number | null = null;
+    let completed = false;
+    while (Date.now() - startedAt < 30000) {
+      const rowsResponse = await agent.get(`/api/diff-jobs/${started.body.jobId}/rows?limit=50`).expect(200);
+      if (firstChunkMs === null && rowsResponse.body.rows.length > 0) {
+        firstChunkMs = Date.now() - startedAt;
+      }
+
+      const status = await agent.get(`/api/diff-jobs/${started.body.jobId}`).expect(200);
+      if (status.body.status === 'completed') {
+        completed = true;
+        break;
+      }
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 200));
+    }
+
+    expect(firstChunkMs).not.toBeNull();
+    expect(firstChunkMs as number).toBeLessThan(5000);
+    expect(completed).toBe(true);
+    expect(Date.now() - startedAt).toBeLessThan(30000);
   });
 
   it('diff jobs enforce tenant access boundaries', async () => {

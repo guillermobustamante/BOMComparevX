@@ -256,7 +256,7 @@ Implement multi-pass column detection with semantic registry + heuristic fallbac
 - Stage: `Stage 4 - Diff Engine + Progressive Results`
 - Dates: `TBD`
 - Owner: `Product + Engineering`
-- Status: `In Progress (S4-01..S4-07 and S4-09 completed; S4-08 and S4-10 pending)`
+- Status: `Completed`
 
 ### Sprint Goal
 Deliver deterministic BOM diffing with fixed tie-break behavior, normalization-first comparison, full change taxonomy classification, rationale metadata, and progressive results UX.
@@ -371,15 +371,18 @@ Deliver deterministic BOM diffing with fixed tie-break behavior, normalization-f
 ### S4 Outcome
 - Completed:
 - `S4-01` through `S4-07` completed and verified.
+- `S4-08` completed with perf harness, baseline runbook, and recorded benchmark artifact.
 - `S4-09` completed, including backend + Playwright regression coverage for real XLSX uploads.
+- `S4-10` completed with feature flags, diff operational metrics hooks, and rollout/rollback runbook.
 - `V1` fix sprint (`FX-01`..`FX-06`) completed with format-aware parser, header alias hardening, diff field expansion, and parser guardrails.
 - Deferred:
-- `S4-08` performance hardening.
-- `S4-10` rollout/observability closeout.
+- None.
 - Regressions/Bugs:
 - Real XLSX parsing regression fixed (previous `.xlsx` bytes parsed as CSV text).
 - Lessons learned:
 - Keep real user fixture files in automated tests to prevent parser/contract drift.
+- Keep non-blocking operational thresholds tracked separately so delivery can continue:
+  - `docs/S4_ParkedClarifications.md`.
 
 ---
 
