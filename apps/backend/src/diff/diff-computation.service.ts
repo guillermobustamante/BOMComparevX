@@ -55,6 +55,8 @@ export class DiffComputationService {
         rowId: `${row.sourceRowId || 'none'}::${row.targetRowId || 'none'}`,
         sourceIndex: orderingSourceIndex,
         targetIndex: targetRowIndex,
+        sourceSnapshot: sourceRow,
+        targetSnapshot: targetRow,
         keyFields: {
           partNumber: keyRow?.partNumber || null,
           revision: keyRow?.revision || null,

@@ -81,6 +81,8 @@ export interface PersistedDiffRow extends ClassifiedDiffRow {
   rowId: string;
   sourceIndex: number;
   targetIndex: number;
+  sourceSnapshot?: DiffComparableRow | null;
+  targetSnapshot?: DiffComparableRow | null;
   keyFields: {
     partNumber: string | null;
     revision: string | null;

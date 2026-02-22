@@ -29,4 +29,29 @@ export class ExportsController {
     response.setHeader('Cache-Control', 'no-store');
     return payload.content;
   }
+
+  @Get('excel/:comparisonId')
+  @UseGuards(SessionAuthGuard)
+  downloadComparisonExcel(
+    @Req() req: Request,
+    @Param('comparisonId') comparisonId: string,
+    @Res() response: Response
+  ): void {
+    const session = req.session as SessionState;
+    const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const requestedBy = session.user?.email || 'unknown-user';
+    const payload = this.exportsService.buildComparisonExcel({
+      comparisonId,
+      tenantId,
+      requestedBy
+    });
+
+    response.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    response.setHeader('Content-Disposition', `attachment; filename="${payload.fileName}"`);
+    response.setHeader('Cache-Control', 'no-store');
+    response.send(payload.content);
+  }
 }

@@ -343,7 +343,7 @@ Deliver deterministic BOM diffing with fixed tie-break behavior, normalization-f
 - Stage: `Stage 5 - Export + Sharing + Notifications + Admin`
 - Dates: `TBD`
 - Owner: `Product + Engineering`
-- Status: `Planned`
+- Status: `In Progress (S5-01 and S5-02 completed)`
 
 ### Sprint Goal
 Deliver production-ready Stage 5 capabilities for synchronous exports, multi-recipient same-tenant sharing with revoke, completion/failure notifications, and full admin UI policy controls.

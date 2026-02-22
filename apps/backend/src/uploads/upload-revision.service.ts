@@ -12,6 +12,10 @@ interface StoredRevision {
   slot: 'fileA' | 'fileB';
   fileName: string;
   createdAtUtc: string;
+  parserMode: ParserMode;
+  sheetName: string;
+  headers: string[];
+  headerFields: Array<keyof DiffComparableRow | null>;
   rows: DiffComparableRow[];
 }
 
@@ -28,6 +32,11 @@ type ParserMode = 'csv' | 'xlsx';
 interface ParsedTableRow {
   sourceRowIndex: number;
   values: string[];
+}
+
+interface ParsedTableResult {
+  rows: ParsedTableRow[];
+  sheetName: string;
 }
 
 const HEADER_ALIASES = {
@@ -76,7 +85,7 @@ export class UploadRevisionService {
       slot: 'fileA',
       fileName: input.fileA.originalname,
       createdAtUtc,
-      rows: this.parseRowsFromFile(input.fileA, 'A')
+      ...this.parseRowsFromFile(input.fileA, 'A')
     };
     const right: StoredRevision = {
       revisionId: rightRevisionId,
@@ -86,7 +95,7 @@ export class UploadRevisionService {
       slot: 'fileB',
       fileName: input.fileB.originalname,
       createdAtUtc,
-      rows: this.parseRowsFromFile(input.fileB, 'B')
+      ...this.parseRowsFromFile(input.fileB, 'B')
     };
 
     this.revisionsById.set(leftRevisionId, left);
@@ -124,23 +133,53 @@ export class UploadRevisionService {
     return revision.rows;
   }
 
+  getRevisionTemplate(
+    tenantId: string,
+    revisionId: string
+  ): {
+    fileName: string;
+    parserMode: ParserMode;
+    sheetName: string;
+    headers: string[];
+    headerFields: Array<keyof DiffComparableRow | null>;
+  } | null {
+    const revision = this.revisionsById.get(revisionId);
+    if (!revision || revision.tenantId !== tenantId) return null;
+    return {
+      fileName: revision.fileName,
+      parserMode: revision.parserMode,
+      sheetName: revision.sheetName,
+      headers: [...revision.headers],
+      headerFields: [...revision.headerFields]
+    };
+  }
+
   private sessionKey(tenantId: string, sessionId: string): string {
     return `${tenantId}::${sessionId}`;
   }
 
-  private parseRowsFromFile(file: Express.Multer.File, prefix: string): DiffComparableRow[] {
+  private parseRowsFromFile(
+    file: Express.Multer.File,
+    prefix: string
+  ): {
+    parserMode: ParserMode;
+    sheetName: string;
+    headers: string[];
+    headerFields: Array<keyof DiffComparableRow | null>;
+    rows: DiffComparableRow[];
+  } {
     const correlationId = randomUUID();
     const extension = extname(file.originalname || '').toLowerCase();
 
     let parserMode: ParserMode;
-    let parsedTable: ParsedTableRow[];
+    let parsed: ParsedTableResult;
     try {
       if (extension === '.csv') {
         parserMode = 'csv';
-        parsedTable = this.parseCsvTable(file, correlationId);
+        parsed = this.parseCsvTable(file, correlationId);
       } else if (extension === '.xlsx' || extension === '.xls') {
         parserMode = 'xlsx';
-        parsedTable = this.parseWorkbookTable(file, correlationId);
+        parsed = this.parseWorkbookTable(file, correlationId);
       } else {
         this.throwParseError({
           code: 'UPLOAD_PARSE_FORMAT_UNSUPPORTED',
@@ -165,7 +204,7 @@ export class UploadRevisionService {
       });
     }
 
-    const headerRow = parsedTable.find((row) => row.values.some((value) => value.trim().length > 0));
+    const headerRow = parsed.rows.find((row) => row.values.some((value) => value.trim().length > 0));
     if (!headerRow) {
       this.throwParseError({
         code: 'UPLOAD_PARSE_EMPTY_FILE',
@@ -205,8 +244,28 @@ export class UploadRevisionService {
       });
     }
 
+    const indexToField = new Map<number, keyof DiffComparableRow>();
+    const maybeSetField = (index: number, field: keyof DiffComparableRow): void => {
+      if (index >= 0) {
+        indexToField.set(index, field);
+      }
+    };
+    maybeSetField(internalIdIndex, 'internalId');
+    maybeSetField(partIndex, 'partNumber');
+    maybeSetField(revisionIndex, 'revision');
+    maybeSetField(descriptionIndex, 'description');
+    maybeSetField(quantityIndex, 'quantity');
+    maybeSetField(supplierIndex, 'supplier');
+    maybeSetField(colorIndex, 'color');
+    maybeSetField(unitsIndex, 'units');
+    maybeSetField(costIndex, 'cost');
+    maybeSetField(categoryIndex, 'category');
+    maybeSetField(parentPathIndex, 'parentPath');
+    maybeSetField(positionIndex, 'position');
+    const headerFields = headerRow.values.map((_header, index) => indexToField.get(index) || null);
+
     const rows: DiffComparableRow[] = [];
-    for (const tableRow of parsedTable) {
+    for (const tableRow of parsed.rows) {
       if (tableRow.sourceRowIndex <= headerRow.sourceRowIndex) continue;
       const values = tableRow.values;
       if (!values.some((value) => value.trim().length > 0)) continue;
@@ -252,10 +311,16 @@ export class UploadRevisionService {
     this.logger.log(
       `Parsed revision file "${file.originalname}" mode=${parserMode} rows=${rows.length} correlationId=${correlationId}`
     );
-    return rows;
+    return {
+      parserMode,
+      sheetName: parsed.sheetName,
+      headers: [...headerRow.values],
+      headerFields,
+      rows
+    };
   }
 
-  private parseCsvTable(file: Express.Multer.File, correlationId: string): ParsedTableRow[] {
+  private parseCsvTable(file: Express.Multer.File, correlationId: string): ParsedTableResult {
     const content = file.buffer?.toString('utf8') || '';
     if (content.includes('\u0000')) {
       this.throwParseError({
@@ -268,13 +333,16 @@ export class UploadRevisionService {
       });
     }
 
-    return content.split(/\r?\n/).map((line, index) => ({
-      sourceRowIndex: index + 1,
-      values: this.parseCsvLine(line)
-    }));
+    return {
+      sheetName: 'Comparison Results',
+      rows: content.split(/\r?\n/).map((line, index) => ({
+        sourceRowIndex: index + 1,
+        values: this.parseCsvLine(line)
+      }))
+    };
   }
 
-  private parseWorkbookTable(file: Express.Multer.File, correlationId: string): ParsedTableRow[] {
+  private parseWorkbookTable(file: Express.Multer.File, correlationId: string): ParsedTableResult {
     let workbook: XLSX.WorkBook;
     try {
       workbook = XLSX.read(file.buffer, {
@@ -313,10 +381,13 @@ export class UploadRevisionService {
       defval: ''
     }) as unknown[][];
 
-    return rows.map((row, index) => ({
-      sourceRowIndex: index + 1,
-      values: Array.isArray(row) ? row.map((cell) => String(cell ?? '').trim()) : []
-    }));
+    return {
+      sheetName: firstSheet,
+      rows: rows.map((row, index) => ({
+        sourceRowIndex: index + 1,
+        values: Array.isArray(row) ? row.map((cell) => String(cell ?? '').trim()) : []
+      }))
+    };
   }
 
   private findHeaderIndex(headers: string[], aliases: readonly string[]): number {

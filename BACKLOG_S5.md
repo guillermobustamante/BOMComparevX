@@ -127,7 +127,7 @@ Keep error payloads standardized with correlation IDs.
 - Estimate: `5`
 - Owner: `BE`
 - Sprint: `S5`
-- Status: `Ready`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-010`
@@ -161,6 +161,29 @@ Keep error payloads standardized with correlation IDs.
 Build synchronous Excel export for Stage 5 using immutable mapping snapshots.
 Preserve source structure contract (layout/order/headers/custom mapped columns) and keep style/formulas best-effort.
 ```
+
+### Completion Evidence
+- Backend endpoint implemented: `GET /api/exports/excel/:comparisonId`.
+- Excel export contract implemented against persisted diff + revision context:
+  - synchronous `.xlsx` download
+  - full dataset default
+  - tenant + owner authorization enforcement
+  - source structure fidelity (sheet name/header order from uploaded template when present)
+- Backend implementation files:
+  - `apps/backend/src/exports/exports.controller.ts`
+  - `apps/backend/src/exports/exports.service.ts`
+  - `apps/backend/src/exports/exports.module.ts`
+  - `apps/backend/src/diff/diff-contract.ts`
+  - `apps/backend/src/diff/diff-computation.service.ts`
+  - `apps/backend/src/diff/diff-job.service.ts`
+  - `apps/backend/src/uploads/upload-revision.service.ts`
+- Frontend browser proxy route added:
+  - `apps/frontend/app/api/exports/excel/[comparisonId]/route.ts`
+- Automated coverage added and passing in `apps/backend/test/stage1.e2e-spec.ts`:
+  - auth required for Excel export endpoint
+  - successful Excel download for owner
+  - same-tenant non-owner denied (`EXPORT_ACCESS_DENIED`)
+  - header-order fidelity check using uploaded template.
 
 ---
 

@@ -6,6 +6,7 @@ import * as session from 'express-session';
 import * as passport from 'passport';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import * as XLSX from 'xlsx';
 import { AppModule } from '../src/app.module';
 import { UploadHistoryService } from '../src/uploads/upload-history.service';
 import { UploadJobService } from '../src/uploads/upload-job.service';
@@ -34,6 +35,15 @@ import {
 import { MatcherService } from '../src/diff/matcher.service';
 import { NormalizationService } from '../src/diff/normalization.service';
 import { ClassificationService } from '../src/diff/classification.service';
+
+const binaryParser = (res: any, callback: (err: Error | null, body: Buffer) => void): void => {
+  const data: Buffer[] = [];
+  res.on('data', (chunk: Buffer | string) => {
+    data.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  });
+  res.on('end', () => callback(null, Buffer.concat(data)));
+  res.on('error', (err: Error) => callback(err, Buffer.alloc(0)));
+};
 
 describe('Stage 1 API baseline (e2e)', () => {
   let app: INestApplication;
@@ -832,6 +842,10 @@ describe('Stage 1 API baseline (e2e)', () => {
     await request(app.getHttpServer()).get('/api/exports/csv/not-authenticated').expect(401);
   });
 
+  it('GET /api/exports/excel/:comparisonId requires authentication', async () => {
+    await request(app.getHttpServer()).get('/api/exports/excel/not-authenticated').expect(401);
+  });
+
   it('diff engine flag can disable diff job start endpoint', async () => {
     const previous = process.env.DIFF_ENGINE_V1;
     process.env.DIFF_ENGINE_V1 = 'false';
@@ -1014,6 +1028,105 @@ describe('Stage 1 API baseline (e2e)', () => {
       .expect(201);
 
     const denied = await otherUser.get(`/api/exports/csv/${comparisonId}`).expect(403);
+    expect(denied.body.code).toBe('EXPORT_ACCESS_DENIED');
+  });
+
+  it('excel export downloads valid workbook synchronously for owner', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'export.excel.owner@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const started = await agent.post('/api/diff-jobs').send({}).expect(201);
+    const comparisonId = started.body.jobId as string;
+
+    const exported = await agent
+      .get(`/api/exports/excel/${comparisonId}`)
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(200);
+    expect(exported.headers['content-type']).toContain(
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    expect(exported.headers['content-disposition']).toContain('attachment;');
+    expect(exported.headers['content-disposition']).toContain('.xlsx');
+    expect(exported.body).toBeDefined();
+    expect(Buffer.isBuffer(exported.body)).toBe(true);
+    expect(exported.body.length).toBeGreaterThan(100);
+    expect(exported.body.slice(0, 2).toString('utf8')).toBe('PK');
+  });
+
+  it('excel export preserves source header order from uploaded comparison template', async () => {
+    const csvA = Buffer.from(
+      'Part Number,Revision,Description,Quantity,Color,Units,Cost,Category\nP-100,A,Bracket,2,Blue,EA,1.50,Hardware\n'
+    );
+    const csvB = Buffer.from(
+      'Cost,Color,Units,Category,Part Number,Description,Revision,Quantity\n2.00,Red,EA,Hardware,P-100,Bracket,A,3\n'
+    );
+
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'export.excel.template@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const intake = await agent
+      .post('/api/uploads/intake')
+      .attach('fileA', csvA, { filename: 'template-a.csv', contentType: 'text/csv' })
+      .attach('fileB', csvB, { filename: 'template-b.csv', contentType: 'text/csv' })
+      .expect(202);
+
+    const started = await agent
+      .post('/api/diff-jobs')
+      .send({
+        sessionId: intake.body.sessionId,
+        leftRevisionId: intake.body.leftRevisionId,
+        rightRevisionId: intake.body.rightRevisionId
+      })
+      .expect(201);
+
+    const exported = await agent
+      .get(`/api/exports/excel/${started.body.jobId}`)
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(200);
+    const workbook = XLSX.read(exported.body, { type: 'buffer' });
+    expect(workbook.SheetNames.length).toBeGreaterThan(0);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const firstRow = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' })[0] as string[];
+    expect(firstRow.slice(0, 8)).toEqual([
+      'Cost',
+      'Color',
+      'Units',
+      'Category',
+      'Part Number',
+      'Description',
+      'Revision',
+      'Quantity'
+    ]);
+    expect(firstRow).toEqual(
+      expect.arrayContaining(['Change Type', 'Changed Fields', 'Classification Reason'])
+    );
+  });
+
+  it('excel export denies same-tenant non-owner access', async () => {
+    const owner = request.agent(app.getHttpServer());
+    await owner
+      .post('/api/auth/test/login')
+      .send({ email: 'export.excel.owner2@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const started = await owner.post('/api/diff-jobs').send({}).expect(201);
+    const comparisonId = started.body.jobId as string;
+
+    const otherUser = request.agent(app.getHttpServer());
+    await otherUser
+      .post('/api/auth/test/login')
+      .send({ email: 'export.excel.viewer@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const denied = await otherUser.get(`/api/exports/excel/${comparisonId}`).expect(403);
     expect(denied.body.code).toBe('EXPORT_ACCESS_DENIED');
   });
 

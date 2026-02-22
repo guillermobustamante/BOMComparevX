@@ -15,6 +15,9 @@ interface DiffJobRecord {
   jobId: string;
   tenantId: string;
   requestedBy: string;
+  sessionId?: string;
+  leftRevisionId?: string;
+  rightRevisionId?: string;
   createdAtUtc: string;
   startedAtMs: number;
   computeDurationMs: number;
@@ -98,6 +101,9 @@ export class DiffJobService {
       jobId,
       tenantId: input.tenantId,
       requestedBy: input.requestedBy,
+      sessionId: input.sessionId,
+      leftRevisionId: revisionPair?.leftRevisionId || input.leftRevisionId,
+      rightRevisionId: revisionPair?.rightRevisionId || input.rightRevisionId,
       createdAtUtc,
       startedAtMs,
       computeDurationMs,
@@ -213,6 +219,9 @@ export class DiffJobService {
   ): {
     contractVersion: string;
     jobId: string;
+    sessionId: string | null;
+    leftRevisionId: string | null;
+    rightRevisionId: string | null;
     rows: PersistedDiffRow[];
     counters: DiffJobCounters;
   } {
@@ -228,6 +237,9 @@ export class DiffJobService {
     return {
       contractVersion: job.contractVersion,
       jobId: job.jobId,
+      sessionId: job.sessionId || null,
+      leftRevisionId: job.leftRevisionId || null,
+      rightRevisionId: job.rightRevisionId || null,
       rows: job.rows,
       counters: job.counters
     };
