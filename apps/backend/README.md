@@ -20,6 +20,10 @@ Planned framework: NestJS + TypeScript with Passport strategies for Google/Micro
 - `POST /api/uploads/validate` (protected, multipart `fileA` + `fileB`)
 - `POST /api/uploads/intake` (protected, multipart `fileA` + `fileB`, async accept)
 - `GET /api/exports/csv/:comparisonId` (protected, synchronous CSV download; full dataset default)
+- `GET /api/exports/excel/:comparisonId` (protected, synchronous Excel download; full dataset default)
+- `GET /api/notifications` (protected)
+- `POST /api/notifications/:notificationId/read` (protected)
+- `POST /api/admin/retention/run` (protected, admin role required)
 
 Optional query support for start endpoints:
 - `returnTo` (internal path only, e.g. `/upload` or `/history`).
@@ -34,6 +38,9 @@ Audit events:
 - `auth.login.success`
 - `auth.login.failure`
 - `auth.access.denied`
+- `export.download`
+- `notification.created`
+- `retention.sweep`
 - Events are emitted as structured JSON logs with correlation ID and UTC timestamp.
 
 Test support routes (disabled by default):
@@ -63,6 +70,18 @@ Upload intake contract:
 - Success: `202` with `{ jobId, sessionId, historyId, status: "accepted", correlationId, idempotentReplay, policy }`
 - Supports optional `Idempotency-Key` header; repeated key for same user returns same accepted job and does not create a duplicate.
 - Queue handshake: accepted jobs are retried and transitioned to `queued`; persistent enqueue failure returns `503` with `UPLOAD_QUEUE_ENQUEUE_FAILED`.
+
+Stage 5 feature flags:
+- `EXPORT_STAGE5_V1`
+- `SHARING_STAGE5_V1`
+- `NOTIFICATIONS_STAGE5_V1`
+- `ADMIN_POLICY_UI_STAGE5_V1`
+
+Stage 5 retention defaults:
+- `STAGE5_RETENTION_ENABLED=true`
+- `STAGE5_RETENTION_INTERVAL_MS=3600000`
+- `EXPORT_ARTIFACT_RETENTION_DAYS=7`
+- `NOTIFICATION_RETENTION_DAYS=90`
 
 ## Notes
 - Secrets are resolved via Azure Key Vault secret names from env contract.

@@ -101,6 +101,31 @@ export class NotificationsService {
     return this.notificationsById.get(notificationId) || null;
   }
 
+  async pruneOlderThan(cutoffUtcIso: string): Promise<number> {
+    const cutoff = new Date(cutoffUtcIso);
+    let removed = 0;
+
+    for (const [notificationId, notification] of this.notificationsById.entries()) {
+      if (new Date(notification.createdAtUtc) < cutoff) {
+        this.notificationsById.delete(notificationId);
+        removed += 1;
+      }
+    }
+
+    if (this.databaseService.enabled) {
+      const result = await this.databaseService.client.notification.deleteMany({
+        where: {
+          createdAtUtc: {
+            lt: cutoff
+          }
+        }
+      });
+      return result.count;
+    }
+
+    return removed;
+  }
+
   private async createNotification(input: {
     tenantId: string;
     userEmail: string;

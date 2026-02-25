@@ -4,6 +4,7 @@ import { DatabaseService } from '../database/database.service';
 
 const UNRESTRICTED_COMPARISON_LIMIT = 3;
 const DEFAULT_COOLDOWN_MS = 48 * 60 * 60 * 1000;
+const SQL_INT_MAX = 2_147_483_647;
 
 interface UploadPolicyState {
   comparisonsUsed: number;
@@ -43,7 +44,7 @@ export class UploadPolicyService {
       await this.persistState(userKey, tenantId, next);
       return {
         comparisonsUsed: next.comparisonsUsed,
-        unrestrictedComparisonsRemaining: Number.MAX_SAFE_INTEGER,
+        unrestrictedComparisonsRemaining: SQL_INT_MAX,
         cooldownUntilUtc: null,
         isUnlimited: true
       };
@@ -89,7 +90,7 @@ export class UploadPolicyService {
     return {
       comparisonsUsed: current.comparisonsUsed,
       unrestrictedComparisonsRemaining: isUnlimited
-        ? Number.MAX_SAFE_INTEGER
+        ? SQL_INT_MAX
         : Math.max(0, UNRESTRICTED_COMPARISON_LIMIT - current.comparisonsUsed),
       cooldownUntilUtc: isUnlimited ? null : current.cooldownUntilUtc,
       isUnlimited

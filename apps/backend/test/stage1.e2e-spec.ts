@@ -1315,6 +1315,122 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(users.body.users.some((row: { email: string }) => row.email === 'policy.target@example.com')).toBe(true);
   });
 
+  it('stage 5 retention sweep enforces export/notification defaults and keeps active shares', async () => {
+    const owner = request.agent(app.getHttpServer());
+    await owner
+      .post('/api/auth/test/login')
+      .send({ email: 'retention.owner@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const started = await owner.post('/api/diff-jobs').send({}).expect(201);
+    const comparisonId = started.body.jobId as string;
+    for (let i = 0; i < 15; i += 1) {
+      await new Promise((resolveDone) => setTimeout(resolveDone, 250));
+      const status = await owner.get(`/api/diff-jobs/${comparisonId}`).expect(200);
+      if (status.body.status === 'completed') {
+        break;
+      }
+    }
+
+    await owner.get(`/api/exports/csv/${comparisonId}`).expect(200);
+    await owner
+      .post('/api/shares/invite')
+      .send({
+        comparisonId,
+        invitedEmails: ['retention.active.viewer@example.com', 'retention.revoked.viewer@example.com']
+      })
+      .expect(201);
+    await owner
+      .post('/api/shares/revoke')
+      .send({
+        comparisonId,
+        invitedEmails: ['retention.revoked.viewer@example.com']
+      })
+      .expect(201);
+
+    const activeViewer = request.agent(app.getHttpServer());
+    await activeViewer
+      .post('/api/auth/test/login')
+      .send({ email: 'retention.active.viewer@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+    await activeViewer.get(`/api/diff-jobs/${comparisonId}`).expect(200);
+
+    const admin = request.agent(app.getHttpServer());
+    await admin
+      .post('/api/auth/test/login')
+      .send({ email: 'retention.admin@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+    await admin
+      .post('/api/admin/test/grant-role')
+      .send({ userEmail: 'retention.admin@example.com' })
+      .expect(201);
+
+    const plus8Days = new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString();
+    const firstSweep = await admin
+      .post('/api/admin/retention/run')
+      .send({ nowUtcIso: plus8Days })
+      .expect(201);
+    expect(firstSweep.body.deletedExportArtifacts).toBeGreaterThan(0);
+    expect(firstSweep.body.deletedRevokedShares).toBeGreaterThan(0);
+
+    await activeViewer.get(`/api/diff-jobs/${comparisonId}`).expect(200);
+
+    const plus91Days = new Date(Date.now() + 91 * 24 * 60 * 60 * 1000).toISOString();
+    const secondSweep = await admin
+      .post('/api/admin/retention/run')
+      .send({ nowUtcIso: plus91Days })
+      .expect(201);
+    expect(secondSweep.body.deletedNotifications).toBeGreaterThan(0);
+
+    const notifications = await owner.get('/api/notifications').expect(200);
+    expect(notifications.body.notifications).toEqual([]);
+  });
+
+  it('stage 5 feature flags can disable export/share/notification/admin surfaces', async () => {
+    const defaults = {
+      exportFlag: process.env.EXPORT_STAGE5_V1,
+      shareFlag: process.env.SHARING_STAGE5_V1,
+      notificationsFlag: process.env.NOTIFICATIONS_STAGE5_V1,
+      adminFlag: process.env.ADMIN_POLICY_UI_STAGE5_V1
+    };
+
+    process.env.EXPORT_STAGE5_V1 = 'false';
+    process.env.SHARING_STAGE5_V1 = 'false';
+    process.env.NOTIFICATIONS_STAGE5_V1 = 'false';
+    process.env.ADMIN_POLICY_UI_STAGE5_V1 = 'false';
+
+    try {
+      const agent = request.agent(app.getHttpServer());
+      await agent
+        .post('/api/auth/test/login')
+        .send({ email: 'flag.user@example.com', tenantId: 'tenant-a', provider: 'google' })
+        .expect(201);
+      const started = await agent.post('/api/diff-jobs').send({}).expect(201);
+      const comparisonId = started.body.jobId as string;
+
+      const exportDisabled = await agent.get(`/api/exports/csv/${comparisonId}`).expect(503);
+      expect(exportDisabled.body.code).toBe('EXPORT_STAGE5_DISABLED');
+
+      const shareDisabled = await agent.get(`/api/shares/${comparisonId}`).expect(503);
+      expect(shareDisabled.body.code).toBe('SHARING_STAGE5_DISABLED');
+
+      const notificationsDisabled = await agent.get('/api/notifications').expect(503);
+      expect(notificationsDisabled.body.code).toBe('NOTIFICATIONS_STAGE5_DISABLED');
+
+      const adminDisabled = await agent.get('/api/admin/me').expect(503);
+      expect(adminDisabled.body.code).toBe('ADMIN_STAGE5_DISABLED');
+    } finally {
+      if (defaults.exportFlag === undefined) delete process.env.EXPORT_STAGE5_V1;
+      else process.env.EXPORT_STAGE5_V1 = defaults.exportFlag;
+      if (defaults.shareFlag === undefined) delete process.env.SHARING_STAGE5_V1;
+      else process.env.SHARING_STAGE5_V1 = defaults.shareFlag;
+      if (defaults.notificationsFlag === undefined) delete process.env.NOTIFICATIONS_STAGE5_V1;
+      else process.env.NOTIFICATIONS_STAGE5_V1 = defaults.notificationsFlag;
+      if (defaults.adminFlag === undefined) delete process.env.ADMIN_POLICY_UI_STAGE5_V1;
+      else process.env.ADMIN_POLICY_UI_STAGE5_V1 = defaults.adminFlag;
+    }
+  });
+
   it('diff jobs can run against uploaded revision pair rows from intake', async () => {
     const agent = request.agent(app.getHttpServer());
     await agent

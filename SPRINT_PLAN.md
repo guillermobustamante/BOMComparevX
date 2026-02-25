@@ -343,7 +343,7 @@ Deliver deterministic BOM diffing with fixed tie-break behavior, normalization-f
 - Stage: `Stage 5 - Export + Sharing + Notifications + Admin`
 - Dates: `TBD`
 - Owner: `Product + Engineering`
-- Status: `In Progress (S5-01 through S5-07 completed; paused before S5-08)`
+- Status: `Completed (S5-01 through S5-10 completed and verified)`
 
 ### Sprint Goal
 Deliver production-ready Stage 5 capabilities for synchronous exports, multi-recipient same-tenant sharing with revoke, completion/failure notifications, and full admin UI policy controls.
@@ -415,9 +415,12 @@ Deliver production-ready Stage 5 capabilities for synchronous exports, multi-rec
 - Show admin UI policy reset/override and associated audit log event.
 
 ### Rollout Notes
-- Feature flags: `export_stage5_v1`, `sharing_stage5_v1`, `notifications_stage5_v1`, `admin_policy_ui_stage5_v1`.
+- Feature flags: `EXPORT_STAGE5_V1`, `SHARING_STAGE5_V1`, `NOTIFICATIONS_STAGE5_V1`, `ADMIN_POLICY_UI_STAGE5_V1`.
 - Monitor: export success/failure, share invite/revoke events, admin override actions, notification delivery counts.
 - Rollback: disable Stage 5 flags without impacting Stage 1-4 flows.
+- Runbooks:
+  - `docs/runbooks/s5-08-retention-baseline.md`
+  - `docs/runbooks/s5-10-rollout-observability.md`
 
 ---
 

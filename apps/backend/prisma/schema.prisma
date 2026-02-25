@@ -158,6 +158,21 @@ model Notification {
   @@map("notifications")
 }
 
+model ExportArtifact {
+  artifactId     String   @id
+  tenantId       String
+  comparisonId   String
+  requestedBy    String
+  format         String
+  fileName       String
+  byteSize       Int
+  createdAtUtc   DateTime
+
+  @@index([tenantId, createdAtUtc], map: "ix_exportArtifacts_tenant_createdAt")
+  @@index([tenantId, requestedBy, createdAtUtc], map: "ix_exportArtifacts_tenant_user_createdAt")
+  @@map("exportArtifacts")
+}
+
 model AdminRoleClaim {
   claimId       String   @id
   tenantId      String

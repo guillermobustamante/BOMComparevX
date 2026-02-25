@@ -1,4 +1,15 @@
-import { Controller, Get, NotFoundException, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+  Param,
+  Post,
+  Req,
+  UseGuards
+} from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import type { Request } from 'express';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { SessionState } from '../auth/session-user.interface';
@@ -23,6 +34,11 @@ export class NotificationsController {
       emailDispatchedAtUtc: string | null;
     }>;
   }> {
+    this.ensureFeatureEnabled(
+      'notifications_stage5_v1',
+      'NOTIFICATIONS_STAGE5_DISABLED',
+      'Stage 5 notifications are currently disabled by feature flag.'
+    );
     const session = req.session as SessionState;
     const tenantId = session.user?.tenantId || 'unknown-tenant';
     const userEmail = session.user?.email || 'unknown-user';
@@ -48,6 +64,11 @@ export class NotificationsController {
     @Req() req: Request,
     @Param('notificationId') notificationId: string
   ): Promise<{ ok: true; notificationId: string }> {
+    this.ensureFeatureEnabled(
+      'notifications_stage5_v1',
+      'NOTIFICATIONS_STAGE5_DISABLED',
+      'Stage 5 notifications are currently disabled by feature flag.'
+    );
     const session = req.session as SessionState;
     const tenantId = session.user?.tenantId || 'unknown-tenant';
     const userEmail = session.user?.email || 'unknown-user';
@@ -59,5 +80,26 @@ export class NotificationsController {
       });
     }
     return { ok: true, notificationId };
+  }
+
+  private ensureFeatureEnabled(flagName: string, code: string, message: string): void {
+    if (this.flagEnabled(flagName)) return;
+    throw new HttpException(
+      {
+        code,
+        message,
+        correlationId: randomUUID(),
+        featureFlag: flagName
+      },
+      HttpStatus.SERVICE_UNAVAILABLE
+    );
+  }
+
+  private flagEnabled(flagName: string): boolean {
+    const candidateKeys = [flagName, flagName.toUpperCase()];
+    const raw = candidateKeys.map((key) => process.env[key]).find((value) => value !== undefined);
+    if (!raw) return true;
+    const normalized = raw.trim().toLowerCase();
+    return !['false', '0', 'off', 'no'].includes(normalized);
   }
 }

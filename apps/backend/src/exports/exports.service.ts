@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import * as XLSX from 'xlsx';
+import { DatabaseService } from '../database/database.service';
 import { DiffJobService } from '../diff/diff-job.service';
 import { DiffComparableRow } from '../diff/diff-contract';
 import { UploadRevisionService } from '../uploads/upload-revision.service';
+import { ExportArtifactRecord } from './export-artifact.interface';
 
 interface BuildCsvInput {
   comparisonId: string;
   tenantId: string;
+  requestedBy: string;
 }
 
 interface CsvExportPayload {
@@ -23,10 +27,13 @@ interface ExcelExportPayload {
 export class ExportsService {
   constructor(
     private readonly diffJobService: DiffJobService,
-    private readonly uploadRevisionService: UploadRevisionService
+    private readonly uploadRevisionService: UploadRevisionService,
+    private readonly databaseService: DatabaseService
   ) {}
 
-  buildComparisonCsv(input: BuildCsvInput): CsvExportPayload {
+  private readonly artifactsById = new Map<string, ExportArtifactRecord>();
+
+  async buildComparisonCsv(input: BuildCsvInput): Promise<CsvExportPayload> {
     const exportRows = this.diffJobService.getRowsForExport(
       input.comparisonId,
       input.tenantId
@@ -71,13 +78,24 @@ export class ExportsService {
     }
 
     const fileName = `bomcompare_${this.sanitizeFileToken(exportRows.jobId)}_results.csv`;
-    return {
+    const payload = {
       fileName,
       content: `\uFEFF${lines.join('\r\n')}\r\n`
     };
+
+    await this.recordArtifact({
+      tenantId: input.tenantId,
+      comparisonId: input.comparisonId,
+      requestedBy: input.requestedBy,
+      format: 'csv',
+      fileName,
+      byteSize: Buffer.byteLength(payload.content, 'utf8')
+    });
+
+    return payload;
   }
 
-  buildComparisonExcel(input: BuildCsvInput): ExcelExportPayload {
+  async buildComparisonExcel(input: BuildCsvInput): Promise<ExcelExportPayload> {
     const exportRows = this.diffJobService.getRowsForExport(
       input.comparisonId,
       input.tenantId
@@ -135,7 +153,42 @@ export class ExportsService {
 
     const fileName = `bomcompare_${this.sanitizeFileToken(exportRows.jobId)}_results.xlsx`;
     const content = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' }) as Buffer;
+
+    await this.recordArtifact({
+      tenantId: input.tenantId,
+      comparisonId: input.comparisonId,
+      requestedBy: input.requestedBy,
+      format: 'excel',
+      fileName,
+      byteSize: content.length
+    });
+
     return { fileName, content };
+  }
+
+  async pruneArtifactsOlderThan(cutoffUtcIso: string): Promise<number> {
+    const cutoff = new Date(cutoffUtcIso);
+    let removed = 0;
+
+    for (const [artifactId, artifact] of this.artifactsById.entries()) {
+      if (new Date(artifact.createdAtUtc) < cutoff) {
+        this.artifactsById.delete(artifactId);
+        removed += 1;
+      }
+    }
+
+    if (this.databaseService.enabled) {
+      const result = await this.databaseService.client.exportArtifact.deleteMany({
+        where: {
+          createdAtUtc: {
+            lt: cutoff
+          }
+        }
+      });
+      return result.count;
+    }
+
+    return removed;
   }
 
   private escapeCsv(value: string): string {
@@ -167,5 +220,41 @@ export class ExportsService {
       .trim();
     if (!trimmed) return 'Comparison Results';
     return trimmed.slice(0, 31);
+  }
+
+  private async recordArtifact(input: {
+    tenantId: string;
+    comparisonId: string;
+    requestedBy: string;
+    format: ExportArtifactRecord['format'];
+    fileName: string;
+    byteSize: number;
+  }): Promise<void> {
+    const createdAtUtc = new Date().toISOString();
+    const artifact: ExportArtifactRecord = {
+      artifactId: randomUUID(),
+      tenantId: input.tenantId,
+      comparisonId: input.comparisonId,
+      requestedBy: input.requestedBy.trim().toLowerCase(),
+      format: input.format,
+      fileName: input.fileName,
+      byteSize: input.byteSize,
+      createdAtUtc
+    };
+    this.artifactsById.set(artifact.artifactId, artifact);
+
+    if (!this.databaseService.enabled) return;
+    await this.databaseService.client.exportArtifact.create({
+      data: {
+        artifactId: artifact.artifactId,
+        tenantId: artifact.tenantId,
+        comparisonId: artifact.comparisonId,
+        requestedBy: artifact.requestedBy,
+        format: artifact.format,
+        fileName: artifact.fileName,
+        byteSize: artifact.byteSize,
+        createdAtUtc: new Date(artifact.createdAtUtc)
+      }
+    });
   }
 }

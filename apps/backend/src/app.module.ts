@@ -11,6 +11,7 @@ import { ExportsModule } from './exports/exports.module';
 import { SharesModule } from './shares/shares.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AdminModule } from './admin/admin.module';
+import { RetentionModule } from './retention/retention.module';
 
 @Module({
   imports: [
@@ -24,7 +25,8 @@ import { AdminModule } from './admin/admin.module';
     ExportsModule,
     SharesModule,
     NotificationsModule,
-    AdminModule
+    AdminModule,
+    RetentionModule
   ],
   controllers: [HealthController],
   providers: []

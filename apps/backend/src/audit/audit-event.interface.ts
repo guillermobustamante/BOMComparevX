@@ -4,7 +4,9 @@ export type AuditEventType =
   | 'auth.access.denied'
   | 'share.invite'
   | 'share.revoke'
+  | 'export.download'
   | 'notification.created'
+  | 'retention.sweep'
   | 'admin.policy.reset'
   | 'admin.policy.override'
   | 'admin.role.grant';

@@ -549,7 +549,7 @@ Enforce DB role-claim authorization, deny non-admin access, and persist audit ev
 - Estimate: `3`
 - Owner: `BE`
 - Sprint: `S5`
-- Status: `Ready`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-015`
@@ -581,6 +581,25 @@ Implement Stage 5 retention defaults for export artifacts, notifications, and sh
 Enforce tenant-safe lifecycle jobs and keep retention actions auditable.
 ```
 
+### Completion Evidence
+- Retention worker implemented with interval scheduler and manual sweep execution:
+  - `apps/backend/src/retention/retention.service.ts`
+  - `apps/backend/src/retention/retention.module.ts`
+- Retention controls integrated into admin API (admin-only):
+  - `POST /api/admin/retention/run`
+  - `apps/backend/src/admin/admin.controller.ts`
+  - `apps/backend/src/admin/admin.module.ts`
+- Export artifact persistence + retention deletion contract added:
+  - `apps/backend/src/exports/export-artifact.interface.ts`
+  - `apps/backend/src/exports/exports.service.ts`
+  - `apps/backend/prisma/schema.prisma` (`exportArtifacts`)
+  - `apps/backend/prisma/migrations/202602250001_s5_retention_export_artifacts/migration.sql`
+- Notification/share retention hooks added:
+  - `apps/backend/src/notifications/notifications.service.ts` (`pruneOlderThan`)
+  - `apps/backend/src/shares/shares.service.ts` (`purgeRevokedRecords`, `purgeByComparison`)
+- Runbook added:
+  - `docs/runbooks/s5-08-retention-baseline.md`
+
 ---
 
 ## S5-09 Add Stage 5 Automated Tests (Backend + Browser)
@@ -593,7 +612,7 @@ Enforce tenant-safe lifecycle jobs and keep retention actions auditable.
 - Estimate: `5`
 - Owner: `QA/BE/FE`
 - Sprint: `S5`
-- Status: `Ready`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `FR-010`, `FR-012`, `FR-013`, `FR-014`, `FR-015`
@@ -618,6 +637,19 @@ Add Stage 5 backend and browser test coverage for exports, sharing, notification
 Map tests directly to Stage 5 acceptance criteria and produce actionable diagnostics on failures.
 ```
 
+### Completion Evidence
+- Backend e2e coverage extended for Stage 5 retention and rollout controls:
+  - `stage 5 retention sweep enforces export/notification defaults and keeps active shares`
+  - `stage 5 feature flags can disable export/share/notification/admin surfaces`
+  - file: `apps/backend/test/stage1.e2e-spec.ts`
+- Existing browser coverage remains green for Stage 5 critical paths:
+  - exports, sharing, notifications, admin flows
+  - file: `tests/e2e/auth-shell.spec.ts`
+- CI pipeline verification passed end-to-end:
+  - `npm run verify:story`
+  - backend: `57` e2e tests passed
+  - browser: `17` Playwright tests passed
+
 ---
 
 ## S5-10 Stage 5 Rollout, Observability, and Runbook Closeout
@@ -630,7 +662,7 @@ Map tests directly to Stage 5 acceptance criteria and produce actionable diagnos
 - Estimate: `3`
 - Owner: `BE/DevOps`
 - Sprint: `S5`
-- Status: `Ready`
+- Status: `Done`
 
 ### Traceability
 - Requirement link(s): `NFR-AUDIT`, `NFR-RELIABILITY`
@@ -665,6 +697,26 @@ Map tests directly to Stage 5 acceptance criteria and produce actionable diagnos
 Finalize Stage 5 rollout controls, observability, and runbooks.
 Add Stage 5 metrics/alerts and validate rollback behavior in non-production before release.
 ```
+
+### Completion Evidence
+- Stage 5 feature flag gates implemented on backend surfaces:
+  - exports: `export_stage5_v1`
+  - sharing: `sharing_stage5_v1`
+  - notifications: `notifications_stage5_v1`
+  - admin: `admin_policy_ui_stage5_v1`
+  - files:
+    - `apps/backend/src/exports/exports.controller.ts`
+    - `apps/backend/src/shares/shares.controller.ts`
+    - `apps/backend/src/notifications/notifications.controller.ts`
+    - `apps/backend/src/admin/admin.controller.ts`
+- Observability/audit coverage expanded:
+  - new events: `export.download`, `retention.sweep`
+  - file: `apps/backend/src/audit/audit-event.interface.ts`
+- Runbook closeout delivered:
+  - `docs/runbooks/s5-08-retention-baseline.md`
+  - `docs/runbooks/s5-10-rollout-observability.md`
+- Env contract updated for Stage 5 rollout/retention flags:
+  - `.env.example`
 
 ---
 

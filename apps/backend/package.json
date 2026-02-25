@@ -16,7 +16,7 @@
     "typecheck": "npx tsc -p tsconfig.json --noEmit",
     "test": "npm run test:e2e",
     "test:e2e": "cross-env NODE_ENV=test ENABLE_TEST_ROUTES=true AZURE_KEY_VAULT_URI= GOOGLE_CLIENT_ID=dummy GOOGLE_CLIENT_SECRET=dummy MICROSOFT_CLIENT_ID=dummy MICROSOFT_CLIENT_SECRET=dummy UPLOAD_COOLDOWN_MS=100 jest --config ./test/jest-e2e.json --runInBand",
-    "ci": "npm run prisma:validate && npm run typecheck && npm run build && npm run test"
+    "ci": "npm run prisma:validate && npm run prisma:generate && npm run typecheck && npm run build && npm run test"
   },
   "dependencies": {
     "@azure/identity": "^4.6.0",

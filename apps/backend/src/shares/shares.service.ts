@@ -214,6 +214,51 @@ export class SharesService {
     return owner.ownerEmail;
   }
 
+  async purgeRevokedRecords(cutoffUtcIso?: string): Promise<number> {
+    const cutoff = cutoffUtcIso ? new Date(cutoffUtcIso) : null;
+    let removed = 0;
+
+    for (const [key, row] of this.sharesByKey.entries()) {
+      if (!row.revokedAtUtc) continue;
+      if (cutoff && new Date(row.revokedAtUtc) >= cutoff) continue;
+      this.sharesByKey.delete(key);
+      removed += 1;
+    }
+
+    if (this.databaseService.enabled) {
+      const result = await this.databaseService.client.comparisonShare.deleteMany({
+        where: {
+          revokedAtUtc: cutoff ? { lt: cutoff } : { not: null }
+        }
+      });
+      return result.count;
+    }
+
+    return removed;
+  }
+
+  async purgeByComparison(tenantId: string, comparisonId: string): Promise<number> {
+    const keysToDelete = [...this.sharesByKey.keys()].filter((key) =>
+      key.startsWith(`${tenantId}::${comparisonId}::`)
+    );
+    for (const key of keysToDelete) {
+      this.sharesByKey.delete(key);
+    }
+    this.comparisonOwners.delete(comparisonId);
+
+    if (this.databaseService.enabled) {
+      const result = await this.databaseService.client.comparisonShare.deleteMany({
+        where: {
+          tenantId,
+          comparisonId
+        }
+      });
+      return result.count;
+    }
+
+    return keysToDelete.length;
+  }
+
   private async getOwnerContext(tenantId: string, comparisonId: string): Promise<OwnerContext | null> {
     const context = this.comparisonOwners.get(comparisonId);
     if (context && context.tenantId === tenantId) {

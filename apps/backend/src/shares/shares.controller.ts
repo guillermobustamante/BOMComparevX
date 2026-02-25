@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import type { Request } from 'express';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { SessionState } from '../auth/session-user.interface';
@@ -26,6 +27,11 @@ export class SharesController {
       updatedAtUtc: string;
     }>;
   }> {
+    this.ensureFeatureEnabled(
+      'sharing_stage5_v1',
+      'SHARING_STAGE5_DISABLED',
+      'Stage 5 sharing is currently disabled by feature flag.'
+    );
     const session = req.session as SessionState;
     const tenantId = session.user?.tenantId || 'unknown-tenant';
     const actorEmail = session.user?.email || 'unknown-user';
@@ -51,6 +57,11 @@ export class SharesController {
     comparisonId: string;
     invited: Array<{ invitedEmail: string; permission: 'view'; createdAtUtc: string }>;
   }> {
+    this.ensureFeatureEnabled(
+      'sharing_stage5_v1',
+      'SHARING_STAGE5_DISABLED',
+      'Stage 5 sharing is currently disabled by feature flag.'
+    );
     const session = req.session as SessionState;
     const tenantId = session.user?.tenantId || 'unknown-tenant';
     const actorEmail = session.user?.email || 'unknown-user';
@@ -91,6 +102,11 @@ export class SharesController {
     comparisonId: string;
     revoked: Array<{ invitedEmail: string; revokedAtUtc: string | null }>;
   }> {
+    this.ensureFeatureEnabled(
+      'sharing_stage5_v1',
+      'SHARING_STAGE5_DISABLED',
+      'Stage 5 sharing is currently disabled by feature flag.'
+    );
     const session = req.session as SessionState;
     const tenantId = session.user?.tenantId || 'unknown-tenant';
     const actorEmail = session.user?.email || 'unknown-user';
@@ -118,5 +134,26 @@ export class SharesController {
         revokedAtUtc: row.revokedAtUtc
       }))
     };
+  }
+
+  private ensureFeatureEnabled(flagName: string, code: string, message: string): void {
+    if (this.flagEnabled(flagName)) return;
+    throw new HttpException(
+      {
+        code,
+        message,
+        correlationId: randomUUID(),
+        featureFlag: flagName
+      },
+      HttpStatus.SERVICE_UNAVAILABLE
+    );
+  }
+
+  private flagEnabled(flagName: string): boolean {
+    const candidateKeys = [flagName, flagName.toUpperCase()];
+    const raw = candidateKeys.map((key) => process.env[key]).find((value) => value !== undefined);
+    if (!raw) return true;
+    const normalized = raw.trim().toLowerCase();
+    return !['false', '0', 'off', 'no'].includes(normalized);
   }
 }
