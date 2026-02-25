@@ -75,7 +75,7 @@ You want a product that is:
 5. **Queue**: async orchestration with retry/dead-letter policies
 6. **Workers**: parsing, matching, diffing, export creation, retention cleanup
 7. **SQL Database**: users/sessions/revisions/shares/policies/notifications/audits
-8. **Graph Capability**: Azure SQL Graph (or equivalent graph model) for BOM hierarchy traversal
+8. **Graph Capability**: Azure SQL Graph for BOM hierarchy traversal
 9. **Cache**: query acceleration for session history/results
 10. **Admin/Audit Services**: overrides, observability, audit export
 
@@ -83,6 +83,18 @@ Persistence conventions:
 - Azure SQL persistence managed via Prisma SQL migrations.
 - Physical table naming convention uses camelCase.
 - Stage 2 baseline persistence includes `job_runs`, history entities, `upload_policies`, `upload_events`, `audit_logs`, `bom_column_mappings`, and `column_detection_audits`.
+
+Graph Backend Decision (locked):
+- Graph-aware matching and hierarchy traversal in Stage 7 use Azure SQL Graph only.
+- Legacy Cosmos DB/Gremlin assumptions are superseded and out of scope for V1 stages.
+- STEP/STP-specific graph expansion remains deferred to Stage 10.
+- Revision-scoped authoritative graph model:
+  - `PartNode` (canonical part node per revision)
+  - `ContainsEdge` (parent-child edge per revision)
+- Parent-context attributes (`quantity`, `findNumber`, context path) are stored on `ContainsEdge`.
+- Existing app contracts (`bom_components`, `component_links`) remain stable through compatibility views or mapped query layer.
+- Tree APIs should use recursive CTE (or equivalent SQL Graph traversal) with deterministic ordering.
+- Comparison reads bind to immutable `leftRevisionId` and `rightRevisionId` snapshots.
 
 ### 5.3 Amendment 1: Semantic Registry + Multi-Pass Detection
 - **Pass 1: Semantic Registry** (95%+ target)
@@ -134,6 +146,12 @@ Deterministic tie-break inside each strategy:
 One-to-one matching lock:
 - Once a target row is matched, it cannot be reused by another source row in the same run.
 
+Hierarchy-aware moved rule (Stage 7):
+- classify as `moved` when identity match is high-confidence and parent context changed
+- classify as `added`/`removed` when identity is ambiguous/unmatched
+- include rationale fields `fromParent` and `toParent` for moved rows
+- if moved + quantity delta, keep `changeType = moved` and include quantity in `changedFields`
+
 ### 5.6 Attribute-Level Change Detection
 Stage 4 classification taxonomy:
 - `added`
@@ -174,6 +192,8 @@ Classification outcomes persist row-level and cell-level rationale metadata for 
 - `users`
 - `comparison_sessions`
 - `bom_revisions`
+- `part_nodes` / `PartNode` (revision-scoped canonical graph nodes)
+- `contains_edges` / `ContainsEdge` (revision-scoped graph edges with parent-context attributes)
 - `bom_components`
 - `component_links`
 - `comparison_diffs`
@@ -184,6 +204,9 @@ Classification outcomes persist row-level and cell-level rationale metadata for 
 - `job_runs`
 - `notifications`
 - `audit_logs`
+
+Compatibility projection:
+- `bom_components` and `component_links` can be served as compatibility projections over `PartNode`/`ContainsEdge` for contract continuity.
 
 ### 5.9 Security and Isolation
 - Tenant filter required on every data path
@@ -211,6 +234,12 @@ Classification outcomes persist row-level and cell-level rationale metadata for 
 - UI interactions: <500ms
 - Page load: <3s
 - Mobile interaction: <1s target under 4G conditions
+- Stage 7 hierarchy/query targets:
+  - tree expand/collapse <=200ms p95
+  - any-column filter/sort/search (up to 5k rows) <=500ms p95
+  - first hierarchy response <2s
+  - first meaningful hierarchy rows <5s
+  - graph-aware matching overhead <=15% vs Stage 4 baseline (same fixture tier)
 
 ### 6.2 Scaling Roadmap
 - **Phase 1 (0–6 mo)**: 2 concurrent uploads
@@ -270,6 +299,8 @@ Priority closeout for open legacy scope in Epic `439` (BOM Comparison and Matchi
 - immutable persisted diff/rationale hardening for hierarchy-aware runs
 - expanded results UX (any-column filters/sort/search) and hierarchy/tree visualization
 - automation and rollout controls for new matching and results behaviors
+- SQL Graph contract continuity (`PartNode`/`ContainsEdge` with compatibility projections for `bom_components`/`component_links`)
+- S7 performance SLOs for hierarchy interaction/query paths and graph-aware overhead budget
 
 Explicit deferral:
 - STEP/STP parsing and STEP/STP-specific matching are deferred to Stage 10.

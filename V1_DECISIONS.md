@@ -8,7 +8,7 @@ Status: Locked through Stage 5 planning
 ## Platform and Scope
 
 1. Deployment target is Azure-managed infrastructure for Dev/Test/Prod.
-2. Graph model in Phase 1 is Azure SQL Graph-capable.
+2. Graph backend decision for V1 and Stage 7 is Azure SQL Graph only; Cosmos DB/Gremlin is out of scope.
 3. V1 launch file format scope is CSV/Excel-centric for upload/detection paths.
 4. Raw engineering files follow 7-day deletion; metadata/results/audits follow retention policy.
 
@@ -124,3 +124,39 @@ Status: Locked through Stage 5 planning
    - notification trigger expansion (share/export events)
    - notification reliability expansion (retry/backoff/dead-letter policy)
    - detailed compliance payload schema expansion for Stage 5 actions
+
+## Stage 7 Graph Backend + Scope (Locked)
+
+50. Stage 7 graph-aware matching scope is CSV/XLSX workflows only; STEP/STP remains deferred to Stage 10.
+51. Stage 7 graph-aware query and traversal implementation must use Azure SQL Graph-compatible node/edge data and deterministic SQL query patterns.
+52. Stage 7 deterministic graph-aware ranking extends existing strategy/tie-break invariants:
+   - candidate precedence: same-parent exact identity before broader hierarchy candidates
+   - deterministic ordering: score/confidence DESC, concordance DESC, target row index ASC, stable ID lexical ASC
+   - near-tie ambiguity remains `REVIEW_REQUIRED` (no silent auto-pick)
+53. Stage 7 non-goal lock: no Cosmos DB/Gremlin dependencies, models, or query paths.
+54. Stage 7 SQL graph model is revision-scoped and immutable:
+   - `PartNode` stores canonical part identity per `revisionId`
+   - `ContainsEdge` stores parent-child links per `revisionId`
+55. Parent-context attributes are stored on edges, not duplicated on canonical nodes:
+   - `quantity`
+   - `findNumber`
+   - contextual position/path metadata
+56. Compatibility projection is required for existing app contracts:
+   - `bom_components` and `component_links` must be served through SQL views or mapped query layer backed by `PartNode`/`ContainsEdge`.
+57. Tree rendering/read APIs use deterministic SQL traversal:
+   - recursive CTE (or equivalent SQL Graph traversal)
+   - stable ordering guarantees for repeatable tree payloads
+58. Authoritative graph data is persisted as immutable snapshot per revision:
+   - new upload creates a new revision graph snapshot
+   - comparisons bind to `leftRevisionId` and `rightRevisionId` snapshots
+   - ephemeral caches are optional and non-authoritative
+59. Moved-classification rule for hierarchy-aware diffs:
+   - classify as `moved` when part identity confidence is high and parent context changes
+   - classify as `added`/`removed` when identity is ambiguous/unmatched
+60. `moved` rationale must include `fromParent` and `toParent`; if quantity also changes, keep `changeType = moved` and include quantity in `changedFields`.
+61. Stage 7 performance targets are locked:
+   - tree expand/collapse <=200ms p95
+   - any-column filter/sort/search (up to 5k rows) <=500ms p95
+   - first hierarchy response <2s
+   - first meaningful hierarchy rows <5s
+   - graph-aware matching overhead <=15% vs Stage 4 baseline for same fixture tier

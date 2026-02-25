@@ -43,7 +43,7 @@ V1 excludes:
 
 ## 3. Product Decisions Locked for V1
 
-1. Graph model: Azure SQL Graph-capable model in Phase 1.
+1. Graph model: Azure SQL Graph only in Phase 1; Cosmos DB/Gremlin is out of scope.
 2. Export contract is CSV plus Excel-compatible output; Excel preserves source structure (sheet layout, column order, headers, mapped custom columns), while style/formula fidelity remains best-effort.
 3. Retention: raw engineering files deleted at day 7; metadata/results/audits retained per policy.
 4. Multi-version behavior: newest upload compares against immediately previous revision in same session.
@@ -58,6 +58,18 @@ V1 excludes:
    - export artifacts: 7 days
    - notifications: 90 days
    - share records until explicit revoke or owning session deletion
+13. Stage 7 graph snapshot model is revision-scoped and immutable:
+   - `PartNode` for canonical part identity nodes per revision
+   - `ContainsEdge` for parent-child links per revision
+14. Parent-context properties (`quantity`, `findNumber`, contextual position/path) are edge-level data on `ContainsEdge`.
+15. Existing app contracts remain stable through compatibility projections for `bom_components` and `component_links` (views or mapped query layer).
+16. Stage 7 hierarchy/tree payloads use deterministic recursive traversal (recursive CTE or equivalent SQL Graph traversal) with stable ordering.
+17. Stage 7 comparisons bind to immutable `leftRevisionId` and `rightRevisionId` graph snapshots.
+18. Stage 7 moved rule:
+   - high-confidence identity + parent change => `moved`
+   - identity ambiguous/unmatched => `added`/`removed`
+   - `moved` rationale includes `fromParent` and `toParent`
+   - `moved` + quantity delta keeps `changeType = moved` and includes quantity in `changedFields`
 
 ---
 
@@ -139,6 +151,13 @@ V1 excludes:
   - business fields: `color`, `units`, `cost`, `category` (when present/mapped)
 - Row-level and cell-level rationale metadata is captured for every non-`no_change` classification.
 - Attribute-level differences are recorded and surfaced with provenance (strategy/tie-break/classification path).
+- Stage 7 graph-aware contract (CSV/XLSX only):
+  - authoritative per-revision immutable graph snapshot uses `PartNode`/`ContainsEdge`
+  - compatibility projections preserve `bom_components`/`component_links` query contracts
+  - tree traversal APIs use deterministic recursive CTE (or equivalent SQL Graph traversal) with stable ordering
+  - comparisons reference `leftRevisionId` and `rightRevisionId` snapshots
+  - moved classification uses parent-context delta with required rationale fields `fromParent` and `toParent`
+  - no Cosmos DB/Gremlin dependencies
 
 ### FR-008 Results UI
 - Result table supports:
@@ -242,6 +261,12 @@ V1 excludes:
   - subsequent chunk cadence 1-3s when batch-ready
 - UI interactions target <500ms.
 - Page load target <3s under normal conditions.
+- Stage 7 graph/tree performance targets:
+  - tree expand/collapse <=200ms p95
+  - any-column filter/sort/search (up to 5k rows) <=500ms p95
+  - first hierarchy response <2s
+  - first meaningful hierarchy rows <5s
+  - graph-aware matching overhead <=15% versus Stage 4 baseline at same fixture tier
 
 ### NFR-SCALE
 - Phase 1 supports 2 concurrent uploads with queueing for overflow.
@@ -271,6 +296,8 @@ V1 excludes:
 - users
 - comparison_sessions
 - bom_revisions
+- part_nodes (`PartNode`, revision-scoped canonical node model)
+- contains_edges (`ContainsEdge`, revision-scoped parent-child edge model)
 - bom_components
 - component_links
 - comparison_diffs
@@ -282,6 +309,9 @@ V1 excludes:
 - job_runs
 - notifications
 - audit_logs
+
+Compatibility note:
+- `bom_components` and `component_links` remain valid app contracts and may be served via compatibility views or mapped query layer backed by `PartNode`/`ContainsEdge`.
 
 ---
 
@@ -360,6 +390,19 @@ V1 excludes:
 - Failed jobs and policy rejections are visible in history/audit.
 - p95 performance checks pass for core scenarios.
 
+### Stage 7 — Advanced Matching + Results UX Closure
+**Done when:**
+- Revision-scoped immutable graph snapshots (`PartNode`/`ContainsEdge`) are persisted and used for hierarchy-aware comparisons.
+- Comparison run contracts bind to `leftRevisionId` and `rightRevisionId` snapshot references.
+- Existing `bom_components` and `component_links` app contracts remain compatible.
+- Hierarchy tree APIs return deterministic ordering via recursive traversal.
+- Moved classification includes `fromParent`/`toParent` rationale and keeps `moved` when quantity also changes (quantity listed in `changedFields`).
+- Stage 7 performance targets pass:
+  - tree expand/collapse <=200ms p95
+  - any-column filter/sort/search <=500ms p95 for up to 5k rows
+  - first hierarchy response <2s, first meaningful rows <5s
+  - graph-aware matching overhead <=15% vs Stage 4 baseline.
+
 ---
 
 ## 9. QA Test Matrix (Minimum)
@@ -377,6 +420,10 @@ V1 excludes:
 11. Share invite + authenticated access + revoke enforcement.
 12. Session rename/tag/delete behavior.
 13. Retention job deleting raw STEP/STP only.
+14. Graph snapshot immutability per revision (`PartNode`/`ContainsEdge`) with `leftRevisionId`/`rightRevisionId` binding.
+15. Compatibility projection behavior for `bom_components`/`component_links` queries.
+16. Moved classification parent-change behavior with `fromParent`/`toParent` rationale.
+17. Stage 7 hierarchy/tree performance targets and graph-aware overhead budget.
 
 ---
 

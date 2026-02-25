@@ -509,18 +509,45 @@ Close remaining high-priority scope from legacy Epic `439` and Epic `440` with C
 ### Scope (Suggested)
 | ID | Work Item | Traceability | Estimate | Owner | Priority |
 |---|---|---|---:|---|---|
-| S7-01 | Implement graph-aware matching enhancements for CSV/XLSX BOMs (hierarchy context + deterministic tie-break preservation) | Legacy `US-486`; Stage 7 objective | 5 | AI Coding Agent (BE) | P0 |
-| S7-02 | Persist hierarchy-aware immutable diff snapshots + rationale fields for reproducible re-runs | Legacy `US-487`; `NFR-AUDIT` | 5 | AI Coding Agent (BE) | P0 |
+| S7-01 | Implement graph-aware matching enhancements for CSV/XLSX BOMs using revision-scoped Azure SQL Graph model (`PartNode`/`ContainsEdge`) with deterministic tie-break preservation | Legacy `US-486`; Stage 7 objective | 5 | AI Coding Agent (BE) | P0 |
+| S7-02 | Persist hierarchy-aware immutable diff snapshots + rationale fields with `leftRevisionId`/`rightRevisionId` binding and compatibility projections (`bom_components`/`component_links`) | Legacy `US-487`; `NFR-AUDIT` | 5 | AI Coding Agent (BE) | P0 |
 | S7-03 | Expand results query contract to support dynamic any-column filter/sort/search | Legacy `US-488`; Stage 7 objective | 3 | AI Coding Agent (BE/FE) | P0 |
-| S7-04 | Build hierarchy/tree results view with expand/collapse and row-level change badges | Legacy `US-491`; Stage 7 objective | 5 | AI Coding Agent (FE) | P0 |
-| S7-05 | Add result-state UX hardening for large/hierarchical comparisons (progressive load + stable ordering) | Legacy `US-440` delta | 3 | AI Coding Agent (FE/BE) | P1 |
-| S7-06 | Add backend integration/e2e coverage for graph-aware matching and immutable hierarchy diff snapshots | QA hardening | 5 | AI Coding Agent (QA/BE) | P0 |
+| S7-04 | Build hierarchy/tree results view with expand/collapse, row-level change badges, and deterministic recursive traversal API contract | Legacy `US-491`; Stage 7 objective | 5 | AI Coding Agent (FE) | P0 |
+| S7-05 | Add result-state UX hardening for large/hierarchical comparisons with S7 tree/query performance SLO validation | Legacy `US-440` delta | 3 | AI Coding Agent (FE/BE) | P1 |
+| S7-06 | Add backend integration/e2e coverage for graph-aware matching, moved-parent rationale (`fromParent`/`toParent`), and immutable hierarchy snapshots | QA hardening | 5 | AI Coding Agent (QA/BE) | P0 |
 | S7-07 | Add Playwright coverage for hierarchy view and dynamic filter/sort behaviors | QA hardening | 5 | AI Coding Agent (QA/FE) | P0 |
-| S7-08 | Add Stage 7 rollout flags + observability counters for matcher and tree-UI paths | `NFR-OBS`, `NFR-RELIABILITY` | 3 | AI Coding Agent (BE/DevOps) | P1 |
+| S7-08 | Add Stage 7 rollout flags + observability counters for Azure SQL Graph matcher path, tree/query SLOs, and overhead budget tracking | `NFR-OBS`, `NFR-RELIABILITY` | 3 | AI Coding Agent (BE/DevOps) | P1 |
 
 ### Non-Goals (Out of Scope)
 - STEP/STP parsing or STEP/STP-specific matching logic.
 - PLM connector development.
+- Cosmos DB/Gremlin dependencies, services, or query paths.
+
+### S7 Guardrails (Locked)
+- Graph-aware implementation in S7 must use Azure SQL Graph-compatible data/query patterns only.
+- S7 stories must not introduce Cosmos DB/Gremlin packages, infrastructure, or runtime dependencies.
+- Deterministic tie-break invariants from Stage 4 remain binding in all graph-aware paths.
+
+### S7 Data/Query Contract (Locked)
+- Revision-scoped SQL graph model:
+  - `PartNode` (canonical part identity per revision)
+  - `ContainsEdge` (parent-child edges per revision)
+- Parent-context attributes (`quantity`, `findNumber`, context path) are edge-level fields on `ContainsEdge`.
+- Existing contracts `bom_components` and `component_links` remain supported via compatibility views or mapped query layer.
+- Tree APIs should use recursive CTE (or equivalent SQL Graph traversal) with deterministic ordering.
+- Comparison read paths bind to immutable `leftRevisionId` and `rightRevisionId` graph snapshots.
+- `moved` classification requires parent-change rationale (`fromParent`, `toParent`); if quantity also changes, keep `moved` and include quantity in `changedFields`.
+
+### S7 Performance Targets (Locked)
+- Keep core comparison p95 unchanged:
+  - <=30s for <=5MB
+  - <=90s for 5-30MB
+- Stage 7 additions:
+  - tree expand/collapse <=200ms p95
+  - any-column filter/sort/search (up to 5k rows) <=500ms p95
+  - first hierarchy response <2s
+  - first meaningful hierarchy rows <5s
+  - graph-aware matching overhead <=15% vs Stage 4 baseline for same fixture tier
 
 ### AI Execution Prerequisites
 - Locked matching contracts and deterministic fixture catalog available.

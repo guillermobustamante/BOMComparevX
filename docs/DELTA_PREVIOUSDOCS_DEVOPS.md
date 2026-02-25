@@ -42,6 +42,14 @@ Scope: `Input for Sprint 6+ planning`
 | 446 Observability and Operational Readiness | Partial | Stage 4/5 runbooks + telemetry hooks | Alert routing hardening and on-call drill evidence still open |
 | 447 Backup and Disaster Recovery | Open | Not scheduled yet | Backup/restore/DR drill execution pending |
 
+## Superseded Assumptions (Legacy -> Current)
+- Legacy assumption (some prior architecture variants): Cosmos DB/Gremlin-backed graph traversal for BOM hierarchy.
+- Current locked decision: Azure SQL Graph only for graph-aware hierarchy and matching paths.
+- Replacement scope impact:
+  - Stage 7 stories must use Azure SQL Graph-compatible schema/query patterns.
+  - No Cosmos DB/Gremlin dependencies in Stage 7 implementation.
+  - STEP/STP graph expansion remains deferred to Stage 10.
+
 ## Delta-Driven Sprint Sequencing
 
 ### Sprint 6 (Stage 6 in `PRODUCT_PLAN.md`)
