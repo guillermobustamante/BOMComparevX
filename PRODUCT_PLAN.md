@@ -264,14 +264,45 @@ Sync export downloads (CSV + Excel source-structure fidelity), multi-recipient s
 ### Stage 6 — Retention + Hardening
 Raw-file lifecycle enforcement, audit exports, performance tuning for p95 targets.
 
+### Stage 7 — Advanced Matching + Results UX Closure (Priority)
+Priority closeout for open legacy scope in Epic `439` (BOM Comparison and Matching) and Epic `440` (Results Display and UI Interactions), optimized for Codex-first execution:
+- graph-aware matching improvements for CSV/XLSX BOMs
+- immutable persisted diff/rationale hardening for hierarchy-aware runs
+- expanded results UX (any-column filters/sort/search) and hierarchy/tree visualization
+- automation and rollout controls for new matching and results behaviors
+
+Explicit deferral:
+- STEP/STP parsing and STEP/STP-specific matching are deferred to Stage 10.
+
+### Stage 8 — Security + Compliance Baseline Closure
+Close remaining V1 security/compliance gaps identified in legacy DevOps stories:
+- API abuse/rate-limit controls at gateway/app layers
+- Terms/privacy notice + consent/version tracking
+- History parity hardening (rename/tag/delete workflow completion)
+- Audit export governance hardening and secure SDLC policy checks
+
+### Stage 9 — Reliability + Disaster-Recovery Readiness
+Operational readiness completion for resilient production operations:
+- automated backup policy implementation and validation
+- restore verification workflows aligned to RTO targets
+- on-call/incident runbook execution drills
+- alert threshold tuning and operational dashboard hardening
+
+### Stage 10 (Recommended) — STEP/STP + PLM/Graph Expansion
+Deferred post-hardening capabilities inferred from legacy architecture docs:
+- STEP/STP parsing and mapping support
+- graph-backed BOM relationship acceleration where warranted
+- PLM integration foundation (connector framework + sync boundaries)
+
 ---
 
 ## 9) Build-Lock Notes
 
 1. Stage 4 matching, classification, normalization, and progressive delivery behavior are now locked in `V1_DECISIONS.md`.
 2. Stage 4 execution backlog is defined in `Backlog_S4.md` (`S4-01` to `S4-10`) and mapped into `SPRINT_PLAN.md`.
+3. Legacy-to-current delivery delta (including `docs/PreviousDocs/User Stories - DevOps.xlsx`) is documented in `docs/DELTA_PREVIOUSDOCS_DEVOPS.md` and drives Stage 6+ sequencing.
 ---
 
 ## 10) Immediate Next Step
 
-Proceed with Stage 5 backlog creation and execution against the locked export/sharing/notification/admin defaults.
+Proceed with Stage 6 backlog creation/execution, then prioritize Stage 7 as the next build stage to close remaining Epic `439` and `440` scope (excluding STEP/STP, deferred to Stage 10).

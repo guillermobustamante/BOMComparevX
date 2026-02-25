@@ -424,6 +424,185 @@ Deliver production-ready Stage 5 capabilities for synchronous exports, multi-rec
 
 ---
 
+## Sprint S6 - Stage 6 Retention + Hardening
+
+### Sprint Metadata
+- Sprint: `S6`
+- Stage: `Stage 6 - Retention + Hardening`
+- Dates: `TBD`
+- Owner: `Product + Engineering`
+- Status: `Suggested/Planned`
+
+### Sprint Goal
+Operationalize lifecycle retention and hardening controls: enforce raw-file cleanup, deliver audit export capabilities, and meet Stage 6 p95 performance targets with production-grade observability.
+
+### Scope (Suggested)
+| ID | Work Item | Spec Traceability | Estimate | Owner | Priority |
+|---|---|---|---:|---|---|
+| S6-01 | Enforce automated 7-day raw engineering file cleanup (temporary upload/raw artifacts) | Stage 6 bullet 1; `FR-015` | 5 | BE/Platform | P0 |
+| S6-02 | Add retention reconciliation + failure auditing for cleanup jobs | Stage 6 bullets 1-2; `NFR-AUDIT` | 3 | BE | P0 |
+| S6-03 | Implement tenant-safe audit export API (CSV/JSON) with admin authorization | Product Plan Stage 6 (audit exports); `NFR-AUDIT` | 5 | BE | P0 |
+| S6-04 | Surface failed jobs and policy rejections in history/audit views | Stage 6 bullet 2; `FR-011`, `NFR-OBS` | 3 | FE/BE | P1 |
+| S6-05 | Establish Stage 6 performance benchmark harness (locked fixtures + p95 scorecard) | Stage 6 bullet 3; `NFR-PERF` | 3 | QA/BE | P0 |
+| S6-06 | Tune parse/diff critical path to meet p95 targets for core scenarios | Stage 6 bullet 3; `NFR-PERF` | 5 | BE | P0 |
+| S6-07 | Expand operational telemetry/alerts for retention, queue failures, and latency regressions | `NFR-OBS`, `NFR-RELIABILITY` | 3 | DevOps/BE | P1 |
+| S6-08 | Add Stage 6 automated tests + rollout/rollback closeout runbook | Stage 6 bullets 1-3; QA matrix retention/perf additions | 5 | QA/BE/DevOps | P0 |
+
+### Non-Goals (Out of Scope)
+- Graph hierarchy view and graph-backed matching model evolution.
+- PLM connector development.
+- Disaster recovery/failover drills and RTO certification.
+
+### Delivery Plan
+- Week 1:
+  - Lifecycle enforcement + audit export contract (`S6-01` to `S6-03`).
+  - Begin history/audit surfacing (`S6-04`).
+- Week 2:
+  - Performance harness + tuning (`S6-05`, `S6-06`).
+  - Observability hardening + Stage 6 closeout (`S6-07`, `S6-08`).
+
+### Dependencies
+- Stage 5 complete and stable (retention baseline, admin gates, notifications, exports).
+- Blob/object storage metadata availability for raw-file lifecycle deletion.
+- Monitoring/alert channel availability for Dev/Test/Prod.
+- CI capacity for heavier performance and retention test suites.
+
+### Definition of Done (Sprint-Level)
+- Stage 6 acceptance criteria in `V1_SPEC.md` are met.
+- 7-day raw engineering file cleanup runs automatically and is auditable.
+- Failed jobs and policy rejections are visible in history/audit surfaces.
+- p95 performance checks for core scenarios pass and are repeatable in CI/non-prod.
+
+### QA Plan
+- Validate automatic cleanup behavior and retention boundary conditions (UTC/time-window edges).
+- Validate audit export correctness (tenant scope, format contract, authorization).
+- Validate failed-job/policy rejection visibility in history/audit views.
+- Validate p95 targets with locked fixtures and regression thresholds.
+
+### Risks and Mitigations
+| Risk | Impact | Mitigation | Owner | Trigger |
+|---|---|---|---|---|
+| Raw-file cleanup deletes incorrect assets | Data loss | Marker-based eligibility + dry-run + audit trail before hard-delete | BE | Unexpected file deletion in Dev/Test |
+| Audit export leaks cross-tenant records | Compliance/security breach | Tenant-scoped query guards + explicit admin auth + denied-path tests | BE | Cross-tenant export data in QA |
+| Performance tuning regresses deterministic behavior | Data correctness risk | Keep deterministic fixture assertions as invariant CI gates | BE/QA | Mismatch between repeated diff runs |
+| Alert noise/under-alerting | Slow incident response | Threshold tuning by environment + documented runbooks | DevOps | Missed or noisy alerts in Test |
+
+### Rollout Notes
+- Proposed feature flags: `RAW_FILE_RETENTION_V1`, `AUDIT_EXPORT_V1`, `PERF_HARDENING_V1`.
+- Monitor: cleanup counts/failures, audit-export success/failure, diff p95 latency, queue dead-letter growth.
+- Rollback: disable Stage 6 flags while preserving Stage 1-5 behavior.
+
+---
+
+## Sprint S7 - Stage 7 Advanced Matching + Results UX Closure
+
+### Sprint Metadata
+- Sprint: `S7`
+- Stage: `Stage 7 - Advanced Matching + Results UX Closure`
+- Dates: `TBD`
+- Owner: `Product + Engineering`
+- Status: `Suggested/Planned (Priority after S6)`
+
+### Sprint Goal
+Close remaining high-priority scope from legacy Epic `439` and Epic `440` with Codex-first execution, excluding STEP/STP work.
+
+### Scope (Suggested)
+| ID | Work Item | Traceability | Estimate | Owner | Priority |
+|---|---|---|---:|---|---|
+| S7-01 | Implement graph-aware matching enhancements for CSV/XLSX BOMs (hierarchy context + deterministic tie-break preservation) | Legacy `US-486`; Stage 7 objective | 5 | AI Coding Agent (BE) | P0 |
+| S7-02 | Persist hierarchy-aware immutable diff snapshots + rationale fields for reproducible re-runs | Legacy `US-487`; `NFR-AUDIT` | 5 | AI Coding Agent (BE) | P0 |
+| S7-03 | Expand results query contract to support dynamic any-column filter/sort/search | Legacy `US-488`; Stage 7 objective | 3 | AI Coding Agent (BE/FE) | P0 |
+| S7-04 | Build hierarchy/tree results view with expand/collapse and row-level change badges | Legacy `US-491`; Stage 7 objective | 5 | AI Coding Agent (FE) | P0 |
+| S7-05 | Add result-state UX hardening for large/hierarchical comparisons (progressive load + stable ordering) | Legacy `US-440` delta | 3 | AI Coding Agent (FE/BE) | P1 |
+| S7-06 | Add backend integration/e2e coverage for graph-aware matching and immutable hierarchy diff snapshots | QA hardening | 5 | AI Coding Agent (QA/BE) | P0 |
+| S7-07 | Add Playwright coverage for hierarchy view and dynamic filter/sort behaviors | QA hardening | 5 | AI Coding Agent (QA/FE) | P0 |
+| S7-08 | Add Stage 7 rollout flags + observability counters for matcher and tree-UI paths | `NFR-OBS`, `NFR-RELIABILITY` | 3 | AI Coding Agent (BE/DevOps) | P1 |
+
+### Non-Goals (Out of Scope)
+- STEP/STP parsing or STEP/STP-specific matching logic.
+- PLM connector development.
+
+### AI Execution Prerequisites
+- Locked matching contracts and deterministic fixture catalog available.
+- Real-world CSV/XLSX hierarchy fixtures checked into test assets.
+- Browser + backend CI pipelines green before Story start.
+- Human product checkpoint only for taxonomy/rationale UX acceptance.
+
+### Rollout Notes
+- Proposed flags: `MATCHER_GRAPH_V1`, `RESULTS_TREE_VIEW_V1`, `RESULTS_DYNAMIC_FILTERS_V1`.
+- STEP/STP remains deferred to Stage 10 by explicit planning decision.
+
+---
+
+## Sprint S8 - Stage 8 Security + Compliance Baseline Closure
+
+### Sprint Metadata
+- Sprint: `S8`
+- Stage: `Stage 8 - Security + Compliance Baseline Closure`
+- Dates: `TBD`
+- Owner: `Product + Engineering`
+- Status: `Suggested/Planned`
+
+### Scope (Suggested)
+| ID | Work Item | Traceability | Estimate | Owner | Priority |
+|---|---|---|---:|---|---|
+| S8-01 | Implement API rate-limiting and abuse controls (tenant/user scoped) | Legacy `US-500`; `NFR-SEC-015` | 5 | AI Coding Agent (BE) | P0 |
+| S8-02 | Add Terms/Privacy consent/version tracking workflow | Legacy `US-503` | 3 | AI Coding Agent (FE/BE) | P1 |
+| S8-03 | Complete history parity: rename/tag/delete with audit logs | Legacy `US-494`, `US-495`; Product plan history intent | 5 | AI Coding Agent (FE/BE) | P0 |
+| S8-04 | Harden audit export governance and access controls | Legacy `US-504`; `NFR-AUDIT` | 3 | AI Coding Agent (BE) | P0 |
+| S8-05 | Add secure SDLC policy checks to CI (dependency/license/secret scanning gates) | Legacy `US-501` | 3 | AI Coding Agent (DevOps) | P1 |
+| S8-06 | Add Stage 8 automated tests and compliance runbook updates | QA + compliance hardening | 5 | AI Coding Agent (QA/DevOps) | P0 |
+
+### Rollout Notes
+- Proposed flags: `RATE_LIMITING_V1`, `HISTORY_PARITY_V1`, `CONSENT_TRACKING_V1`.
+
+---
+
+## Sprint S9 - Stage 9 Reliability + Disaster-Recovery Readiness
+
+### Sprint Metadata
+- Sprint: `S9`
+- Stage: `Stage 9 - Reliability + Disaster-Recovery Readiness`
+- Dates: `TBD`
+- Owner: `Product + Engineering`
+- Status: `Suggested/Planned`
+
+### Scope (Suggested)
+| ID | Work Item | Traceability | Estimate | Owner | Priority |
+|---|---|---|---:|---|---|
+| S9-01 | Implement backup automation policy for critical stores (DB/storage/config metadata) | Legacy `US-508`; `NFR-AV-008` | 3 | AI Coding Agent (DevOps) | P0 |
+| S9-02 | Implement restore verification workflow and evidence capture against RTO goals | Legacy `US-509` | 3 | AI Coding Agent (DevOps) | P0 |
+| S9-03 | Add disaster recovery runbook and recurring drill workflow | Legacy `US-510` | 3 | AI Coding Agent (DevOps) | P1 |
+| S9-04 | Tune alert thresholds and on-call operational dashboards across environments | Legacy `US-505`, `US-506` | 3 | AI Coding Agent (DevOps/BE) | P1 |
+| S9-05 | Add reliability chaos/failure-path tests (queue/storage/db transient failures) | Reliability hardening | 5 | AI Coding Agent (QA/BE) | P0 |
+| S9-06 | Stage 9 rollout + rollback drill and sign-off package | Operational closeout | 3 | AI Coding Agent (DevOps) | P1 |
+
+### Notes
+- Human operations approval remains required for production backup/restore policy activation.
+
+---
+
+## Sprint S10 - Stage 10 STEP/STP + PLM/Graph Expansion (Deferred)
+
+### Sprint Metadata
+- Sprint: `S10`
+- Stage: `Stage 10 - STEP/STP + PLM/Graph Expansion`
+- Dates: `TBD`
+- Owner: `Product + Engineering`
+- Status: `Recommended/Deferred`
+
+### Scope (Suggested)
+| ID | Work Item | Traceability | Estimate | Owner | Priority |
+|---|---|---|---:|---|---|
+| S10-01 | Implement STEP/STP ingestion + validation contract | Legacy `US-484` delta | 5 | AI Coding Agent (BE) | P0 |
+| S10-02 | Extend mapping detection flow for STEP/STP-derived attributes | Legacy `US-484` delta | 5 | AI Coding Agent (BE) | P0 |
+| S10-03 | Extend matcher for STEP/STP comparison pathways with deterministic rationale | Legacy `US-486` delta | 5 | AI Coding Agent (BE) | P0 |
+| S10-04 | Add hierarchy/graph acceleration layer where measurable | Legacy `US-439` architecture notes | 3 | AI Coding Agent (BE) | P1 |
+| S10-05 | Add PLM connector framework and first integration boundary contracts | Legacy architecture integration goals | 5 | AI Coding Agent (BE/DevOps) | P1 |
+| S10-06 | Add Stage 10 automated tests + rollout hardening | QA hardening | 5 | AI Coding Agent (QA/BE) | P0 |
+
+---
+
 ## Sprint Review Template (Complete at Sprint Close)
 
 ### S1 Outcome
