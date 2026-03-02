@@ -8,11 +8,19 @@ import { GoogleStartGuard } from './google-start.guard';
 import { TenantModule } from '../tenant/tenant.module';
 import { ConfigModule } from '../config/config.module';
 import { AuditModule } from '../audit/audit.module';
+import { DatabaseModule } from '../database/database.module';
+import { AuthConsentService } from './auth-consent.service';
 
 @Module({
-  imports: [PassportModule.register({ session: true }), TenantModule, ConfigModule, AuditModule],
+  imports: [
+    PassportModule.register({ session: true }),
+    TenantModule,
+    ConfigModule,
+    AuditModule,
+    DatabaseModule
+  ],
   controllers: [AuthController],
-  providers: [AuthService, GoogleStrategy, SessionAuthGuard, GoogleStartGuard],
+  providers: [AuthService, AuthConsentService, GoogleStrategy, SessionAuthGuard, GoogleStartGuard],
   exports: [SessionAuthGuard]
 })
 export class AuthModule {}

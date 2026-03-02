@@ -39,7 +39,7 @@ Source precedence:
 - Estimate: `5`
 - Owner: `AI Coding Agent (BE/Platform)`
 - Sprint: `S8`
-- Status: `Ready`
+- Status: `Completed`
 
 ### Traceability
 - Requirement link(s): `NFR-SEC-015`
@@ -91,7 +91,7 @@ Use tenant-scoped keys for authenticated requests, IP fallback for unauthenticat
 - Estimate: `3`
 - Owner: `AI Coding Agent (FE/BE)`
 - Sprint: `S8`
-- Status: `Ready`
+- Status: `Completed`
 
 ### Traceability
 - Requirement link(s): `NFR-COMP-006`

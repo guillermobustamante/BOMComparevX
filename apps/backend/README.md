@@ -14,6 +14,8 @@ Planned framework: NestJS + TypeScript with Passport strategies for Google/Micro
 - `GET /api/auth/microsoft/start`
 - `GET /api/auth/microsoft/callback`
 - `GET /api/auth/me` (protected)
+- `GET /api/auth/consent/status` (protected)
+- `POST /api/auth/consent/accept` (protected)
 - `GET /api/health`
 - `GET /api/tenant/me` (protected)
 - `GET /api/tenant/resource/:tenantId` (protected + tenant-scoped)
@@ -41,6 +43,8 @@ Audit events:
 - `export.download`
 - `notification.created`
 - `retention.sweep`
+- `rate_limit.exempt`
+- `rate_limit.exceeded`
 - Events are emitted as structured JSON logs with correlation ID and UTC timestamp.
 
 Test support routes (disabled by default):
@@ -81,6 +85,23 @@ Stage 7 format-adapter flags:
 - `MATCHER_PROFILE_ADAPTERS_V1`
 - `MATCHER_COMPOSITE_KEY_V1`
 - `MATCHER_AMBIGUITY_STRICT_V1`
+
+Stage 8 rate-limit flags:
+- `RATE_LIMITING_V1`
+- `RATE_LIMITING_IN_TEST` (defaults to `false`; test-mode safety switch)
+- `RATE_LIMIT_BASELINE_RPM` (default `100`)
+- `RATE_LIMIT_UPLOAD_RPM` (default `80`)
+- `RATE_LIMIT_DIFF_RPM` (default `90`)
+- `RATE_LIMIT_EXPORT_RPM` (default `60`)
+- `RATE_LIMIT_EXEMPT_TENANT_IDS` (optional CSV)
+- `RATE_LIMIT_EXEMPT_EMAILS` (optional CSV)
+
+Stage 8 consent flags:
+- `CONSENT_TRACKING_V1` (default `false`; enable to enforce policy acceptance gate)
+- `TERMS_VERSION`
+- `PRIVACY_VERSION`
+- `TERMS_URL`
+- `PRIVACY_URL`
 
 Stage 5 retention defaults:
 - `STAGE5_RETENTION_ENABLED=true`

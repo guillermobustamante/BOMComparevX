@@ -10,6 +10,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect('/login?returnTo=/upload');
   }
 
+  if (sessionUser.consentTrackingEnabled && sessionUser.consentRequired) {
+    redirect('/consent?returnTo=/upload');
+  }
+
   return (
     <AppShell
       userEmail={sessionUser.email}

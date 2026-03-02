@@ -155,6 +155,132 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(me.body.tenantId).toBe('tenant-a');
   });
 
+  it('consent tracking requires acceptance and re-prompts on version changes', async () => {
+    const previousConsentTracking = process.env.CONSENT_TRACKING_V1;
+    const previousTermsVersion = process.env.TERMS_VERSION;
+    const previousPrivacyVersion = process.env.PRIVACY_VERSION;
+    const previousTermsUrl = process.env.TERMS_URL;
+    const previousPrivacyUrl = process.env.PRIVACY_URL;
+
+    process.env.CONSENT_TRACKING_V1 = 'true';
+    process.env.TERMS_VERSION = '2026-03';
+    process.env.PRIVACY_VERSION = '2026-03';
+    process.env.TERMS_URL = 'https://example.com/terms/2026-03';
+    process.env.PRIVACY_URL = 'https://example.com/privacy/2026-03';
+
+    const agent = request.agent(app.getHttpServer());
+
+    try {
+      await agent
+        .post('/api/auth/test/login')
+        .send({ email: 'consent.user@example.com', tenantId: 'tenant-consent', provider: 'google' })
+        .expect(201);
+
+      const initialStatus = await agent.get('/api/auth/consent/status').expect(200);
+      expect(initialStatus.body.consentTrackingEnabled).toBe(true);
+      expect(initialStatus.body.consentRequired).toBe(true);
+      expect(initialStatus.body.termsVersion).toBe('2026-03');
+      expect(initialStatus.body.privacyVersion).toBe('2026-03');
+
+      const meBefore = await agent.get('/api/auth/me').expect(200);
+      expect(meBefore.body.consentRequired).toBe(true);
+
+      const accepted = await agent.post('/api/auth/consent/accept').expect(201);
+      expect(accepted.body.accepted).toBe(true);
+      expect(accepted.body.consentRequired).toBe(false);
+      expect(accepted.body.acceptedAtUtc).toBeTruthy();
+
+      const statusAfterAccept = await agent.get('/api/auth/consent/status').expect(200);
+      expect(statusAfterAccept.body.consentRequired).toBe(false);
+      expect(statusAfterAccept.body.acceptedAtUtc).toBeTruthy();
+
+      process.env.TERMS_VERSION = '2026-04';
+      const statusAfterVersionBump = await agent.get('/api/auth/consent/status').expect(200);
+      expect(statusAfterVersionBump.body.consentRequired).toBe(true);
+      expect(statusAfterVersionBump.body.termsVersion).toBe('2026-04');
+    } finally {
+      process.env.CONSENT_TRACKING_V1 = previousConsentTracking;
+      process.env.TERMS_VERSION = previousTermsVersion;
+      process.env.PRIVACY_VERSION = previousPrivacyVersion;
+      process.env.TERMS_URL = previousTermsUrl;
+      process.env.PRIVACY_URL = previousPrivacyUrl;
+    }
+  });
+
+  it('rate limiting is bypassed in test env unless explicitly enabled', async () => {
+    const previousRateLimitingV1 = process.env.RATE_LIMITING_V1;
+    const previousRateLimitingInTest = process.env.RATE_LIMITING_IN_TEST;
+    const previousRateLimitBaseline = process.env.RATE_LIMIT_BASELINE_RPM;
+
+    process.env.RATE_LIMITING_V1 = 'true';
+    delete process.env.RATE_LIMITING_IN_TEST;
+    process.env.RATE_LIMIT_BASELINE_RPM = '1';
+
+    try {
+      await request(app.getHttpServer()).get('/api/health').expect(200);
+      await request(app.getHttpServer()).get('/api/health').expect(200);
+      await request(app.getHttpServer()).get('/api/health').expect(200);
+    } finally {
+      process.env.RATE_LIMITING_V1 = previousRateLimitingV1;
+      process.env.RATE_LIMITING_IN_TEST = previousRateLimitingInTest;
+      process.env.RATE_LIMIT_BASELINE_RPM = previousRateLimitBaseline;
+    }
+  });
+
+  it('rate limiting returns 429 when explicitly enabled in test env', async () => {
+    const previousRateLimitingV1 = process.env.RATE_LIMITING_V1;
+    const previousRateLimitingInTest = process.env.RATE_LIMITING_IN_TEST;
+    const previousRateLimitBaseline = process.env.RATE_LIMIT_BASELINE_RPM;
+
+    process.env.RATE_LIMITING_V1 = 'true';
+    process.env.RATE_LIMITING_IN_TEST = 'true';
+    process.env.RATE_LIMIT_BASELINE_RPM = '2';
+
+    try {
+      await request(app.getHttpServer()).get('/api/health').expect(200);
+      await request(app.getHttpServer()).get('/api/health').expect(200);
+      const blocked = await request(app.getHttpServer()).get('/api/health').expect(429);
+      expect(blocked.body.code).toBe('RATE_LIMIT_EXCEEDED');
+      expect(blocked.body.policy.limit).toBe(2);
+      expect(blocked.headers['retry-after']).toBeDefined();
+    } finally {
+      process.env.RATE_LIMITING_V1 = previousRateLimitingV1;
+      process.env.RATE_LIMITING_IN_TEST = previousRateLimitingInTest;
+      process.env.RATE_LIMIT_BASELINE_RPM = previousRateLimitBaseline;
+    }
+  });
+
+  it('rate-limit allowlist bypasses throttling for exempt tenant', async () => {
+    const previousRateLimitingV1 = process.env.RATE_LIMITING_V1;
+    const previousRateLimitingInTest = process.env.RATE_LIMITING_IN_TEST;
+    const previousRateLimitBaseline = process.env.RATE_LIMIT_BASELINE_RPM;
+    const previousExemptTenants = process.env.RATE_LIMIT_EXEMPT_TENANT_IDS;
+
+    const exemptAgent = request.agent(app.getHttpServer());
+
+    try {
+      process.env.RATE_LIMITING_V1 = 'false';
+      await exemptAgent
+        .post('/api/auth/test/login')
+        .send({ email: 'rate.exempt@example.com', tenantId: 'tenant-rate-exempt', provider: 'google' })
+        .expect(201);
+
+      process.env.RATE_LIMITING_V1 = 'true';
+      process.env.RATE_LIMITING_IN_TEST = 'true';
+      process.env.RATE_LIMIT_BASELINE_RPM = '1';
+      process.env.RATE_LIMIT_EXEMPT_TENANT_IDS = 'tenant-rate-exempt';
+
+      await exemptAgent.get('/api/auth/me').expect(200);
+      await exemptAgent.get('/api/auth/me').expect(200);
+      await exemptAgent.get('/api/auth/me').expect(200);
+    } finally {
+      process.env.RATE_LIMITING_V1 = previousRateLimitingV1;
+      process.env.RATE_LIMITING_IN_TEST = previousRateLimitingInTest;
+      process.env.RATE_LIMIT_BASELINE_RPM = previousRateLimitBaseline;
+      process.env.RATE_LIMIT_EXEMPT_TENANT_IDS = previousExemptTenants;
+    }
+  });
+
   it('upload validate rejects invalid file type', async () => {
     const agent = request.agent(app.getHttpServer());
     await agent

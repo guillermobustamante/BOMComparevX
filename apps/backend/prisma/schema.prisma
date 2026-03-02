@@ -258,3 +258,17 @@ model DiffSnapshot {
   @@index([tenantId, createdAtUtc], map: "ix_diffSnapshot_tenant_createdAt")
   @@map("diffSnapshot")
 }
+
+model ConsentAcceptance {
+  consentId      String   @id
+  tenantId       String
+  userEmail      String
+  termsVersion   String
+  privacyVersion String
+  acceptedAtUtc  DateTime
+
+  @@unique([tenantId, userEmail, termsVersion, privacyVersion], map: "uq_consentAcceptances_tenant_user_versions")
+  @@index([tenantId, userEmail, acceptedAtUtc], map: "ix_consentAcceptances_tenant_user_acceptedAt")
+  @@index([tenantId, acceptedAtUtc], map: "ix_consentAcceptances_tenant_acceptedAt")
+  @@map("consentAcceptances")
+}

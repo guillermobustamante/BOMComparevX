@@ -9,7 +9,10 @@ export type AuditEventType =
   | 'retention.sweep'
   | 'admin.policy.reset'
   | 'admin.policy.override'
-  | 'admin.role.grant';
+  | 'admin.role.grant'
+  | 'consent.accepted'
+  | 'rate_limit.exempt'
+  | 'rate_limit.exceeded';
 
 export interface AuditEvent {
   eventType: AuditEventType;

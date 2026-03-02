@@ -6,6 +6,15 @@ export interface SessionUser {
   displayName: string;
   tenantId: string;
   correlationId: string;
+  consentTrackingEnabled?: boolean;
+  consentRequired?: boolean;
+  consent?: {
+    termsVersion: string;
+    privacyVersion: string;
+    termsUrl: string;
+    privacyUrl: string;
+    acceptedAtUtc: string | null;
+  };
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {

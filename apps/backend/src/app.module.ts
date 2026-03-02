@@ -12,6 +12,7 @@ import { SharesModule } from './shares/shares.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AdminModule } from './admin/admin.module';
 import { RetentionModule } from './retention/retention.module';
+import { RateLimitModule } from './rate-limit/rate-limit.module';
 
 @Module({
   imports: [
@@ -26,7 +27,8 @@ import { RetentionModule } from './retention/retention.module';
     SharesModule,
     NotificationsModule,
     AdminModule,
-    RetentionModule
+    RetentionModule,
+    RateLimitModule
   ],
   controllers: [HealthController],
   providers: []

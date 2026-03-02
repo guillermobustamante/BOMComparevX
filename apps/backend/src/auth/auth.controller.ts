@@ -21,6 +21,7 @@ import { GoogleStartGuard } from './google-start.guard';
 import { buildReturnToUrl, sanitizeReturnToPath } from './redirect.util';
 import { TenantResolverService } from '../tenant/tenant-resolver.service';
 import { AuditService } from '../audit/audit.service';
+import { AuthConsentService } from './auth-consent.service';
 
 @Controller('auth')
 export class AuthController {
@@ -28,7 +29,8 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly authConfig: AuthConfigService,
     private readonly tenantResolver: TenantResolverService,
-    private readonly auditService: AuditService
+    private readonly auditService: AuditService,
+    private readonly authConsentService: AuthConsentService
   ) {}
 
   @Get('google/start')
@@ -145,14 +147,53 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(SessionAuthGuard)
-  me(@Req() req: Request): AuthResultDto {
+  async me(@Req() req: Request): Promise<AuthResultDto> {
     const user = (req.session as SessionState).user;
+    const consentStatus = await this.authConsentService.getStatus(user!.tenantId, user!.email);
     return {
       provider: user!.provider,
       email: user!.email,
       displayName: user!.displayName,
       tenantId: user!.tenantId,
-      correlationId: randomUUID()
+      correlationId: randomUUID(),
+      consentTrackingEnabled: consentStatus.consentTrackingEnabled,
+      consentRequired: consentStatus.consentRequired,
+      consent: {
+        termsVersion: consentStatus.termsVersion,
+        privacyVersion: consentStatus.privacyVersion,
+        termsUrl: consentStatus.termsUrl,
+        privacyUrl: consentStatus.privacyUrl,
+        acceptedAtUtc: consentStatus.acceptedAtUtc
+      }
+    };
+  }
+
+  @Get('consent/status')
+  @UseGuards(SessionAuthGuard)
+  async consentStatus(@Req() req: Request) {
+    const user = (req.session as SessionState).user!;
+    return this.authConsentService.getStatus(user.tenantId, user.email);
+  }
+
+  @Post('consent/accept')
+  @UseGuards(SessionAuthGuard)
+  async acceptConsent(@Req() req: Request) {
+    const session = req.session as SessionState;
+    const user = session.user!;
+    const status = await this.authConsentService.acceptCurrentVersions(user.tenantId, user.email);
+    const correlationId = randomUUID();
+    this.auditService.emit({
+      eventType: 'consent.accepted',
+      outcome: 'success',
+      actorEmail: user.email,
+      tenantId: user.tenantId,
+      reason: `terms=${status.termsVersion};privacy=${status.privacyVersion}`,
+      correlationId
+    });
+    return {
+      accepted: true,
+      correlationId,
+      ...status
     };
   }
 
