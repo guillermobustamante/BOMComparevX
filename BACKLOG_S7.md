@@ -4,6 +4,10 @@
 
 This backlog expands Sprint S7 (Stage 7 - Advanced Matching + Results UX Closure) from `SPRINT_PLAN.md` into execution-ready stories.
 
+Format-scalability extension:
+- `BACKLOG_S7_FORMATS.md` (S7F stream) is completed and locked for Option B.
+- Remaining S7 execution must avoid re-implementing S7F scope; use S7F outputs as dependencies.
+
 Source precedence:
 - `SPRINT_PLAN.md` for approved Sprint S7 scope and ordering.
 - `PRODUCT_PLAN.md` for Stage 7 priority and Stage 10 STEP/STP deferral.
@@ -39,6 +43,22 @@ Source precedence:
 - Revision-scoped graph snapshots are authoritative (`PartNode`, `ContainsEdge`).
 - Compatibility contracts `bom_components` and `component_links` remain available via views or mapped query layer.
 - Tree APIs use deterministic recursive traversal (recursive CTE or equivalent SQL Graph traversal) with stable ordering.
+- Dedicated tree endpoint shape is required: `GET /diff-jobs/{id}/tree?...`.
+- Physical graph tables are camelCase: `partNode`, `containsEdge`.
+- Cutover policy is new revisions only, no dual-write, automatic per-revision read-path.
+- Rollback policy is feature-flag rollback only.
+
+8. CI gate policy:
+- Required checks: `backend:ci`, `frontend:ci`, `playwright`, `verify:story`.
+- Baseline branch is `main`.
+- Full CI runs on every PR.
+- No merge while CI is red.
+- Flaky-test quarantine requires explicit owner + deadline.
+
+9. Overlap boundary with S7F stream:
+- S7F owns adapter/composite-key/remediation scope (`S7F-01` to `S7F-06`).
+- S7F owns adapter-quality metrics and adapter fixture automation (`S7F-07` to `S7F-09`).
+- S7 core remaining stories (`S7-04` to `S7-08`) must focus on hierarchy/tree UX, graph-aware baseline closure, and Stage 7 rollout gates without duplicating S7F contracts.
 
 ---
 
@@ -52,7 +72,7 @@ Source precedence:
 - Estimate: `5`
 - Owner: `AI Coding Agent (BE)`
 - Sprint: `S7`
-- Status: `Ready`
+- Status: `Completed`
 
 ### Traceability
 - Requirement link(s): `FR-007`
@@ -64,6 +84,7 @@ Source precedence:
 - Parsed and mapped BOM rows (CSV/XLSX pathways only).
 - Hierarchy context fields (`parentPath`, `position`, assembly linkage metadata).
 - Revision-scoped graph snapshot sources (`PartNode`, `ContainsEdge`) for both compared revisions.
+- Fixture source for tests/benchmarks: paired files in `docs/BOM Examples` (ver1/ver2) including header alias variance and level-column variance.
 
 ### Outputs
 - Deterministic graph-aware candidate ranking improvements integrated into matcher.
@@ -76,6 +97,7 @@ Source precedence:
 - Graph-aware lookup/ranking queries must run against Azure SQL Graph-compatible node/edge schema and deterministic ordering rules.
 - Canonical node identity is resolved through `PartNode`; parent-specific attributes (`quantity`, `findNumber`, context path) are sourced from `ContainsEdge`.
 - If parent context changes with high-confidence identity, candidate is eligible for `moved`; identity-ambiguous cases remain `added`/`removed`.
+- High-confidence threshold for moved eligibility is `>=0.90`.
 
 ### Constraints
 - No regression in one-to-one lock behavior.
@@ -107,7 +129,7 @@ Keep existing strategy order and tie-break contracts intact, add rationale token
 - Estimate: `5`
 - Owner: `AI Coding Agent (BE)`
 - Sprint: `S7`
-- Status: `Ready`
+- Status: `Completed`
 
 ### Traceability
 - Requirement link(s): `FR-007`, `NFR-AUDIT`
@@ -135,12 +157,15 @@ Keep existing strategy order and tie-break contracts intact, add rationale token
 - Snapshot hierarchy references and read-path reconstruction must remain Azure SQL Graph-compatible (node/edge identity + deterministic traversal ordering).
 - Snapshot rationale for `moved` rows includes `fromParent` and `toParent`; quantity deltas remain in `changedFields` while `changeType` stays `moved`.
 - Compatibility reads for existing app contracts (`bom_components`, `component_links`) remain functional via views/mapped query layer.
+- Graph-path comparison is allowed only when both `leftRevisionId` and `rightRevisionId` snapshots exist.
 
 ### Constraints
 - Append-only write model.
 - No in-place mutation after finalization.
 - Tenant-scoped retrieval only.
 - Non-goal: No Cosmos DB/Gremlin.
+- Cutover is new revisions only; no dual-write permitted.
+- Old legacy tables remain read-only during transition.
 
 ### Acceptance Criteria
 1. Hierarchy-aware diff outputs are durably persisted as immutable snapshots.
@@ -166,7 +191,7 @@ Store full rationale payloads, keep append-only semantics, and ensure reopened c
 - Estimate: `3`
 - Owner: `AI Coding Agent (BE/FE)`
 - Sprint: `S7`
-- Status: `Ready`
+- Status: `Completed`
 
 ### Traceability
 - Requirement link(s): `FR-008`
@@ -212,7 +237,7 @@ Keep cursor pagination stable and deterministic, and validate query schema with 
 - Estimate: `5`
 - Owner: `AI Coding Agent (FE)`
 - Sprint: `S7`
-- Status: `Ready`
+- Status: `Completed`
 
 ### Traceability
 - Requirement link(s): `FR-008`
@@ -232,7 +257,10 @@ Keep cursor pagination stable and deterministic, and validate query schema with 
   - critical changed fields summary
 - Supports progressive expansion without reordering existing nodes.
 - For `moved` rows, UI can render parent-context rationale (`fromParent` -> `toParent`) when present.
-- API contract for hierarchy loading expects deterministic recursive traversal ordering from backend (recursive CTE or equivalent SQL Graph traversal).
+- API contract for hierarchy loading uses dedicated endpoint `GET /diff-jobs/{id}/tree?...` with deterministic recursive traversal ordering from backend (recursive CTE or equivalent SQL Graph traversal).
+- Tree endpoint minimum schema:
+  - request query: `cursor`, `limit`, optional `expandedNodeIds`
+  - response fields: `nodes[]` (`nodeId`, `parentNodeId`, `depth`, key fields, `changeType`, `changedFields`, optional `fromParent`/`toParent`), `nextCursor`, `hasMore`
 
 ### Constraints
 - Must remain responsive on large trees.
@@ -263,7 +291,7 @@ Support expand/collapse, deterministic node ordering, and visible change badges,
 - Estimate: `3`
 - Owner: `AI Coding Agent (FE/BE)`
 - Sprint: `S7`
-- Status: `Ready`
+- Status: `Completed`
 
 ### Traceability
 - Requirement link(s): `FR-008`, `NFR-PERF`
@@ -287,6 +315,10 @@ Support expand/collapse, deterministic node ordering, and visible change badges,
   - any-column filter/sort/search (up to 5k rows) <=500ms p95
   - first hierarchy response <2s
   - first meaningful hierarchy rows <5s
+- Performance checks are non-blocking for first 3 CI runs, then blocking from run 4 onward.
+- Measurement protocol:
+  - CI benchmark suite is the gating source of truth
+  - local benchmark harness is diagnostic for investigation and tuning
 
 ### Constraints
 - No UI jitter from re-sorting already rendered nodes.
@@ -317,7 +349,7 @@ Preserve stable rendering and clear partial/final state indicators while keeping
 - Estimate: `5`
 - Owner: `AI Coding Agent (QA/BE)`
 - Sprint: `S7`
-- Status: `Ready`
+- Status: `Completed`
 
 ### Traceability
 - Requirement link(s): `FR-007`, `NFR-AUDIT`
@@ -337,11 +369,16 @@ Preserve stable rendering and clear partial/final state indicators while keeping
   - one-to-one lock and taxonomy integrity remain intact
   - `moved` cases include `fromParent`/`toParent` and preserve `changeType = moved` with quantity in `changedFields` when applicable
   - graph-aware matching overhead stays <=15% vs Stage 4 baseline on same fixture tier
+- Uses locked fixtures from `docs/BOM Examples` transformed to deterministic test assets.
+- Non-overlap rule:
+  - do not duplicate adapter-specific same-vs-same remediation assertions already covered by `S7F-08` and `S7F-09`
+  - focus this story on Stage 7 graph-aware baseline, hierarchy snapshot reproducibility, and moved-parent rationale assertions.
 
 ### Constraints
 - No flaky tests.
 - Fixture data remains version-locked.
 - Non-goal: No Cosmos DB/Gremlin.
+- Quarantine is allowed only with owner + deadline.
 
 ### Acceptance Criteria
 1. Graph-aware matching behavior is covered by integration/e2e tests.
@@ -367,7 +404,7 @@ Assert deterministic outputs, one-to-one lock integrity, and rationale-field com
 - Estimate: `5`
 - Owner: `AI Coding Agent (QA/FE)`
 - Sprint: `S7`
-- Status: `Ready`
+- Status: `Completed`
 
 ### Traceability
 - Requirement link(s): `FR-008`, `NFR-PERF`
@@ -385,6 +422,9 @@ Assert deterministic outputs, one-to-one lock integrity, and rationale-field com
   - expand/collapse behavior
   - any-column filter/sort/search
   - partial-to-complete state handling
+- Non-overlap rule:
+  - adapter-profile regression scenarios remain owned by `S7F-09`
+  - this story covers tree-mode UX and dynamic filter interactions for Stage 7 core contracts.
 
 ### Constraints
 - Tests must remain deterministic with seeded fixtures.
@@ -414,7 +454,7 @@ Cover partial-to-complete loading behavior and keep scenarios deterministic with
 - Estimate: `3`
 - Owner: `AI Coding Agent (BE/DevOps)`
 - Sprint: `S7`
-- Status: `Ready`
+- Status: `Completed`
 
 ### Traceability
 - Requirement link(s): `NFR-RELIABILITY`, `NFR-AUDIT`
@@ -437,12 +477,33 @@ Cover partial-to-complete loading behavior and keep scenarios deterministic with
   - tree-view load timing
   - dynamic-filter query failure rates
 - Observability for graph-aware matcher must cover Azure SQL Graph query path success/failure and latency buckets.
-- Metrics must include S7 SLO series:
+- S7 runtime SLO metric instrumentation must exist behind flags:
   - tree expand/collapse p95
   - any-column filter/sort/search p95 at 5k-row fixture tier
   - first hierarchy response latency
   - first meaningful hierarchy rows latency
   - graph-aware overhead percent vs Stage 4 baseline
+- Flag source is env-based now (App Configuration later).
+- Default states:
+  - Dev: all Stage 7 flags `true`
+  - Test: all Stage 7 flags `false` initially
+  - Prod: all Stage 7 flags `false` initially
+- Runtime SLO metric flags (initially all `false`):
+  - `OBS_S7_TREE_EXPAND_P95`
+  - `OBS_S7_DYNAMIC_QUERY_P95`
+  - `OBS_S7_FIRST_HIERARCHY_RESPONSE`
+  - `OBS_S7_FIRST_MEANINGFUL_TREE_ROWS`
+  - `OBS_S7_OVERHEAD_VS_S4`
+- Rollout order is fixed: matcher -> tree -> dynamic filters.
+- Flag-off behavior is graceful fallback to Stage 4 baseline.
+- Telemetry sink is Application Insights with logs backup.
+- Correlation dimensions minimum: `tenantId`, `comparisonId`, `revisionPair`, `flagState`, `correlationId`.
+- Sampling policy: 100% in Dev/Test, sampled in Prod.
+- Alert policy: warn after 3 consecutive breaches; critical after 10 minutes sustained.
+- Alert thresholds apply when corresponding runtime SLO metric flags are enabled.
+- Non-overlap rule:
+  - adapter-quality metrics (`key collision`, `ambiguity rate`, `replacement suppression`, `profile distribution`) remain owned by `S7F-07`
+  - this story adds Stage 7 core matcher/tree/filter rollout metrics and SLO instrumentation.
 
 ### Constraints
 - Flag-off behavior must degrade safely with deterministic responses.
@@ -453,6 +514,7 @@ Cover partial-to-complete loading behavior and keep scenarios deterministic with
 1. Stage 7 behavior can be rolled out/rolled back by flags.
 2. Operational counters exist for new matcher/tree/filter paths.
 3. Runbook updates document rollout and rollback checks.
+4. Runtime SLO metric flags exist and default to disabled.
 
 ### AI Prompt (Execution-Ready)
 ```text
@@ -477,3 +539,5 @@ Ensure safe flag-off degradation and update rollout/rollback runbooks with concr
 - Results UX supports dynamic any-column operations and hierarchy/tree exploration.
 - Stage 7 backend and browser automation are passing.
 - STEP/STP remains explicitly deferred to Stage 10.
+- Hard CI gate is passing on `main` baseline with required checks:
+  - `backend:ci`, `frontend:ci`, `playwright`, `verify:story`

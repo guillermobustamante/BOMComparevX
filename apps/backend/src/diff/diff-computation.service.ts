@@ -6,37 +6,106 @@ import {
   PersistedDiffRow
 } from './diff-contract';
 import { ClassificationService } from './classification.service';
+import { DiffFeatureFlagService } from './feature-flag.service';
 import { MatcherService } from './matcher.service';
 import { NormalizationService } from './normalization.service';
+import { ProfileAdapterContext, ProfileFieldPolicy } from './profile-adapter.contract';
+import { ProfileAdapterService } from './profile-adapter.service';
 
 @Injectable()
 export class DiffComputationService {
   constructor(
     private readonly normalizationService: NormalizationService,
+    private readonly featureFlags: DiffFeatureFlagService,
+    private readonly profileAdapterService: ProfileAdapterService,
     private readonly matcherService: MatcherService,
     private readonly classificationService: ClassificationService
   ) {}
 
-  compute(input: { sourceRows: DiffComparableRow[]; targetRows: DiffComparableRow[] }): {
+  compute(input: {
+    sourceRows: DiffComparableRow[];
+    targetRows: DiffComparableRow[];
+    sourceContext?: ProfileAdapterContext;
+    targetContext?: ProfileAdapterContext;
+  }): {
     contractVersion: string;
     rows: PersistedDiffRow[];
     counters: DiffJobCounters;
+    diagnostics: {
+      sourceProfile: string;
+      targetProfile: string;
+      sourceKeyCollisionRate: number;
+      targetKeyCollisionRate: number;
+      ambiguityRate: number;
+      unmatchedRate: number;
+      replacementSuppressionRate: number;
+      profileSelectionDistribution: Record<string, number>;
+      flags: {
+        profileAdaptersEnabled: boolean;
+        compositeKeyEnabled: boolean;
+        ambiguityStrictEnabled: boolean;
+      };
+    };
   } {
-    const source = input.sourceRows.map((row) => this.normalizationService.normalizeRow(row).row);
-    const target = input.targetRows.map((row) => this.normalizationService.normalizeRow(row).row);
+    const sourceNormalized = input.sourceRows.map((row) => this.normalizationService.normalizeRow(row).row);
+    const targetNormalized = input.targetRows.map((row) => this.normalizationService.normalizeRow(row).row);
+    const profileAdaptersEnabled = this.featureFlags.isProfileAdaptersEnabled();
+    const compositeKeyEnabled = this.featureFlags.isCompositeKeyEnabled();
+    const ambiguityStrictEnabled = this.featureFlags.isAmbiguityStrictEnabled();
+
+    const sourceProfile = profileAdaptersEnabled
+      ? this.profileAdapterService.adaptRows({
+          rows: sourceNormalized,
+          context: input.sourceContext
+        })
+      : {
+          profileName: 'generic' as const,
+          confidence: 0.5,
+          rows: sourceNormalized,
+          fieldPolicy: DEFAULT_GENERIC_POLICY
+        };
+    const targetProfile = profileAdaptersEnabled
+      ? this.profileAdapterService.adaptRows({
+          rows: targetNormalized,
+          context: input.targetContext
+        })
+      : {
+          profileName: 'generic' as const,
+          confidence: 0.5,
+          rows: targetNormalized,
+          fieldPolicy: DEFAULT_GENERIC_POLICY
+        };
+
+    const source = compositeKeyEnabled
+      ? sourceProfile.rows
+      : sourceProfile.rows.map((row) => ({
+          ...row,
+          stableOccurrenceKey: null,
+          snapshotRowKey: null
+        }));
+    const target = compositeKeyEnabled
+      ? targetProfile.rows
+      : targetProfile.rows.map((row) => ({
+          ...row,
+          stableOccurrenceKey: null,
+          snapshotRowKey: null
+        }));
     const sourceIndex = new Map(source.map((row, index) => [row.rowId, index]));
     const targetIndex = new Map(target.map((row, index) => [row.rowId, index]));
     const sourceById = new Map(source.map((row) => [row.rowId, row]));
     const targetById = new Map(target.map((row) => [row.rowId, row]));
 
     const matchResult = this.matcherService.match(source, target);
-    const classified = this.classificationService.classify({
+    const classification = this.classificationService.classifyWithStats({
       sourceRows: source,
       targetRows: target,
       matches: matchResult.matches,
       unmatchedSourceIds: matchResult.unmatchedSourceIds,
-      unmatchedTargetIds: matchResult.unmatchedTargetIds
+      unmatchedTargetIds: matchResult.unmatchedTargetIds,
+      sourceFieldPolicy: sourceProfile.fieldPolicy,
+      targetFieldPolicy: targetProfile.fieldPolicy
     });
+    const classified = classification.rows;
 
     const matchBySource = new Map(matchResult.matches.map((match) => [match.sourceRowId, match]));
 
@@ -68,7 +137,14 @@ export class DiffComputationService {
           tieBreakTrace: decision?.tieBreakTrace,
           score: decision?.score,
           reviewRequired: decision?.reviewRequired,
-          changedFields: row.cells.map((cell) => cell.field)
+          graphContextUsed: decision?.reasonCode?.includes('graph_context') || false,
+          sourceProfile: sourceRow?.profileName || null,
+          targetProfile: targetRow?.profileName || null,
+          sourceStableOccurrenceKey: sourceRow?.stableOccurrenceKey || null,
+          targetStableOccurrenceKey: targetRow?.stableOccurrenceKey || null,
+          changedFields: row.cells.map((cell) => cell.field),
+          fromParent: row.fromParent ?? null,
+          toParent: row.toParent ?? null
         }
       };
     });
@@ -98,10 +174,66 @@ export class DiffComputationService {
       }
     );
 
+    const ambiguousMatchCount = matchResult.matches.filter((match) => match.reviewRequired).length;
+    const unmatchedRate = Number(
+      (
+        (matchResult.unmatchedSourceIds.length + matchResult.unmatchedTargetIds.length) /
+        Math.max(1, source.length + target.length)
+      ).toFixed(6)
+    );
+    const sourceKeyCollisionRate = this.keyCollisionRate(source);
+    const targetKeyCollisionRate = this.keyCollisionRate(target);
+    const replacementSuppressionRate = Number(
+      (
+        classification.stats.replacementSuppressed /
+        Math.max(1, classification.stats.replacementCandidates)
+      ).toFixed(6)
+    );
+
     return {
       contractVersion: DIFF_CONTRACT_VERSION,
       rows,
-      counters
+      counters,
+      diagnostics: {
+        sourceProfile: sourceProfile.profileName,
+        targetProfile: targetProfile.profileName,
+        sourceKeyCollisionRate,
+        targetKeyCollisionRate,
+        ambiguityRate: Number((ambiguousMatchCount / Math.max(1, source.length)).toFixed(6)),
+        unmatchedRate,
+        replacementSuppressionRate,
+        profileSelectionDistribution: {
+          [`source:${sourceProfile.profileName}`]: source.length,
+          [`target:${targetProfile.profileName}`]: target.length
+        },
+        flags: {
+          profileAdaptersEnabled,
+          compositeKeyEnabled,
+          ambiguityStrictEnabled
+        }
+      }
     };
   }
+
+  private keyCollisionRate(rows: DiffComparableRow[]): number {
+    const keys = rows.map((row) => row.stableOccurrenceKey).filter((key): key is string => !!key);
+    if (!keys.length) return 0;
+    const counts = new Map<string, number>();
+    for (const key of keys) {
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    let duplicateRows = 0;
+    for (const count of counts.values()) {
+      if (count > 1) {
+        duplicateRows += count - 1;
+      }
+    }
+    return Number((duplicateRows / keys.length).toFixed(6));
+  }
 }
+
+const DEFAULT_GENERIC_POLICY: ProfileFieldPolicy = {
+  identity: ['internalId'],
+  comparable: ['partNumber', 'revision', 'description', 'quantity', 'supplier', 'plant', 'cost', 'color', 'units'],
+  display: ['parentPath', 'position', 'assemblyPath', 'findNumber', 'hierarchyLevel']
+};

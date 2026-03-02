@@ -93,3 +93,17 @@ Focus:
 - `SPRINT_PLAN.md` now includes suggested Sprint 6.
 - `PRODUCT_PLAN.md` now includes Stage/Sprint 7 and 8 (+ recommended Stage 9).
 - This delta file should be used as the source input when building `BACKLOG_S6.md` and any subsequent backlog files.
+
+## Stage 8 Clarification Lock (Approved)
+- S8 clarification set is approved and no longer open:
+  - gateway + app-layer rate limiting
+  - baseline `100 req/min` plus stricter upload/diff/export route caps
+  - authenticated throttle key `tenantId`; unauthenticated fallback key IP
+  - admin/service allowlist exemptions with audit
+  - separate Terms/Privacy version tracking with mandatory re-accept on update
+  - history delete semantics = soft-delete with audit
+  - tag scope = single owner-private label
+  - audit export hardening extends existing Stage 6 API (no rebuild)
+  - daily append-only Blob audit archive with geo-redundancy and 7+ year target retention
+  - secure SDLC gates block on high/critical vulns, secret hits, and license-policy violations
+  - compliance role source remains DB admin role claim.

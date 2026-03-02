@@ -79,11 +79,15 @@ Feature flags (default enabled):
 DIFF_ENGINE_V1=true
 DIFF_PROGRESSIVE_API_V1=true
 NEXT_PUBLIC_RESULTS_GRID_STAGE4_V1=true
+MATCHER_PROFILE_ADAPTERS_V1=true
+MATCHER_COMPOSITE_KEY_V1=true
+MATCHER_AMBIGUITY_STRICT_V1=true
 ```
 
 Operational runbooks:
 - `docs/runbooks/s4-08-performance-baseline.md`
 - `docs/runbooks/s4-10-rollout-observability.md`
+- `docs/runbooks/s7-format-adapter-rollout.md`
 
 Perf benchmark command:
 ```powershell

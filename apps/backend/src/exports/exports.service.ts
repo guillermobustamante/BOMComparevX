@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import * as XLSX from 'xlsx';
 import { DatabaseService } from '../database/database.service';
 import { DiffJobService } from '../diff/diff-job.service';
-import { DiffComparableRow } from '../diff/diff-contract';
+import { DiffComparableRow, PersistedDiffRow } from '../diff/diff-contract';
 import { UploadRevisionService } from '../uploads/upload-revision.service';
 import { ExportArtifactRecord } from './export-artifact.interface';
 
@@ -34,7 +34,7 @@ export class ExportsService {
   private readonly artifactsById = new Map<string, ExportArtifactRecord>();
 
   async buildComparisonCsv(input: BuildCsvInput): Promise<CsvExportPayload> {
-    const exportRows = this.diffJobService.getRowsForExport(
+    const exportRows = await this.diffJobService.getRowsForExport(
       input.comparisonId,
       input.tenantId
     );
@@ -96,7 +96,7 @@ export class ExportsService {
   }
 
   async buildComparisonExcel(input: BuildCsvInput): Promise<ExcelExportPayload> {
-    const exportRows = this.diffJobService.getRowsForExport(
+    const exportRows = await this.diffJobService.getRowsForExport(
       input.comparisonId,
       input.tenantId
     );
@@ -203,7 +203,7 @@ export class ExportsService {
   }
 
   private resolveFieldValue(
-    row: ReturnType<DiffJobService['getRowsForExport']>['rows'][number],
+    row: PersistedDiffRow,
     field: keyof DiffComparableRow | null
   ): string | number {
     if (!field) return '';

@@ -6,6 +6,7 @@ import {
   MatchStrategy,
   NEAR_TIE_DELTA
 } from './diff-contract';
+import { DiffFeatureFlagService } from './feature-flag.service';
 import { NormalizationService } from './normalization.service';
 
 export interface MatchResult {
@@ -16,7 +17,10 @@ export interface MatchResult {
 
 @Injectable()
 export class MatcherService {
-  constructor(private readonly normalizationService: NormalizationService) {}
+  constructor(
+    private readonly normalizationService: NormalizationService,
+    private readonly featureFlags: DiffFeatureFlagService
+  ) {}
 
   match(sourceRows: DiffComparableRow[], targetRows: DiffComparableRow[]): MatchResult {
     const source = sourceRows.map((row) => this.normalizationService.normalizeRow(row).row);
@@ -54,13 +58,28 @@ export class MatcherService {
     unlockedTargets: Set<string>,
     targetIndex: Map<string, number>
   ): MatchDecision {
+    if (this.featureFlags.isCompositeKeyEnabled() && sourceRow.stableOccurrenceKey) {
+      const keyCandidates = targets.filter(
+        (target) =>
+          unlockedTargets.has(target.rowId) &&
+          !!target.stableOccurrenceKey &&
+          target.stableOccurrenceKey === sourceRow.stableOccurrenceKey
+      );
+      if (keyCandidates.length) {
+        return this.resolveCandidate(sourceRow, keyCandidates, 'INTERNAL_ID', targetIndex, 'stable_key');
+      }
+    }
+
     const strategyChecks: Array<{
       strategy: MatchStrategy;
       predicate: (t: DiffComparableRow) => boolean;
     }> = [
       {
         strategy: 'INTERNAL_ID',
-        predicate: (t) => !!sourceRow.internalId && !!t.internalId && sourceRow.internalId === t.internalId
+        predicate: (t) =>
+          this.identityToken(sourceRow) !== null &&
+          this.identityToken(t) !== null &&
+          this.identityToken(sourceRow) === this.identityToken(t)
       },
       {
         strategy: 'PART_NUMBER_REVISION',
@@ -85,7 +104,7 @@ export class MatcherService {
     for (const check of strategyChecks) {
       const candidates = targets.filter((t) => unlockedTargets.has(t.rowId) && check.predicate(t));
       if (!candidates.length) continue;
-      const choice = this.resolveCandidate(sourceRow, candidates, check.strategy, targetIndex);
+      const choice = this.resolveCandidate(sourceRow, candidates, check.strategy, targetIndex, 'strategy');
       return choice;
     }
 
@@ -104,7 +123,8 @@ export class MatcherService {
     source: DiffComparableRow,
     candidates: DiffComparableRow[],
     strategy: MatchStrategy,
-    targetIndex: Map<string, number>
+    targetIndex: Map<string, number>,
+    candidateSource: 'stable_key' | 'strategy'
   ): MatchDecision {
     if (candidates.length === 1) {
       const chosen = candidates[0];
@@ -116,16 +136,21 @@ export class MatcherService {
         score,
         reviewRequired: false,
         tieBreakTrace: ['UNIQUENESS_FIRST'],
-        reasonCode: 'unique_candidate'
+        reasonCode: candidateSource === 'stable_key' ? 'stable_key_exact_unique' : 'unique_candidate'
       };
     }
 
     const scored = candidates.map((candidate) => ({
       candidate,
       score: this.scoreForStrategy(strategy, source, candidate),
+      graphContextBonus: this.graphContextBonus(source, candidate),
       concordance: this.attributeConcordance(source, candidate),
       stableIndex: targetIndex.get(candidate.rowId) || Number.MAX_SAFE_INTEGER
     }));
+
+    for (const candidate of scored) {
+      candidate.score = Number(Math.min(1, Math.max(0, candidate.score + candidate.graphContextBonus)).toFixed(6));
+    }
 
     scored.sort(
       (a, b) =>
@@ -145,7 +170,10 @@ export class MatcherService {
         score: top.score,
         reviewRequired: true,
         tieBreakTrace: ['HIGHEST_SCORE', 'ATTRIBUTE_CONCORDANCE', 'NEAR_TIE_REVIEW_REQUIRED'],
-        reasonCode: 'near_tie_review_required'
+        reasonCode:
+          candidateSource === 'stable_key'
+            ? 'stable_key_ambiguous_review_required'
+            : 'near_tie_review_required'
       };
     }
 
@@ -156,7 +184,12 @@ export class MatcherService {
       score: top.score,
       reviewRequired: false,
       tieBreakTrace: ['HIGHEST_SCORE', 'ATTRIBUTE_CONCORDANCE', 'STABLE_FALLBACK_INDEX'],
-      reasonCode: 'scored_candidate_selected'
+      reasonCode:
+        candidateSource === 'stable_key'
+          ? 'stable_key_selected'
+          : top.graphContextBonus !== 0
+            ? 'scored_candidate_selected_graph_context'
+            : 'scored_candidate_selected'
     };
   }
 
@@ -189,9 +222,35 @@ export class MatcherService {
         : 0;
     }
     if (strategy === 'INTERNAL_ID') {
-      return source.internalId && source.internalId === target.internalId ? 1 : 0;
+      const sourceToken = this.identityToken(source);
+      const targetToken = this.identityToken(target);
+      return sourceToken && sourceToken === targetToken ? 1 : 0;
     }
     return 0;
+  }
+
+  private identityToken(row: DiffComparableRow): string | null {
+    return row.stableOccurrenceKey || row.internalId || null;
+  }
+
+  private graphContextBonus(source: DiffComparableRow, target: DiffComparableRow): number {
+    let bonus = 0;
+
+    if (source.parentPath && target.parentPath) {
+      bonus += source.parentPath === target.parentPath ? 0.03 : -0.01;
+    }
+
+    if (source.hierarchyLevel !== null && source.hierarchyLevel !== undefined &&
+        target.hierarchyLevel !== null && target.hierarchyLevel !== undefined) {
+      const delta = Math.abs(source.hierarchyLevel - target.hierarchyLevel);
+      bonus += delta === 0 ? 0.02 : -Math.min(0.02, delta * 0.005);
+    }
+
+    if (source.assemblyPath && target.assemblyPath && source.assemblyPath === target.assemblyPath) {
+      bonus += 0.01;
+    }
+
+    return Number(bonus.toFixed(6));
   }
 
   private calculateFuzzyScore(source: DiffComparableRow, target: DiffComparableRow): number {

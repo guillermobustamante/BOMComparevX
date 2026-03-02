@@ -160,3 +160,130 @@ Status: Locked through Stage 5 planning
    - first hierarchy response <2s
    - first meaningful hierarchy rows <5s
    - graph-aware matching overhead <=15% vs Stage 4 baseline for same fixture tier
+62. Stage 7 fixture source-of-truth is `docs/BOM Examples` using paired version files (for example, `Example 1 ver 1.xlsx` with `Example 1 ver 2.xlsx`), including header alias variance and hierarchy-level column variance.
+63. Stage 7 CI gate is hard:
+   - required checks: `backend:ci`, `frontend:ci`, `playwright`, `verify:story`
+   - baseline branch: `main`
+   - full CI on every PR
+   - no merges while CI is red
+   - flaky-test quarantine allowed only with explicit owner and deadline
+64. Stage 7 performance gating rollout:
+   - first 3 CI performance runs are non-blocking
+   - from run 4 onward, performance gates are blocking
+65. Stage 7 graph migration/cutover lock:
+   - physical tables: `partNode`, `containsEdge` (camelCase)
+   - cutover scope: new revisions only
+   - dual-write: disabled
+   - read path: automatic per revision (graph snapshot exists => graph path; otherwise fallback)
+   - rollback strategy: feature-flag rollback only
+   - old tables are read-only during transition and removed when cutover is stable
+   - no historical backfill requirement for legacy dev data
+66. Stage 7 snapshot completeness rule:
+   - comparisons run on graph path only when both `leftRevisionId` and `rightRevisionId` have graph snapshots
+   - otherwise use fallback path (while fallback remains enabled)
+67. Stage 7 backfill execution plan:
+   - environments: Dev and Test
+   - execution mode: migration script
+   - schema migration is required in Dev/Test; bulk historical data backfill is not required for legacy dev data
+   - graph population applies to new revisions and explicit fixture sessions
+68. Stage 7 feature flag source is env-based now (App Configuration later).
+69. Stage 7 default flag states:
+   - Dev: `MATCHER_GRAPH_V1=true`, `RESULTS_TREE_VIEW_V1=true`, `RESULTS_DYNAMIC_FILTERS_V1=true`
+   - Test: all `false` initially
+   - Prod: all `false` initially
+70. Stage 7 rollout sequence is fixed: matcher -> tree -> dynamic filters.
+71. Flag-off behavior is graceful fallback to Stage 4 baseline.
+72. Stage 7 observability sink is Application Insights with logs as backup.
+73. Stage 7 correlation dimensions include: `tenantId`, `comparisonId`, `revisionPair`, `flagState`, `correlationId` (and additional troubleshooting dimensions as required).
+74. Stage 7 sampling policy: 100% in Dev/Test; sampled in Prod.
+75. Stage 7 alert policy:
+   - warning after 3 consecutive breaches
+   - critical after 10 minutes sustained breach
+   - operational response: manual rollback in Dev/Test; auto-rollback can be introduced later
+76. Stage 7 moved high-confidence threshold is locked to `>=0.90` for moved eligibility.
+77. Stage 7 tree API contract uses dedicated endpoint shape: `GET /diff-jobs/{id}/tree?...`.
+78. Stage 7 SLO runtime telemetry policy:
+   - SLO runtime metrics are not tracked initially
+   - instrumentation is delivered behind metric flags, initially `false`
+   - metric flags:
+     - `OBS_S7_TREE_EXPAND_P95`
+     - `OBS_S7_DYNAMIC_QUERY_P95`
+     - `OBS_S7_FIRST_HIERARCHY_RESPONSE`
+     - `OBS_S7_FIRST_MEANINGFUL_TREE_ROWS`
+     - `OBS_S7_OVERHEAD_VS_S4`
+79. Stage 7 alert thresholds apply only when corresponding SLO metric flags are enabled.
+
+## Stage 7 Format Scalability + Composite Identity (Locked)
+
+80. Stage 7 format-scalability implementation model is Option B:
+   - profile-adapter framework + deterministic generic fallback.
+81. Matching must use contextual composite occurrence identity, not part number alone, for duplicate-heavy BOM ecosystems.
+82. Two key contracts are required:
+   - `stableOccurrenceKey`: cross-revision deterministic occurrence identity for matching
+   - `snapshotRowKey`: immutable per-snapshot persistence identity
+83. Adapter precedence is deterministic:
+   - explicit profile adapter (when profile confidence is sufficient)
+   - deterministic generic adapter fallback
+84. Strict ambiguity policy:
+   - ambiguous identity does not auto-emit `replaced`
+   - ambiguous rows remain unmatched/ambiguous until confidence policy allows deterministic classification.
+85. `replaced` classification policy is hardened:
+   - only emitted for high-confidence context-aligned source/target pairings
+   - no broad unmatched-pair replacement sweep when identity ambiguity is present.
+86. Field policy is profile-aware with three classes:
+   - identity fields
+   - comparable change fields
+   - display-only fields
+87. Default SAP field policy:
+   - identity: component number + hierarchy/sequence context keys
+   - comparable: plant, quantity, description, and other business deltas
+88. Same-vs-same baseline quality rule:
+   - comparing identical files must not produce mass false `replaced`; expected dominant outcome is `no_change`.
+89. Observability metrics for this stream are mandatory:
+   - key collision rate
+   - ambiguity rate
+   - unmatched rate
+   - replacement suppression rate
+90. Rollout for format-scalability stream is feature-flagged:
+   - `MATCHER_PROFILE_ADAPTERS_V1`
+   - `MATCHER_COMPOSITE_KEY_V1`
+   - `MATCHER_AMBIGUITY_STRICT_V1`
+91. Locked profile detection mode is auto-detect + confidence + deterministic generic fallback + optional operator override.
+92. Locked ambiguity policy is explicit ambiguity state with proceed allowed; no forced replacement from ambiguity paths.
+93. Locked effectivity/change-control policy is secondary identity context by default, with profile-level elevation to primary where required.
+94. Locked profile onboarding model is config-driven definitions with code hooks for advanced transforms.
+95. Locked replacement confidence baseline is `>=0.90` with telemetry/profile-based tuning.
+96. Locked runtime rollout strategy is tenant/profile canary in Dev/Test, then staged Prod enablement.
+97. Parked for future stage (V2/V3): adapter configuration screen for end users:
+   - purpose: allow profile override, field-policy preview, and adapter debug visibility without code changes
+   - option set:
+     - A: read-only diagnostics panel
+     - B: tenant-admin override controls (recommended future)
+     - C: all-user override controls
+
+## Stage 8 Security and Compliance Baseline (Locked)
+
+98. Stage 8 rate limiting is enforced at both gateway and application layers.
+99. Stage 8 rate-limit defaults:
+   - baseline: 100 requests/minute
+   - stricter caps apply to high-cost routes (upload/diff/export).
+100. Stage 8 rate-limit key policy:
+   - authenticated: tenant bucket (`tenantId`)
+   - unauthenticated fallback: client IP.
+101. Stage 8 rate-limit exemptions:
+   - admin/service allowlist is supported
+   - exemption events remain auditable.
+102. Stage 8 consent versioning stores separate Terms and Privacy versions with per-user acceptance timestamp.
+103. Stage 8 policy-update behavior is hard-block on next login until re-acceptance.
+104. Stage 8 history delete semantics are soft-delete with audit event; retention/purge handles physical deletion later.
+105. Stage 8 tag scope is single editable owner-private label (max 50 chars) for V1 baseline parity.
+106. Stage 8 audit-export governance hardens existing Stage 6 export services; no service rebuild in Stage 8.
+107. Stage 8 audit archive baseline:
+   - daily append-only archive to Azure Blob
+   - geo-redundant storage
+   - retention target 7+ years.
+108. Stage 8 secure SDLC CI policy is blocking:
+   - fail on high/critical vulnerabilities
+   - fail on secret-scanning hits
+   - fail on license-policy violations.
+109. Stage 8 compliance-role mapping uses existing database admin role-claim model.

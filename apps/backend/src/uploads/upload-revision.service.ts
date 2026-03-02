@@ -40,18 +40,47 @@ interface ParsedTableResult {
 }
 
 const HEADER_ALIASES = {
-  partNumber: ['partnumber', 'partno', 'pn', 'itemnumber', 'part', 'partid', 'itemid'],
-  revision: ['revision', 'rev', 'version'],
-  description: ['description', 'desc', 'details', 'name', 'partname', 'partdescription'],
-  quantity: ['quantity', 'qty', 'count', 'neededcount', 'neededqty', 'requiredqty'],
-  supplier: ['supplier', 'vendor', 'manufacturer', 'mfr'],
-  internalId: ['internalid', 'id', 'rowid', 'elemid', 'elementid'],
-  parentPath: ['parentpath', 'parent', 'path'],
-  position: ['position', 'refdes', 'reference'],
+  partNumber: [
+    'partnumber',
+    'partno',
+    'pn',
+    'partid',
+    'itemid',
+    'component',
+    'componentnumber',
+    'mevspartnumber',
+    'oempartnumber',
+    'cosmapartnumber'
+  ],
+  revision: ['revision', 'rev', 'version', 'mevscurrentrevision', 'oempartrev', 'cosmarevision', 'revisionlevel'],
+  description: ['description', 'desc', 'details', 'partname', 'partdescription', 'compdesc', 'objectdescription', 'partnameoemcosname'],
+  quantity: [
+    'quantity',
+    'qty',
+    'count',
+    'neededcount',
+    'neededqty',
+    'requiredqty',
+    'componentquantity',
+    'compqtycun',
+    'quantityinthisline',
+    'quantityinparent',
+    'aqqtym',
+    'requiredquantity',
+    'resultingqty'
+  ],
+  supplier: ['supplier', 'vendor', 'manufacturer', 'mfr', 'currentsupplier', 'futuresupplier'],
+  plant: ['plant', 'werks', 'plantcode'],
+  internalId: ['internalid', 'id', 'rowid', 'elemid', 'elementid', 'partkey', 'occurrenceinternalname', 'itemnode'],
+  parentPath: ['parentpath', 'parent', 'path', 'pathpredecessor'],
+  position: ['position', 'refdes', 'reference', 'itemnumber', 'lin', 'line', 'findnumber'],
+  hierarchyLevel: ['level', 'lvl', 'explosionlevel'],
+  assemblyPath: ['assemblypath'],
+  findNumber: ['findnumber', 'itemnumber', 'lin', 'line'],
   color: ['color', 'colour'],
-  units: ['units', 'unit', 'uom', 'unitofmeasure'],
+  units: ['units', 'unit', 'uom', 'unitofmeasure', 'componentunit', 'baseunitofmeasure'],
   cost: ['unitcost', 'cost', 'extendedcost', 'totalcost'],
-  category: ['category', 'group']
+  category: ['category', 'group', 'linetype', 'itemcategory', 'commodity']
 } as const;
 
 const MAX_PARSED_ROWS = 100_000;
@@ -222,9 +251,13 @@ export class UploadRevisionService {
     const descriptionIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.description);
     const quantityIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.quantity);
     const supplierIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.supplier);
+    const plantIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.plant);
     const internalIdIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.internalId);
     const parentPathIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.parentPath);
     const positionIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.position);
+    const hierarchyLevelIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.hierarchyLevel);
+    const assemblyPathIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.assemblyPath);
+    const findNumberIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.findNumber);
     const colorIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.color);
     const unitsIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.units);
     const totalCostIndex = this.findHeaderIndex(headerColumns, ['cost', 'extendedcost', 'totalcost']);
@@ -256,12 +289,16 @@ export class UploadRevisionService {
     maybeSetField(descriptionIndex, 'description');
     maybeSetField(quantityIndex, 'quantity');
     maybeSetField(supplierIndex, 'supplier');
+    maybeSetField(plantIndex, 'plant');
     maybeSetField(colorIndex, 'color');
     maybeSetField(unitsIndex, 'units');
     maybeSetField(costIndex, 'cost');
     maybeSetField(categoryIndex, 'category');
     maybeSetField(parentPathIndex, 'parentPath');
     maybeSetField(positionIndex, 'position');
+    maybeSetField(assemblyPathIndex, 'assemblyPath');
+    maybeSetField(findNumberIndex, 'findNumber');
+    maybeSetField(hierarchyLevelIndex, 'hierarchyLevel');
     const headerFields = headerRow.values.map((_header, index) => indexToField.get(index) || null);
 
     const rows: DiffComparableRow[] = [];
@@ -277,14 +314,20 @@ export class UploadRevisionService {
         description: this.pick(values, descriptionIndex),
         quantity: this.pickNumber(values, quantityIndex),
         supplier: this.pick(values, supplierIndex),
+        plant: this.pick(values, plantIndex),
         color: this.pick(values, colorIndex),
         units: this.pick(values, unitsIndex),
         cost: this.pickNumber(values, costIndex),
         category: this.pick(values, categoryIndex),
         parentPath: this.pick(values, parentPathIndex),
-        position: this.pick(values, positionIndex)
+        position: this.pick(values, positionIndex),
+        assemblyPath: this.pick(values, assemblyPathIndex),
+        findNumber: this.pick(values, findNumberIndex),
+        hierarchyLevel: this.parseHierarchyLevel(this.pick(values, hierarchyLevelIndex))
       });
     }
+
+    const enrichedRows = this.applyHierarchyInference(rows);
 
     if (rows.length > MAX_PARSED_ROWS) {
       this.throwParseError({
@@ -309,14 +352,14 @@ export class UploadRevisionService {
     }
 
     this.logger.log(
-      `Parsed revision file "${file.originalname}" mode=${parserMode} rows=${rows.length} correlationId=${correlationId}`
+      `Parsed revision file "${file.originalname}" mode=${parserMode} rows=${enrichedRows.length} correlationId=${correlationId}`
     );
     return {
       parserMode,
       sheetName: parsed.sheetName,
       headers: [...headerRow.values],
       headerFields,
-      rows
+      rows: enrichedRows
     };
   }
 
@@ -391,7 +434,17 @@ export class UploadRevisionService {
   }
 
   private findHeaderIndex(headers: string[], aliases: readonly string[]): number {
-    return headers.findIndex((header) => aliases.includes(header));
+    const exactMatch = headers.findIndex((header) => aliases.includes(header));
+    if (exactMatch >= 0) return exactMatch;
+    return headers.findIndex((header) => {
+      if (!header) return false;
+      return aliases.some((alias) => {
+        if (!alias) return false;
+        if (alias === header) return true;
+        if (alias.length <= 3 || header.length <= 3) return false;
+        return header.includes(alias) || alias.includes(header);
+      });
+    });
   }
 
   private looksLikeRowExplosion(rowCount: number, fileSize: number): boolean {
@@ -466,5 +519,83 @@ export class UploadRevisionService {
     const parsed = Number(numeric);
     if (Number.isNaN(parsed)) return null;
     return parsed;
+  }
+
+  private parseHierarchyLevel(value: string | null): number | null {
+    if (!value) return null;
+    const direct = Number(value);
+    if (Number.isFinite(direct)) {
+      return Math.max(0, Math.floor(direct));
+    }
+
+    // SAP-style "explosion level" uses dot-prefix tokens like "..2".
+    const dotted = value.match(/(\d+)$/);
+    if (dotted) {
+      const level = Number(dotted[1]);
+      if (Number.isFinite(level)) return Math.max(0, Math.floor(level));
+    }
+
+    const markerCount = (value.match(/\./g) || []).length;
+    return markerCount > 0 ? markerCount : null;
+  }
+
+  private applyHierarchyInference(rows: DiffComparableRow[]): DiffComparableRow[] {
+    const levelStack: string[] = [];
+
+    return rows.map((row) => {
+      let parentPath = this.normalizeHierarchyToken(row.parentPath);
+      let level = row.hierarchyLevel ?? null;
+
+      if (!parentPath && row.assemblyPath) {
+        const parts = row.assemblyPath.split('/').map((part) => part.trim()).filter(Boolean);
+        if (parts.length > 1) {
+          parentPath = parts.slice(0, -1).join('/');
+        }
+      }
+
+      if (level === null && parentPath) {
+        const slashCount = (parentPath.match(/\//g) || []).length;
+        if (slashCount > 0) {
+          level = slashCount;
+        }
+      }
+
+      if (!parentPath && level !== null && level > 0) {
+        const parentKey = levelStack[level - 1] || null;
+        if (parentKey) {
+          parentPath = parentKey;
+        }
+      }
+
+      const identity =
+        row.partNumber ||
+        row.internalId ||
+        row.description ||
+        row.assemblyPath ||
+        row.rowId;
+      if (level !== null) {
+        levelStack[level] = identity;
+        levelStack.length = level + 1;
+      } else if (!parentPath) {
+        levelStack.length = 1;
+        levelStack[0] = identity;
+      }
+
+      return {
+        ...row,
+        parentPath: parentPath || null,
+        hierarchyLevel: level
+      };
+    });
+  }
+
+  private normalizeHierarchyToken(value: string | null | undefined): string | null {
+    if (!value) return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (/^\d+(\.\d+)?$/.test(trimmed)) {
+      return `IDX:${trimmed}`;
+    }
+    return trimmed.replace(/\s+/g, ' ');
   }
 }

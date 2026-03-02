@@ -8,15 +8,19 @@ export async function GET(
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
   const cookie = request.headers.get('cookie') || '';
   const jobId = params.jobId;
+  const query = new URLSearchParams();
+
   const cursor = request.nextUrl.searchParams.get('cursor');
   const limit = request.nextUrl.searchParams.get('limit') || '50';
+  const expandedNodeIds = request.nextUrl.searchParams.get('expandedNodeIds');
   const searchText = request.nextUrl.searchParams.get('searchText');
   const sortBy = request.nextUrl.searchParams.get('sortBy');
   const sortDir = request.nextUrl.searchParams.get('sortDir');
   const filters = request.nextUrl.searchParams.get('filters');
-  const query = new URLSearchParams();
+
   if (cursor) query.set('cursor', cursor);
   query.set('limit', limit);
+  if (expandedNodeIds) query.set('expandedNodeIds', expandedNodeIds);
   if (searchText) query.set('searchText', searchText);
   if (sortBy) query.set('sortBy', sortBy);
   if (sortDir) query.set('sortDir', sortDir);
@@ -24,7 +28,7 @@ export async function GET(
 
   try {
     const upstream = await fetch(
-      `${apiBase}/api/diff-jobs/${encodeURIComponent(jobId)}/rows?${query.toString()}`,
+      `${apiBase}/api/diff-jobs/${encodeURIComponent(jobId)}/tree?${query.toString()}`,
       {
         method: 'GET',
         headers: cookie ? { cookie } : undefined,
@@ -37,8 +41,8 @@ export async function GET(
       payload = await upstream.json();
     } catch {
       payload = {
-        code: 'DIFF_ROWS_UPSTREAM_INVALID',
-        message: 'Diff rows service returned an invalid response.',
+        code: 'DIFF_TREE_UPSTREAM_INVALID',
+        message: 'Diff tree service returned an invalid response.',
         correlationId: randomUUID()
       };
     }
@@ -46,8 +50,8 @@ export async function GET(
   } catch {
     return NextResponse.json(
       {
-        code: 'DIFF_ROWS_UPSTREAM_UNAVAILABLE',
-        message: 'Diff rows service is unavailable.',
+        code: 'DIFF_TREE_UPSTREAM_UNAVAILABLE',
+        message: 'Diff tree service is unavailable.',
         correlationId: randomUUID()
       },
       { status: 502 }

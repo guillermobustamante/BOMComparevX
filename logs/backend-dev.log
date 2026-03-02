@@ -1,0 +1,479 @@
+
+> bomcomparevx-backend@0.1.0 start:dev
+> npx nest start --watch
+
+[2J[3J[H[[90m10:27:39 p.m.[0m] Starting compilation in watch mode...
+
+[[90m10:27:46 p.m.[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDatabaseModule dependencies initialized[39m[38;5;3m +36ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +13ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuditModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTenantModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMappingModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUploadsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSharesModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRetentionModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiffModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAdminModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:52 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mExportsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHealthController {/api/health}:[39m[38;5;3m +2544ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/google/start, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/google/callback, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/microsoft/start, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/microsoft/callback, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/test/login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/test/logout, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTenantController {/api/tenant}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tenant/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tenant/resource/:tenantId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUploadsController {/api/uploads}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/uploads/validate, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/uploads/intake, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMappingController {/api/mappings}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/preview/:revisionId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/confirm, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/:revisionId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDiffController {/api}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs/:jobId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs/:jobId/rows, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mSharesController {/api/shares}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/:comparisonId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/invite, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/revoke, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mNotificationsController {/api/notifications}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/notifications, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/notifications/:notificationId/read, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mExportsController {/api/exports}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/exports/csv/:comparisonId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/exports/excel/:comparisonId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAdminController {/api/admin}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/users, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/upload-policy/reset, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/upload-policy/override, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/retention/run, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/test/grant-role, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:27:55 p.m. [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +3ms[39m
+Backend listening on http://localhost:4000/api
+[32m[Nest] 132748  - [39m2026-03-01, 10:29:48 p.m. [32m    LOG[39m [38;5;3m[AuditEvent] [39m[32m{"eventType":"auth.access.denied","outcome":"denied","reason":"auth_required","correlationId":"21115f1a-bc4e-4a4d-8a63-c86e80de14b0","occurredAtUtc":"2026-03-02T03:29:48.329Z"}[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:29:57 p.m. [32m    LOG[39m [38;5;3m[AuditEvent] [39m[32m{"eventType":"auth.login.success","outcome":"success","actorEmail":"guillermo.bustamante@gmail.com","tenantId":"dev-tenant","provider":"google","correlationId":"cb1f8e8c-f073-49fe-b123-853504e0a3f1","occurredAtUtc":"2026-03-02T03:29:57.339Z"}[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:30:27 p.m. [32m    LOG[39m [38;5;3m[UploadRevisionService] [39m[32mParsed revision file "Example 2 ver 1 CMS.xlsx" mode=xlsx rows=16063 correlationId=a6b02b29-3b24-4a2b-88a7-990e2c6b5f17[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:30:30 p.m. [32m    LOG[39m [38;5;3m[UploadRevisionService] [39m[32mParsed revision file "Example 2 ver 2 CMS.xlsx" mode=xlsx rows=16063 correlationId=856a1d2e-b039-40ca-bda7-5737ce84f1f6[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:30:30 p.m. [32m    LOG[39m [38;5;3m[AuditEvent] [39m[32m{"eventType":"auth.login.success","outcome":"success","actorEmail":"guillermo.bustamante@gmail.com","tenantId":"dev-tenant","reason":"upload.intake.accepted","correlationId":"336173d2-e69b-43a1-90d8-acd77b75bb63","occurredAtUtc":"2026-03-02T03:30:30.708Z"}[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:30:36 p.m. [32m    LOG[39m [38;5;3m[DiffJobService] [39m[32m{"metricName":"stage4.diff.first_status","jobId":"5f58db8b-458d-4007-822b-242f5edcaa52","tenantId":"dev-tenant","details":{"firstStatusLatencyMs":1056},"emittedAtUtc":"2026-03-02T03:30:36.226Z"}[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:30:36 p.m. [32m    LOG[39m [38;5;3m[DiffJobService] [39m[32m{"metricName":"stage4.diff.first_status","jobId":"e03b02fa-240d-4843-821d-07bad95fd897","tenantId":"dev-tenant","details":{"firstStatusLatencyMs":1110},"emittedAtUtc":"2026-03-02T03:30:36.284Z"}[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:33:20 p.m. [32m    LOG[39m [38;5;3m[DiffJobService] [39m[32m{"metricName":"stage4.diff.compute","jobId":"e03b02fa-240d-4843-821d-07bad95fd897","tenantId":"dev-tenant","details":{"computeDurationMs":164632,"sourceRows":16063,"targetRows":16063},"emittedAtUtc":"2026-03-02T03:33:20.918Z"}[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:33:20 p.m. [32m    LOG[39m [38;5;3m[DiffJobService] [39m[32m{"metricName":"stage7.adapter.quality","jobId":"e03b02fa-240d-4843-821d-07bad95fd897","tenantId":"dev-tenant","details":{"sourceProfile":"generic","targetProfile":"generic","sourceKeyCollisionRate":0,"targetKeyCollisionRate":0,"ambiguityRate":0.000062,"unmatchedRate":0.000062,"replacementSuppressionRate":1,"profileSelectionDistribution":{"source:generic":16063,"target:generic":16063},"flags":{"profileAdaptersEnabled":true,"compositeKeyEnabled":true,"ambiguityStrictEnabled":true}},"emittedAtUtc":"2026-03-02T03:33:20.919Z"}[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:33:21 p.m. [32m    LOG[39m [38;5;3m[DiffJobService] [39m[32m{"metricName":"stage4.diff.completed","jobId":"e03b02fa-240d-4843-821d-07bad95fd897","tenantId":"dev-tenant","details":{"completionLatencyMs":166823,"totalRows":16064,"counters":{"total":16064,"added":1,"removed":1,"replaced":0,"modified":14,"moved":3,"quantity_change":0,"no_change":16045}},"emittedAtUtc":"2026-03-02T03:33:21.997Z"}[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:33:22 p.m. [32m    LOG[39m [38;5;3m[DiffJobService] [39m[32m{"metricName":"stage4.diff.first_rows","jobId":"e03b02fa-240d-4843-821d-07bad95fd897","tenantId":"dev-tenant","details":{"firstRowsLatencyMs":166867},"emittedAtUtc":"2026-03-02T03:33:22.041Z"}[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:33:23 p.m. [32m    LOG[39m [38;5;3m[AuditEvent] [39m[32m{"eventType":"notification.created","outcome":"success","actorEmail":"guillermo.bustamante@gmail.com","tenantId":"dev-tenant","reason":"comparison_completed;comparison=e03b02fa-240d-4843-821d-07bad95fd897","correlationId":"67cf8946-30ce-49db-ac06-aa8b803b7f11","occurredAtUtc":"2026-03-02T03:33:23.781Z"}[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:34:33 p.m. [32m    LOG[39m [38;5;3m[DiffJobService] [39m[32m{"metricName":"stage4.diff.compute","jobId":"5f58db8b-458d-4007-822b-242f5edcaa52","tenantId":"dev-tenant","details":{"computeDurationMs":237711,"sourceRows":16063,"targetRows":16063},"emittedAtUtc":"2026-03-02T03:34:33.939Z"}[39m
+[32m[Nest] 132748  - [39m2026-03-01, 10:34:33 p.m. [32m    LOG[39m [38;5;3m[DiffJobService] [39m[32m{"metricName":"stage7.adapter.quality","jobId":"5f58db8b-458d-4007-822b-242f5edcaa52","tenantId":"dev-tenant","details":{"sourceProfile":"generic","targetProfile":"generic","sourceKeyCollisionRate":0,"targetKeyCollisionRate":0,"ambiguityRate":0.000062,"unmatchedRate":0.000062,"replacementSuppressionRate":1,"profileSelectionDistribution":{"source:generic":16063,"target:generic":16063},"flags":{"profileAdaptersEnabled":true,"compositeKeyEnabled":true,"ambiguityStrictEnabled":true}},"emittedAtUtc":"2026-03-02T03:34:33.940Z"}[39m
+[2J[3J[H[[90m10:51:49 p.m.[0m] File change detected. Starting incremental compilation...
+
+[[90m10:51:52 p.m.[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m10:51:55 p.m.[0m] File change detected. Starting incremental compilation...
+
+[[90m10:51:56 p.m.[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m10:51:57 p.m.[0m] File change detected. Starting incremental compilation...
+
+[[90m10:51:58 p.m.[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m10:52:02 p.m.[0m] File change detected. Starting incremental compilation...
+
+[[90m10:52:04 p.m.[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDatabaseModule dependencies initialized[39m[38;5;3m +56ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +23ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuditModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTenantModule dependencies initialized[39m[38;5;3m +3ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMappingModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUploadsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSharesModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRetentionModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiffModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAdminModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:11 p.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mExportsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHealthController {/api/health}:[39m[38;5;3m +3859ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health, GET} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/google/start, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/google/callback, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/microsoft/start, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/microsoft/callback, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/test/login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/test/logout, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTenantController {/api/tenant}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tenant/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tenant/resource/:tenantId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUploadsController {/api/uploads}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/uploads/validate, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/uploads/intake, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMappingController {/api/mappings}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/preview/:revisionId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/confirm, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/:revisionId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDiffController {/api}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs/:jobId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs/:jobId/rows, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mSharesController {/api/shares}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/:comparisonId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/invite, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/revoke, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mNotificationsController {/api/notifications}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/notifications, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/notifications/:notificationId/read, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mExportsController {/api/exports}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/exports/csv/:comparisonId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/exports/excel/:comparisonId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAdminController {/api/admin}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/users, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/upload-policy/reset, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/upload-policy/override, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/retention/run, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/test/grant-role, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 132172  - [39m2026-03-01, 10:52:15 p.m. [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +4ms[39m
+Backend listening on http://localhost:4000/api
+[32m[Nest] 132172  - [39m2026-03-01, 11:52:16 p.m. [32m    LOG[39m [38;5;3m[RetentionService] [39m[32m{"metricName":"stage5.retention.sweep","trigger":"interval","deletedExportArtifacts":0,"deletedNotifications":0,"deletedRevokedShares":0,"exportArtifactsCutoffUtc":"2026-02-23T04:52:15.377Z","notificationsCutoffUtc":"2025-12-02T04:52:15.377Z","sweptAtUtc":"2026-03-02T04:52:15.377Z"}[39m
+[32m[Nest] 132172  - [39m2026-03-01, 11:52:16 p.m. [32m    LOG[39m [38;5;3m[AuditEvent] [39m[32m{"eventType":"retention.sweep","outcome":"success","reason":"trigger=interval;exports=0;notifications=0;shares=0","correlationId":"cad06795-3915-447e-ae32-001c6104292f","occurredAtUtc":"2026-03-02T04:52:16.086Z"}[39m
+[32m[Nest] 132172  - [39m2026-03-02, 12:52:15 a.m. [32m    LOG[39m [38;5;3m[RetentionService] [39m[32m{"metricName":"stage5.retention.sweep","trigger":"interval","deletedExportArtifacts":0,"deletedNotifications":0,"deletedRevokedShares":0,"exportArtifactsCutoffUtc":"2026-02-23T05:52:15.359Z","notificationsCutoffUtc":"2025-12-02T05:52:15.359Z","sweptAtUtc":"2026-03-02T05:52:15.359Z"}[39m
+[32m[Nest] 132172  - [39m2026-03-02, 12:52:15 a.m. [32m    LOG[39m [38;5;3m[AuditEvent] [39m[32m{"eventType":"retention.sweep","outcome":"success","reason":"trigger=interval;exports=0;notifications=0;shares=0","correlationId":"6d585319-e8b1-4674-b3c6-dd3a4146f105","occurredAtUtc":"2026-03-02T05:52:15.735Z"}[39m
+[2J[3J[H[[90m1:13:49 a.m.[0m] File change detected. Starting incremental compilation...
+
+[[90m1:13:50 a.m.[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m1:13:53 a.m.[0m] File change detected. Starting incremental compilation...
+
+[[90m1:13:53 a.m.[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m1:13:54 a.m.[0m] File change detected. Starting incremental compilation...
+
+[[90m1:13:55 a.m.[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m1:13:55 a.m.[0m] File change detected. Starting incremental compilation...
+
+[[90m1:13:55 a.m.[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m1:13:57 a.m.[0m] File change detected. Starting incremental compilation...
+
+[[90m1:13:57 a.m.[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 106636  - [39m2026-03-02, 1:14:20 a.m. [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 106636  - [39m2026-03-02, 1:14:20 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDatabaseModule dependencies initialized[39m[38;5;3m +40ms[39m
+[32m[Nest] 106636  - [39m2026-03-02, 1:14:20 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 106636  - [39m2026-03-02, 1:14:20 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +12ms[39m
+[32m[Nest] 106636  - [39m2026-03-02, 1:14:20 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 106636  - [39m2026-03-02, 1:14:20 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuditModule dependencies initialized[39m[38;5;3m +0ms[39m
+[Nest] 106636  - 2026-03-02, 1:14:20 a.m.   ERROR [ExceptionHandler] OAuth2Strategy requires a clientID option
+TypeError: OAuth2Strategy requires a clientID option
+    at GoogleStrategy.OAuth2Strategy (C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\node_modules\passport-oauth2\lib\strategy.js:87:34)
+    at new Strategy (C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\node_modules\passport-google-oauth20\lib\strategy.js:52:18)
+    at new MixinStrategy (C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\node_modules\@nestjs\passport\dist\passport\passport.strategy.js:32:13)
+    at new GoogleStrategy (C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\src\auth\strategies\google.strategy.ts:10:5)
+    at Injector.instantiateClass (C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\node_modules\@nestjs\core\injector\injector.js:373:19)
+    at callback (C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\node_modules\@nestjs\core\injector\injector.js:65:45)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Injector.resolveConstructorParams (C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\node_modules\@nestjs\core\injector\injector.js:145:24)
+    at async Injector.loadInstance (C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\node_modules\@nestjs\core\injector\injector.js:70:13)
+    at async Injector.loadProvider (C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\node_modules\@nestjs\core\injector\injector.js:98:9)
+[2J[3J[H[[90m7:59:03 a.m.[0m] File change detected. Starting incremental compilation...
+
+[96msrc/diff/diff-job.service.ts[0m:[93m335[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'buildTreeNodes' does not exist on type 'DiffJobService'.
+
+[7m335[0m     const treeNodes = this.buildTreeNodes(projectedRows);
+[7m   [0m [91m                           ~~~~~~~~~~~~~~[0m
+
+[96msrc/diff/diff-job.service.ts[0m:[93m336[0m:[93m31[0m - [91merror[0m[90m TS2339: [0mProperty 'buildVisibleTree' does not exist on type 'DiffJobService'.
+
+[7m336[0m     const visibleNodes = this.buildVisibleTree(treeNodes, new Set(expandedNodeIds));
+[7m   [0m [91m                              ~~~~~~~~~~~~~~~~[0m
+
+[96msrc/diff/diff-job.service.ts[0m:[93m378[0m:[93m30[0m - [91merror[0m[90m TS7006: [0mParameter 'node' implicitly has an 'any' type.
+
+[7m378[0m       nodes: pagedNodes.map((node) => ({
+[7m   [0m [91m                             ~~~~[0m
+
+[[90m7:59:07 a.m.[0m] Found 3 errors. Watching for file changes.
+
+[2J[3J[H[[90m7:59:40 a.m.[0m] File change detected. Starting incremental compilation...
+
+[96msrc/diff/diff-job.service.ts[0m:[93m788[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'string | null' is not assignable to type 'null'.
+  Type 'string' is not assignable to type 'null'.
+
+[7m788[0m       row.parentNodeId = pathToNodeId.get(row.parentPathKey) || null;
+[7m   [0m [91m      ~~~~~~~~~~~~~~~~[0m
+
+[[90m7:59:41 a.m.[0m] Found 1 error. Watching for file changes.
+
+[2J[3J[H[[90m7:59:53 a.m.[0m] File change detected. Starting incremental compilation...
+
+[96msrc/diff/diff-job.service.ts[0m:[93m804[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'string | null' is not assignable to type 'null'.
+  Type 'string' is not assignable to type 'null'.
+
+[7m804[0m       row.parentNodeId = pathToNodeId.get(row.parentPathKey) || null;
+[7m   [0m [91m      ~~~~~~~~~~~~~~~~[0m
+
+[[90m7:59:54 a.m.[0m] Found 1 error. Watching for file changes.
+
+[2J[3J[H[[90m8:00:17 a.m.[0m] File change detected. Starting incremental compilation...
+
+[96msrc/diff/diff-job.service.ts[0m:[93m804[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'string | null' is not assignable to type 'null'.
+  Type 'string' is not assignable to type 'null'.
+
+[7m804[0m       row.parentNodeId = pathToNodeId.get(row.parentPathKey) || null;
+[7m   [0m [91m      ~~~~~~~~~~~~~~~~[0m
+
+[[90m8:00:18 a.m.[0m] Found 1 error. Watching for file changes.
+
+[2J[3J[H[[90m8:04:31 a.m.[0m] File change detected. Starting incremental compilation...
+
+[96msrc/diff/diff-job.service.ts[0m:[93m804[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'string | null' is not assignable to type 'null'.
+  Type 'string' is not assignable to type 'null'.
+
+[7m804[0m       row.parentNodeId = pathToNodeId.get(row.parentPathKey) || null;
+[7m   [0m [91m      ~~~~~~~~~~~~~~~~[0m
+
+[[90m8:04:31 a.m.[0m] Found 1 error. Watching for file changes.
+
+[2J[3J[H[[90m8:07:26 a.m.[0m] File change detected. Starting incremental compilation...
+
+[96msrc/diff/diff-job.service.ts[0m:[93m804[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'string | null' is not assignable to type 'null'.
+  Type 'string' is not assignable to type 'null'.
+
+[7m804[0m       row.parentNodeId = pathToNodeId.get(row.parentPathKey) || null;
+[7m   [0m [91m      ~~~~~~~~~~~~~~~~[0m
+
+[[90m8:07:26 a.m.[0m] Found 1 error. Watching for file changes.
+
+[2J[3J[H[[90m8:08:26 a.m.[0m] File change detected. Starting incremental compilation...
+
+[96msrc/diff/diff-job.service.ts[0m:[93m804[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'string | null' is not assignable to type 'null'.
+  Type 'string' is not assignable to type 'null'.
+
+[7m804[0m       row.parentNodeId = pathToNodeId.get(row.parentPathKey) || null;
+[7m   [0m [91m      ~~~~~~~~~~~~~~~~[0m
+
+[[90m8:08:27 a.m.[0m] Found 1 error. Watching for file changes.
+
+[2J[3J[H[[90m8:08:33 a.m.[0m] File change detected. Starting incremental compilation...
+
+[96msrc/diff/diff-job.service.ts[0m:[93m804[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'string | null' is not assignable to type 'null'.
+  Type 'string' is not assignable to type 'null'.
+
+[7m804[0m       row.parentNodeId = pathToNodeId.get(row.parentPathKey) || null;
+[7m   [0m [91m      ~~~~~~~~~~~~~~~~[0m
+
+[[90m8:08:37 a.m.[0m] Found 1 error. Watching for file changes.
+
+[2J[3J[H[[90m8:09:42 a.m.[0m] File change detected. Starting incremental compilation...
+
+[[90m8:09:43 a.m.[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDatabaseModule dependencies initialized[39m[38;5;3m +47ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +19ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuditModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTenantModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMappingModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUploadsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSharesModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRetentionModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiffModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAdminModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:55 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mExportsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHealthController {/api/health}:[39m[38;5;3m +2623ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/google/start, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/google/callback, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/microsoft/start, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/microsoft/callback, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/test/login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/test/logout, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTenantController {/api/tenant}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tenant/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tenant/resource/:tenantId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUploadsController {/api/uploads}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/uploads/validate, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/uploads/intake, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMappingController {/api/mappings}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/preview/:revisionId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/confirm, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/:revisionId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDiffController {/api}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs/:jobId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs/:jobId/rows, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs/:jobId/tree, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mSharesController {/api/shares}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/:comparisonId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/invite, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/revoke, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mNotificationsController {/api/notifications}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/notifications, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/notifications/:notificationId/read, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mExportsController {/api/exports}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/exports/csv/:comparisonId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/exports/excel/:comparisonId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAdminController {/api/admin}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/users, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/upload-policy/reset, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/upload-policy/override, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/retention/run, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/test/grant-role, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 139908  - [39m2026-03-02, 8:09:57 a.m. [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +4ms[39m
+Backend listening on http://localhost:4000/api
+[2J[3J[H[[90m8:11:16 a.m.[0m] File change detected. Starting incremental compilation...
+
+[[90m8:11:17 a.m.[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDatabaseModule dependencies initialized[39m[38;5;3m +83ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +4ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuditModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTenantModule dependencies initialized[39m[38;5;3m +4ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMappingModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUploadsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSharesModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRetentionModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiffModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAdminModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:24 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mExportsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHealthController {/api/health}:[39m[38;5;3m +2676ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health, GET} route[39m[38;5;3m +5ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/google/start, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/google/callback, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/microsoft/start, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/microsoft/callback, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/test/login, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/test/logout, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTenantController {/api/tenant}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tenant/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tenant/resource/:tenantId, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUploadsController {/api/uploads}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/uploads/validate, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/uploads/intake, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMappingController {/api/mappings}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/preview/:revisionId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/confirm, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/:revisionId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDiffController {/api}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs/:jobId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs/:jobId/rows, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs/:jobId/tree, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mSharesController {/api/shares}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/:comparisonId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/invite, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/revoke, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mNotificationsController {/api/notifications}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/notifications, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/notifications/:notificationId/read, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mExportsController {/api/exports}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/exports/csv/:comparisonId, GET} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/exports/excel/:comparisonId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAdminController {/api/admin}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/users, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/upload-policy/reset, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/upload-policy/override, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/retention/run, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/test/grant-role, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 124268  - [39m2026-03-02, 8:11:27 a.m. [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +10ms[39m
+Backend listening on http://localhost:4000/api
+[2J[3J[H[[90m8:16:42 a.m.[0m] File change detected. Starting incremental compilation...
+
+[[90m8:16:42 a.m.[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDatabaseModule dependencies initialized[39m[38;5;3m +20ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +3ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuditModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTenantModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMappingModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUploadsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSharesModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRetentionModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiffModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAdminModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:48 a.m. [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mExportsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHealthController {/api/health}:[39m[38;5;3m +1688ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/health, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/google/start, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/google/callback, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/microsoft/start, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/microsoft/callback, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/test/login, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/test/logout, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTenantController {/api/tenant}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tenant/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tenant/resource/:tenantId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUploadsController {/api/uploads}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/uploads/validate, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/uploads/intake, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMappingController {/api/mappings}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/preview/:revisionId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/confirm, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/mappings/:revisionId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDiffController {/api}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs/:jobId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs/:jobId/rows, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/diff-jobs/:jobId/tree, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mSharesController {/api/shares}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/:comparisonId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/invite, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/shares/revoke, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mNotificationsController {/api/notifications}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/notifications, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/notifications/:notificationId/read, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mExportsController {/api/exports}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/exports/csv/:comparisonId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/exports/excel/:comparisonId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAdminController {/api/admin}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/users, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/upload-policy/reset, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/upload-policy/override, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/retention/run, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/admin/test/grant-role, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 138188  - [39m2026-03-02, 8:16:50 a.m. [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +2ms[39m
+Backend listening on http://localhost:4000/api

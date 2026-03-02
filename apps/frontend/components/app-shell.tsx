@@ -1,14 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-
-function navClass(pathname: string, href: string): string {
-  const base = 'navLink';
-  if (pathname === href) return `${base} navLinkActive`;
-  if (href === '/mappings' && pathname.startsWith('/mappings/')) return `${base} navLinkActive`;
-  return base;
-}
 
 export function AppShell(props: {
   userEmail: string;
@@ -16,29 +8,27 @@ export function AppShell(props: {
   children: React.ReactNode;
   actions?: React.ReactNode;
 }) {
-  const pathname = usePathname();
-
   return (
     <div className="page shell">
       <aside className="sidebar">
         <div className="brand">BOM Compare VX</div>
         <div className="nav">
-          <Link href="/upload" className={navClass(pathname, '/upload')}>
+          <Link href="/upload" className="navLink">
             Upload
           </Link>
-          <Link href="/history" className={navClass(pathname, '/history')}>
+          <Link href="/history" className="navLink">
             History
           </Link>
-          <Link href="/results" className={navClass(pathname, '/results')}>
+          <Link href="/results" className="navLink">
             Results
           </Link>
-          <Link href="/mappings/rev-s3-preview" className={navClass(pathname, '/mappings')}>
+          <Link href="/mappings/rev-s3-preview" className="navLink">
             Mapping Preview
           </Link>
-          <Link href="/notifications" className={navClass(pathname, '/notifications')}>
+          <Link href="/notifications" className="navLink">
             Notifications
           </Link>
-          <Link href="/admin" className={navClass(pathname, '/admin')}>
+          <Link href="/admin" className="navLink">
             Admin
           </Link>
         </div>

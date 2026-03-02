@@ -535,8 +535,18 @@ Close remaining high-priority scope from legacy Epic `439` and Epic `440` with C
 - Parent-context attributes (`quantity`, `findNumber`, context path) are edge-level fields on `ContainsEdge`.
 - Existing contracts `bom_components` and `component_links` remain supported via compatibility views or mapped query layer.
 - Tree APIs should use recursive CTE (or equivalent SQL Graph traversal) with deterministic ordering.
+- Tree API shape is dedicated endpoint: `GET /diff-jobs/{id}/tree?...` with node-focused payload contract.
+- Tree endpoint minimum payload contract:
+  - request: `cursor`, `limit`, optional `expandedNodeIds`
+  - response: `nodes[]` (`nodeId`, `parentNodeId`, `depth`, key fields, `changeType`, `changedFields`, optional `fromParent`/`toParent`), `nextCursor`, `hasMore`
 - Comparison read paths bind to immutable `leftRevisionId` and `rightRevisionId` graph snapshots.
-- `moved` classification requires parent-change rationale (`fromParent`, `toParent`); if quantity also changes, keep `moved` and include quantity in `changedFields`.
+- `moved` classification requires parent-change rationale (`fromParent`, `toParent`) with moved eligibility threshold `>=0.90`; if quantity also changes, keep `moved` and include quantity in `changedFields`.
+- Graph physical table names are camelCase: `partNode`, `containsEdge`.
+- Cutover is new revisions only with no dual-write.
+- Read-path rule is automatic per revision (graph snapshot exists => graph path; else fallback during transition).
+- Snapshot completeness for graph-path comparisons requires both `leftRevisionId` and `rightRevisionId` snapshots.
+- Existing legacy tables remain read-only during transition and are removed after stable cutover.
+- Rollback strategy during transition is feature-flag rollback only.
 
 ### S7 Performance Targets (Locked)
 - Keep core comparison p95 unchanged:
@@ -548,16 +558,113 @@ Close remaining high-priority scope from legacy Epic `439` and Epic `440` with C
   - first hierarchy response <2s
   - first meaningful hierarchy rows <5s
   - graph-aware matching overhead <=15% vs Stage 4 baseline for same fixture tier
+- Performance gate treatment:
+  - first 3 CI performance runs are non-blocking
+  - from run 4 onward, checks are blocking
+- Performance measurement protocol:
+  - CI benchmark suite is the gating source of truth
+  - local benchmark harness is diagnostic and required for triage
 
 ### AI Execution Prerequisites
 - Locked matching contracts and deterministic fixture catalog available.
-- Real-world CSV/XLSX hierarchy fixtures checked into test assets.
+- Real-world CSV/XLSX hierarchy fixtures sourced from `docs/BOM Examples` paired-version files and checked into test assets.
 - Browser + backend CI pipelines green before Story start.
 - Human product checkpoint only for taxonomy/rationale UX acceptance.
+- Hard CI gate policy:
+  - required checks: `backend:ci`, `frontend:ci`, `playwright`, `verify:story`
+  - authoritative baseline branch: `main`
+  - full CI on every PR
+  - flaky test quarantine only with explicit owner + deadline
+  - no merge while CI is red
 
 ### Rollout Notes
 - Proposed flags: `MATCHER_GRAPH_V1`, `RESULTS_TREE_VIEW_V1`, `RESULTS_DYNAMIC_FILTERS_V1`.
 - STEP/STP remains deferred to Stage 10 by explicit planning decision.
+- Flag source: env-based now; App Configuration later.
+- Environment defaults:
+  - Dev: all Stage 7 flags `true`
+  - Test: all Stage 7 flags `false` initially
+  - Prod: all Stage 7 flags `false` initially
+- Rollout order: matcher -> tree -> dynamic filters.
+- Flag-off behavior: graceful fallback to Stage 4 baseline.
+- Telemetry sink: Application Insights (logs backup), with correlation dimensions:
+  - `tenantId`, `comparisonId`, `revisionPair`, `flagState`, `correlationId`
+- Runtime SLO telemetry flags (initially all `false`):
+  - `OBS_S7_TREE_EXPAND_P95`
+  - `OBS_S7_DYNAMIC_QUERY_P95`
+  - `OBS_S7_FIRST_HIERARCHY_RESPONSE`
+  - `OBS_S7_FIRST_MEANINGFUL_TREE_ROWS`
+  - `OBS_S7_OVERHEAD_VS_S4`
+- Alert policy:
+  - warn after 3 consecutive breaches
+  - critical after 10 minutes sustained
+  - manual rollback in Dev/Test
+- Alert thresholds apply when corresponding SLO metric flags are enabled.
+
+---
+
+## Sprint S7B - Stage 7 Format Scalability (Option B)
+
+### Sprint Metadata
+- Sprint: `S7B`
+- Stage: `Stage 7 - Format Scalability and Composite Identity`
+- Dates: `TBD`
+- Owner: `Product + Engineering`
+- Status: `Completed (Executed with S7 in current delivery cycle)`
+
+### Sprint Goal
+Implement a scalable profile-adapter matching architecture so arbitrary BOM formats can be compared deterministically without false mass `replaced` classifications.
+
+Execution backlog:
+- `BACKLOG_S7_FORMATS.md`
+
+### Scope (Suggested)
+| ID | Work Item | Traceability | Estimate | Owner | Priority |
+|---|---|---|---:|---|---|
+| S7F-01 | Define contextual composite key contract (`stableOccurrenceKey` + `snapshotRowKey`) and adapter interface | Epic `439`; format scalability objective | 3 | AI Coding Agent (BE/Architect) | P0 |
+| S7F-02 | Implement profile registry + SAP adapter (occurrence identity from component + hierarchy/sequence context) | Epic `439`; SAP false-replace remediation | 5 | AI Coding Agent (BE) | P0 |
+| S7F-03 | Implement generic adapter fallback for unknown BOM formats with deterministic key degradation | Epic `439`; unlimited-format objective | 5 | AI Coding Agent (BE) | P0 |
+| S7F-04 | Integrate key-first matcher pass order with strict ambiguity gate (no forced replacement on ambiguous identity) | `FR-007`; deterministic policy lock | 5 | AI Coding Agent (BE) | P0 |
+| S7F-05 | Add profile-based field policy (`identity` vs `comparable` vs `display`) and include mapped business fields such as `Plant` as non-identity deltas | Epic `439`; Stage 4/7 diff quality | 3 | AI Coding Agent (BE/Product) | P0 |
+| S7F-06 | Harden replacement classification guardrails (`replaced` only on high-confidence context-aligned pairings) | `FR-007`; taxonomy correctness | 3 | AI Coding Agent (BE) | P0 |
+| S7F-07 | Add observability metrics for key collision, ambiguity rate, unmatched rate, and forced-replacement suppression | `NFR-OBS`; rollout safety | 3 | AI Coding Agent (BE/DevOps) | P1 |
+| S7F-08 | Add backend fixture matrix tests (same-vs-same, single-change, hierarchy duplicates) using `docs/BOM Examples` | QA hardening | 5 | AI Coding Agent (QA/BE) | P0 |
+| S7F-09 | Add Playwright scenarios for format adapters (same-vs-same should converge to no-change) | QA hardening | 3 | AI Coding Agent (QA/FE) | P1 |
+| S7F-10 | Add rollout flags/runbook for adapter framework and staged profile enablement | rollout control | 3 | AI Coding Agent (BE/DevOps) | P1 |
+
+### Guardrails (Locked)
+- No Cosmos DB/Gremlin.
+- Deterministic strategy/tie-break invariants from Stage 4 remain binding.
+- `replaced` must not be emitted from ambiguous identity fallback paths.
+- Same-file-vs-same-file baseline must produce no mass false change classifications.
+- Profile adapter framework must always have a deterministic generic fallback for unknown formats.
+- Locked clarification set: `1A`, `2A`, `3A`, `4A`, `5A`, `6A` (see `BACKLOG_S7_FORMATS.md`).
+
+### Rollout Notes
+- Proposed flags:
+  - `MATCHER_PROFILE_ADAPTERS_V1`
+  - `MATCHER_COMPOSITE_KEY_V1`
+  - `MATCHER_AMBIGUITY_STRICT_V1`
+- Enablement sequence:
+  - Dev: all `true`
+  - Test: `MATCHER_PROFILE_ADAPTERS_V1=true`, others gated after fixture pass
+  - Prod: start `false`, then canary by tenant/profile
+- Locked runtime rollout strategy: tenant/profile canary first, not global big-bang.
+
+### Definition of Done (Sprint-Level)
+- Adapter framework exists with profile registry and deterministic generic fallback.
+- Composite-key-first matching reduces false `replaced` for duplicate-heavy BOMs.
+- Same-vs-same BOM fixture runs converge to expected `no_change` dominant output.
+- Regression suite and browser automation for adapter flows pass.
+- Rollout flags + runbook support safe tenant/profile staged activation.
+
+### Clarification Status
+- No open clarification items for S7B.
+- Locked set `1A` through `6A` is implemented and documented in `BACKLOG_S7_FORMATS.md` and `V1_DECISIONS.md`.
+
+### Overlap Boundary
+- S7B closed adapter/composite-key scope and adapter-quality automation.
+- Remaining open S7 stories (`S7-04` to `S7-08`) should not duplicate S7B tests/metrics; they should focus on hierarchy tree UX, Stage 7 core graph closure, and rollout controls.
 
 ---
 
@@ -582,6 +689,18 @@ Close remaining high-priority scope from legacy Epic `439` and Epic `440` with C
 
 ### Rollout Notes
 - Proposed flags: `RATE_LIMITING_V1`, `HISTORY_PARITY_V1`, `CONSENT_TRACKING_V1`.
+- Clarification lock (approved):
+  - rate-limit enforcement: gateway + app
+  - baseline limit: `100 req/min` + stricter upload/diff/export caps
+  - authenticated throttle key: `tenantId`; unauthenticated fallback: IP
+  - exemptions: admin/service allowlist with audit
+  - consent model: separate Terms/Privacy versions + timestamp; policy updates require re-accept on next login
+  - history delete: soft-delete + audit (physical purge by retention flow)
+  - tag model: single owner-private editable label (max 50 chars)
+  - audit export: harden existing Stage 6 surface (no rebuild)
+  - audit archive: daily append-only Blob archive, GRS, 7+ years target
+  - secure SDLC CI gates: block on high/critical vulnerabilities, secret hits, and license-policy violations
+  - compliance role source: existing DB admin role claim.
 
 ---
 

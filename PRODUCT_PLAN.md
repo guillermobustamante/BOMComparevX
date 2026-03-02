@@ -95,6 +95,12 @@ Graph Backend Decision (locked):
 - Existing app contracts (`bom_components`, `component_links`) remain stable through compatibility views or mapped query layer.
 - Tree APIs should use recursive CTE (or equivalent SQL Graph traversal) with deterministic ordering.
 - Comparison reads bind to immutable `leftRevisionId` and `rightRevisionId` snapshots.
+- Migration/cutover policy:
+  - new revisions only
+  - no dual-write
+  - automatic per-revision graph/fallback read-path during transition
+  - rollback via feature flags only during transition
+  - legacy tables read-only during transition and removable after stable cutover
 
 ### 5.3 Amendment 1: Semantic Registry + Multi-Pass Detection
 - **Pass 1: Semantic Registry** (95%+ target)
@@ -192,8 +198,8 @@ Classification outcomes persist row-level and cell-level rationale metadata for 
 - `users`
 - `comparison_sessions`
 - `bom_revisions`
-- `part_nodes` / `PartNode` (revision-scoped canonical graph nodes)
-- `contains_edges` / `ContainsEdge` (revision-scoped graph edges with parent-context attributes)
+- `partNode` / `PartNode` (revision-scoped canonical graph nodes)
+- `containsEdge` / `ContainsEdge` (revision-scoped graph edges with parent-context attributes)
 - `bom_components`
 - `component_links`
 - `comparison_diffs`
@@ -301,6 +307,49 @@ Priority closeout for open legacy scope in Epic `439` (BOM Comparison and Matchi
 - automation and rollout controls for new matching and results behaviors
 - SQL Graph contract continuity (`PartNode`/`ContainsEdge` with compatibility projections for `bom_components`/`component_links`)
 - S7 performance SLOs for hierarchy interaction/query paths and graph-aware overhead budget
+- dedicated tree endpoint contract (`GET /diff-jobs/{id}/tree?...`) for hierarchy payloads
+- moved high-confidence threshold locked at `>=0.90`
+- fixture baseline source: paired-version files under `docs/BOM Examples`
+- Stage 7 CI policy: hard gate on `backend:ci`, `frontend:ci`, `playwright`, `verify:story`; no merge on red
+- Stage 7 performance protocol: CI benchmark suite is gate source, local benchmark harness is diagnostic
+- Stage 7 runtime SLO metric flags exist but are disabled initially (`OBS_S7_*` flags); alert thresholds apply when enabled
+
+### Stage 7B — Format Scalability and Composite Identity (Option B)
+Scale Stage 7 into an unlimited-format architecture by introducing profile adapters and contextual composite occurrence keys:
+- profile-adapter framework:
+  - known adapters (start with SAP) encode ecosystem-specific occurrence identity semantics
+  - deterministic generic adapter handles unknown formats without silent non-determinism
+- contextual composite keys:
+  - `stableOccurrenceKey` for cross-revision matching
+  - `snapshotRowKey` for immutable persistence uniqueness
+- matcher policy:
+  - key-first deterministic matching before fuzzy/general heuristics
+  - strict ambiguity gate (ambiguous identity does not auto-convert into `replaced`)
+- classification hardening:
+  - `replaced` requires high-confidence context-aligned pairing
+  - profile field policy separates identity fields from comparable delta fields (example: `Plant` generally treated as comparable, not identity)
+- quality gate:
+  - same-vs-same fixture comparisons must converge to no-change dominant output
+  - fixture matrix includes duplicate-heavy hierarchies and single-change controls across known and unknown profiles
+
+Execution vehicle:
+- dedicated execution backlog: `BACKLOG_S7_FORMATS.md`
+- sprint sequencing: `SPRINT_PLAN.md` Sprint `S7B` (`S7F-01` to `S7F-10`)
+- locked clarification set for execution:
+  - profile detection: auto-detect + confidence + fallback + optional override
+  - ambiguity policy: explicit ambiguity state, proceed allowed, no forced replacement
+  - effectivity usage: secondary identity by default, profile elevation allowed
+  - onboarding model: config-driven + code hooks
+  - replacement confidence baseline: `>=0.90` (telemetry-tuned)
+  - rollout: tenant/profile canary, staged Prod enablement
+
+Parked for future version:
+- Adapter Configuration Screen (V2/V3 candidate):
+  - brief: tenant-facing UI to inspect/override detected profile and field policy, and review adapter diagnostics.
+  - options:
+    - Option A: read-only diagnostics panel
+    - Option B: tenant-admin override controls (recommended future)
+    - Option C: all-user override controls
 
 Explicit deferral:
 - STEP/STP parsing and STEP/STP-specific matching are deferred to Stage 10.
@@ -311,6 +360,13 @@ Close remaining V1 security/compliance gaps identified in legacy DevOps stories:
 - Terms/privacy notice + consent/version tracking
 - History parity hardening (rename/tag/delete workflow completion)
 - Audit export governance hardening and secure SDLC policy checks
+- Locked operating defaults for execution readiness:
+  - baseline rate limit `100 req/min` plus stricter upload/diff/export route caps
+  - authenticated throttle key `tenantId`; unauthenticated fallback key IP
+  - consent model uses separate Terms/Privacy versions with mandatory re-accept on update
+  - history delete is soft-delete + audit in V1
+  - audit archive baseline: daily append-only Blob archive with geo-redundancy and 7+ year target retention
+  - secure SDLC CI gates block on high/critical vulnerabilities, secret hits, and license-policy violations
 
 ### Stage 9 — Reliability + Disaster-Recovery Readiness
 Operational readiness completion for resilient production operations:

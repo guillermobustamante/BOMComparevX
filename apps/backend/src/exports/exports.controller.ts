@@ -134,7 +134,7 @@ export class ExportsController {
     tenantId: string,
     actorEmail: string
   ): Promise<void> {
-    const ownerEmail = this.diffJobService.getOwnerEmail(comparisonId, tenantId);
+    const ownerEmail = await this.diffJobService.getOwnerEmail(comparisonId, tenantId);
     if (ownerEmail === actorEmail) return;
     const shareAccess = await this.sharesService.canAccessComparison(tenantId, comparisonId, actorEmail);
     if (shareAccess.allowed) return;

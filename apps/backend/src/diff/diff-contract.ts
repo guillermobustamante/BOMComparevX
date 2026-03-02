@@ -22,6 +22,7 @@ export type TieBreakStep = (typeof TIE_BREAK_ORDER)[number];
 
 export const ATTRIBUTE_CONCORDANCE_ORDER = ['description', 'quantity', 'supplier'] as const;
 export const NEAR_TIE_DELTA = 0.01;
+export const MOVED_CONFIDENCE_THRESHOLD = 0.9;
 
 export const CHANGE_TAXONOMY = [
   'added',
@@ -38,17 +39,25 @@ export type ChangeType = (typeof CHANGE_TAXONOMY)[number];
 export interface DiffComparableRow {
   rowId: string;
   internalId?: string | null;
+  stableOccurrenceKey?: string | null;
+  snapshotRowKey?: string | null;
+  profileName?: string | null;
+  profileConfidence?: number | null;
   partNumber?: string | null;
   revision?: string | null;
   description?: string | null;
   quantity?: number | null;
   supplier?: string | null;
+  plant?: string | null;
   color?: string | null;
   units?: string | null;
   cost?: number | null;
   category?: string | null;
   parentPath?: string | null;
   position?: string | null;
+  assemblyPath?: string | null;
+  findNumber?: string | null;
+  hierarchyLevel?: number | null;
 }
 
 export interface MatchDecision {
@@ -75,6 +84,8 @@ export interface ClassifiedDiffRow {
   reasonCode: string;
   matchedBy?: MatchStrategy;
   cells: DiffCellChange[];
+  fromParent?: string | null;
+  toParent?: string | null;
 }
 
 export interface PersistedDiffRow extends ClassifiedDiffRow {
@@ -94,7 +105,14 @@ export interface PersistedDiffRow extends ClassifiedDiffRow {
     tieBreakTrace?: TieBreakStep[];
     score?: number;
     reviewRequired?: boolean;
+    graphContextUsed?: boolean;
+    sourceProfile?: string | null;
+    targetProfile?: string | null;
+    sourceStableOccurrenceKey?: string | null;
+    targetStableOccurrenceKey?: string | null;
     changedFields: string[];
+    fromParent?: string | null;
+    toParent?: string | null;
   };
 }
 
@@ -119,4 +137,82 @@ export interface DiffJobStatusPayload {
   totalRows: number;
   nextCursor: string | null;
   status: 'running' | 'completed';
+  errorCode?: string;
+  errorMessage?: string;
+}
+
+export interface PartNode {
+  nodeId: string;
+  tenantId: string;
+  revisionId: string;
+  sourceRowId: string;
+  partNumber: string | null;
+  revision: string | null;
+  description: string | null;
+  internalId: string | null;
+  createdAtUtc: string;
+}
+
+export interface ContainsEdge {
+  edgeId: string;
+  tenantId: string;
+  revisionId: string;
+  parentNodeId: string | null;
+  childNodeId: string;
+  sourceRowId: string;
+  quantity: number | null;
+  findNumber: string | null;
+  parentPath: string | null;
+  depth: number | null;
+  createdAtUtc: string;
+}
+
+export interface RevisionGraphSnapshot {
+  tenantId: string;
+  revisionId: string;
+  nodes: PartNode[];
+  edges: ContainsEdge[];
+  createdAtUtc: string;
+}
+
+export type DiffRowsQueryOperator = 'eq' | 'contains' | 'gt' | 'lt' | 'in';
+
+export interface DiffRowsQueryFilter {
+  field: string;
+  op: DiffRowsQueryOperator;
+  value: string;
+}
+
+export interface DiffRowsQueryDescriptor {
+  searchText?: string;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+  filters?: DiffRowsQueryFilter[];
+}
+
+export interface DiffTreeNode {
+  nodeId: string;
+  parentNodeId: string | null;
+  depth: number;
+  hasChildren: boolean;
+  rowId: string;
+  changeType: ChangeType;
+  keyFields: {
+    partNumber: string | null;
+    revision: string | null;
+    description: string | null;
+  };
+  changedFields: string[];
+  fromParent?: string | null;
+  toParent?: string | null;
+}
+
+export interface DiffTreeResponse {
+  contractVersion: string;
+  jobId: string;
+  nodes: DiffTreeNode[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  loadedRows: number;
+  totalRows: number;
 }

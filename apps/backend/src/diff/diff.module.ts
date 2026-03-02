@@ -7,15 +7,19 @@ import { UploadsModule } from '../uploads/uploads.module';
 import { ClassificationService } from './classification.service';
 import { DiffController } from './diff.controller';
 import { DiffComputationService } from './diff-computation.service';
+import { DiffFeatureFlagService } from './feature-flag.service';
 import { DiffJobService } from './diff-job.service';
 import { MatcherService } from './matcher.service';
 import { NormalizationService } from './normalization.service';
+import { ProfileAdapterService } from './profile-adapter.service';
 
 @Module({
   imports: [AuditModule, UploadsModule, SharesModule, NotificationsModule],
   controllers: [DiffController],
   providers: [
     NormalizationService,
+    DiffFeatureFlagService,
+    ProfileAdapterService,
     MatcherService,
     ClassificationService,
     DiffComputationService,
@@ -24,6 +28,8 @@ import { NormalizationService } from './normalization.service';
   ],
   exports: [
     NormalizationService,
+    DiffFeatureFlagService,
+    ProfileAdapterService,
     MatcherService,
     ClassificationService,
     DiffComputationService,

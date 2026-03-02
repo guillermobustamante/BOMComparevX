@@ -202,3 +202,59 @@ model UploadPolicyOverride {
   @@index([tenantId, isUnlimited, updatedAtUtc], map: "ix_uploadPolicyOverrides_tenant_unlimited_updatedAt")
   @@map("uploadPolicyOverrides")
 }
+
+model PartNode {
+  nodeId          String   @id
+  tenantId        String
+  revisionId      String
+  sourceRowId     String
+  partNumber      String?
+  revision        String?
+  description     String?
+  internalId      String?
+  hierarchyLevel  Int?
+  assemblyPath    String?
+  createdAtUtc    DateTime
+
+  @@unique([tenantId, revisionId, sourceRowId], map: "uq_partNode_tenant_revision_sourceRow")
+  @@index([tenantId, revisionId, partNumber], map: "ix_partNode_tenant_revision_partNumber")
+  @@index([tenantId, revisionId, createdAtUtc], map: "ix_partNode_tenant_revision_createdAt")
+  @@map("partNode")
+}
+
+model ContainsEdge {
+  edgeId        String   @id
+  tenantId      String
+  revisionId    String
+  parentNodeId  String?
+  childNodeId   String
+  sourceRowId   String
+  quantity      Float?
+  findNumber    String?
+  parentPath    String?
+  depth         Int?
+  createdAtUtc  DateTime
+
+  @@unique([tenantId, revisionId, sourceRowId], map: "uq_containsEdge_tenant_revision_sourceRow")
+  @@index([tenantId, revisionId, parentNodeId, depth], map: "ix_containsEdge_tenant_revision_parent_depth")
+  @@index([tenantId, revisionId, createdAtUtc], map: "ix_containsEdge_tenant_revision_createdAt")
+  @@map("containsEdge")
+}
+
+model DiffSnapshot {
+  snapshotId      String   @id
+  comparisonId    String   @unique
+  tenantId        String
+  requestedBy     String
+  sessionId       String?
+  leftRevisionId  String?
+  rightRevisionId String?
+  contractVersion String
+  countersJson    String   @db.NVarChar(Max)
+  rowsJson        String   @db.NVarChar(Max)
+  createdAtUtc    DateTime
+
+  @@index([tenantId, comparisonId], map: "ix_diffSnapshot_tenant_comparison")
+  @@index([tenantId, createdAtUtc], map: "ix_diffSnapshot_tenant_createdAt")
+  @@map("diffSnapshot")
+}

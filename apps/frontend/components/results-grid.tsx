@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 type ChangeType = 'added' | 'removed' | 'replaced' | 'modified' | 'moved' | 'quantity_change' | 'no_change';
+type PageSize = 50 | 100 | 200;
+type ResultsViewMode = 'flat' | 'tree';
 
 interface DiffRow {
   rowId: string;
@@ -41,6 +43,8 @@ interface DiffStatus {
   totalRows: number;
   nextCursor: string | null;
   status: 'running' | 'completed';
+  errorCode?: string;
+  errorMessage?: string;
 }
 
 interface ShareRecipient {
@@ -48,6 +52,23 @@ interface ShareRecipient {
   permission: 'view';
   createdAtUtc: string;
   updatedAtUtc: string;
+}
+
+interface DiffTreeNode {
+  nodeId: string;
+  parentNodeId: string | null;
+  depth: number;
+  hasChildren: boolean;
+  rowId: string;
+  changeType: ChangeType;
+  keyFields: {
+    partNumber: string | null;
+    revision: string | null;
+    description: string | null;
+  };
+  changedFields: string[];
+  fromParent?: string | null;
+  toParent?: string | null;
 }
 
 const CHANGE_FILTERS: Array<{ value: 'all' | ChangeType; label: string }> = [
@@ -61,9 +82,15 @@ const CHANGE_FILTERS: Array<{ value: 'all' | ChangeType; label: string }> = [
   { value: 'no_change', label: 'No Change' }
 ];
 
+const PAGE_SIZE_OPTIONS: PageSize[] = [50, 100, 200];
+
 export function ResultsGrid() {
   const resultsGridEnabled =
     (process.env.NEXT_PUBLIC_RESULTS_GRID_STAGE4_V1 || 'true').trim().toLowerCase() !== 'false';
+  const resultsTreeViewEnabled =
+    (process.env.NEXT_PUBLIC_RESULTS_TREE_VIEW_V1 || 'true').trim().toLowerCase() !== 'false';
+  const resultsDynamicFiltersEnabled =
+    (process.env.NEXT_PUBLIC_RESULTS_DYNAMIC_FILTERS_V1 || 'true').trim().toLowerCase() !== 'false';
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -71,6 +98,7 @@ export function ResultsGrid() {
   const sessionId = searchParams.get('sessionId');
   const leftRevisionId = searchParams.get('leftRevisionId');
   const rightRevisionId = searchParams.get('rightRevisionId');
+
   const [jobId, setJobId] = useState<string | null>(null);
   const [status, setStatus] = useState<DiffStatus | null>(null);
   const [rows, setRows] = useState<DiffRow[]>([]);
@@ -79,8 +107,22 @@ export function ResultsGrid() {
   const [partFilter, setPartFilter] = useState('');
   const [changeFilter, setChangeFilter] = useState<'all' | ChangeType>('all');
   const [sortMode, setSortMode] = useState<'source' | 'part' | 'change'>('source');
+  const [viewMode, setViewMode] = useState<ResultsViewMode>('flat');
   const [isStarting, setIsStarting] = useState(false);
+  const [pageSize, setPageSize] = useState<PageSize>(50);
+  const [currentCursor, setCurrentCursor] = useState('0');
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [cursorHistory, setCursorHistory] = useState<string[]>([]);
+  const [filteredTotalRows, setFilteredTotalRows] = useState(0);
+  const [treeNodes, setTreeNodes] = useState<DiffTreeNode[]>([]);
+  const [expandedNodeIds, setExpandedNodeIds] = useState<string[]>([]);
+
   const rowsCountRef = useRef(0);
+  const treeRowsCountRef = useRef(0);
+  const lastStatusLoadedRowsRef = useRef(0);
+  const statusPollInFlightRef = useRef(false);
+  const latestStatusRef = useRef<DiffStatus | null>(null);
+
   const activeComparisonId = jobId || comparisonIdParam;
   const [shareInput, setShareInput] = useState('');
   const [shareRecipients, setShareRecipients] = useState<ShareRecipient[]>([]);
@@ -90,6 +132,27 @@ export function ResultsGrid() {
   useEffect(() => {
     rowsCountRef.current = rows.length;
   }, [rows.length]);
+
+  useEffect(() => {
+    treeRowsCountRef.current = treeNodes.length;
+  }, [treeNodes.length]);
+
+  useEffect(() => {
+    latestStatusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    if (!resultsTreeViewEnabled && viewMode === 'tree') {
+      setViewMode('flat');
+    }
+  }, [resultsTreeViewEnabled, viewMode]);
+
+  function resetPagination(): void {
+    setCurrentCursor('0');
+    setNextCursor(null);
+    setCursorHistory([]);
+    setFilteredTotalRows(0);
+  }
 
   async function loadShareRecipients(comparisonId: string) {
     setShareError(null);
@@ -178,12 +241,158 @@ export function ResultsGrid() {
     }
   }
 
+  function buildRowsQuery(cursor: string, limit: number): string {
+    const params = new URLSearchParams();
+    params.set('cursor', cursor);
+    params.set('limit', String(limit));
+    if (search.trim()) {
+      params.set('searchText', search.trim());
+    }
+
+    const filters: Array<{ field: string; op: 'eq' | 'contains'; value: string }> = [];
+    if (partFilter.trim()) {
+      filters.push({
+        field: 'keyFields.partNumber',
+        op: 'contains',
+        value: partFilter.trim()
+      });
+    }
+    if (changeFilter !== 'all') {
+      filters.push({
+        field: 'changeType',
+        op: 'eq',
+        value: changeFilter
+      });
+    }
+    if (filters.length > 0) {
+      params.set('filters', JSON.stringify(filters));
+    }
+
+    if (sortMode === 'part') {
+      params.set('sortBy', 'keyFields.partNumber');
+    } else if (sortMode === 'change') {
+      params.set('sortBy', 'changeType');
+    } else {
+      params.set('sortBy', 'sourceIndex');
+    }
+    params.set('sortDir', 'asc');
+    return params.toString();
+  }
+
+  function buildTreeQuery(cursor: string, limit: number, expanded: string[] = expandedNodeIds): string {
+    const params = new URLSearchParams();
+    params.set('cursor', cursor);
+    params.set('limit', String(limit));
+    if (expanded.length > 0) {
+      params.set('expandedNodeIds', expanded.join(','));
+    }
+    if (search.trim()) {
+      params.set('searchText', search.trim());
+    }
+
+    const filters: Array<{ field: string; op: 'eq' | 'contains'; value: string }> = [];
+    if (partFilter.trim()) {
+      filters.push({
+        field: 'keyFields.partNumber',
+        op: 'contains',
+        value: partFilter.trim()
+      });
+    }
+    if (changeFilter !== 'all') {
+      filters.push({
+        field: 'changeType',
+        op: 'eq',
+        value: changeFilter
+      });
+    }
+    if (filters.length > 0) {
+      params.set('filters', JSON.stringify(filters));
+    }
+
+    if (sortMode === 'part') {
+      params.set('sortBy', 'keyFields.partNumber');
+    } else if (sortMode === 'change') {
+      params.set('sortBy', 'changeType');
+    } else {
+      params.set('sortBy', 'sourceIndex');
+    }
+    params.set('sortDir', 'asc');
+    return params.toString();
+  }
+
+  async function loadPage(nextJobId: string, cursor: string): Promise<boolean> {
+    try {
+      const response = await fetch(
+        `/api/diff-jobs/${encodeURIComponent(nextJobId)}/rows?${buildRowsQuery(cursor, pageSize)}`,
+        {
+          method: 'GET',
+          cache: 'no-store'
+        }
+      );
+      const payload = (await response.json()) as {
+        rows?: DiffRow[];
+        nextCursor?: string | null;
+        loadedRows?: number;
+        totalRows?: number;
+        code?: string;
+        message?: string;
+      };
+      if (!response.ok) {
+        setError(`${payload.code || 'DIFF_ROWS_FAILED'}: ${payload.message || 'Could not load diff rows.'}`);
+        return false;
+      }
+      setRows(payload.rows || []);
+      setCurrentCursor(cursor);
+      setNextCursor(payload.nextCursor || null);
+      setFilteredTotalRows(payload.totalRows || 0);
+      return true;
+    } catch {
+      setError('DIFF_ROWS_FAILED: Could not load diff rows.');
+      return false;
+    }
+  }
+
+  async function loadTreePage(nextJobId: string, cursor: string, expanded: string[] = expandedNodeIds): Promise<boolean> {
+    try {
+      const response = await fetch(
+        `/api/diff-jobs/${encodeURIComponent(nextJobId)}/tree?${buildTreeQuery(cursor, pageSize, expanded)}`,
+        {
+          method: 'GET',
+          cache: 'no-store'
+        }
+      );
+      const payload = (await response.json()) as {
+        nodes?: DiffTreeNode[];
+        nextCursor?: string | null;
+        totalRows?: number;
+        code?: string;
+        message?: string;
+      };
+      if (!response.ok) {
+        setError(`${payload.code || 'DIFF_TREE_FAILED'}: ${payload.message || 'Could not load hierarchy view.'}`);
+        return false;
+      }
+      setTreeNodes(payload.nodes || []);
+      setCurrentCursor(cursor);
+      setNextCursor(payload.nextCursor || null);
+      setFilteredTotalRows(payload.totalRows || 0);
+      return true;
+    } catch {
+      setError('DIFF_TREE_FAILED: Could not load hierarchy view.');
+      return false;
+    }
+  }
+
   async function startDiffJob() {
     setIsStarting(true);
     setError(null);
     setRows([]);
+    setTreeNodes([]);
+    setExpandedNodeIds([]);
     setStatus(null);
     setJobId(null);
+    resetPagination();
+    lastStatusLoadedRowsRef.current = 0;
 
     try {
       const response = await fetch('/api/diff-jobs', {
@@ -205,11 +414,16 @@ export function ResultsGrid() {
       const started = payload as DiffStatus;
       setJobId(started.jobId);
       setStatus(started);
+      lastStatusLoadedRowsRef.current = started.loadedRows;
       const params = new URLSearchParams(searchParams.toString());
       params.set('comparisonId', started.jobId);
       const query = params.toString();
       router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-      await pullRows(started.jobId, '0', started.loadedRows);
+      if (viewMode === 'tree') {
+        await loadTreePage(started.jobId, '0');
+      } else {
+        await loadPage(started.jobId, '0');
+      }
     } catch {
       setError('DIFF_START_FAILED: Could not start diff job.');
     } finally {
@@ -217,50 +431,73 @@ export function ResultsGrid() {
     }
   }
 
-  async function pullRows(nextJobId: string, startCursor: string, loadedRows: number) {
-    let cursor = startCursor;
-    while (Number(cursor) < loadedRows) {
-      const response = await fetch(`/api/diff-jobs/${encodeURIComponent(nextJobId)}/rows?cursor=${cursor}&limit=50`, {
-        method: 'GET',
-        cache: 'no-store'
-      });
-      const payload = (await response.json()) as {
-        rows?: DiffRow[];
-        nextCursor?: string | null;
-        code?: string;
-        message?: string;
-      };
-      if (!response.ok) {
-        setError(`${payload.code || 'DIFF_ROWS_FAILED'}: ${payload.message || 'Could not load diff rows.'}`);
-        return;
-      }
-      const incoming = payload.rows || [];
-      if (incoming.length) {
-        setRows((current) => {
-          const known = new Set(current.map((row) => row.rowId));
-          const appended = incoming.filter((row) => !known.has(row.rowId));
-          return [...current, ...appended];
-        });
-      }
-      if (!payload.nextCursor) break;
-      cursor = payload.nextCursor;
+  async function goToNextPage() {
+    if (!jobId || !nextCursor) return;
+    const previousCursor = currentCursor;
+    const loaded =
+      viewMode === 'tree' ? await loadTreePage(jobId, nextCursor) : await loadPage(jobId, nextCursor);
+    if (loaded) {
+      setCursorHistory((current) => [...current, previousCursor]);
     }
   }
 
+  async function goToPreviousPage() {
+    if (!jobId || cursorHistory.length === 0) return;
+    const previousCursor = cursorHistory[cursorHistory.length - 1];
+    const loaded =
+      viewMode === 'tree' ? await loadTreePage(jobId, previousCursor) : await loadPage(jobId, previousCursor);
+    if (loaded) {
+      setCursorHistory((current) => current.slice(0, current.length - 1));
+    }
+  }
+
+  async function toggleView(nextMode: ResultsViewMode) {
+    if (nextMode === viewMode) return;
+    setViewMode(nextMode);
+    setCurrentCursor('0');
+    setNextCursor(null);
+    setCursorHistory([]);
+    if (!jobId) return;
+    if (nextMode === 'tree') {
+      await loadTreePage(jobId, '0');
+      return;
+    }
+    await loadPage(jobId, '0');
+  }
+
+  async function toggleTreeNode(nodeId: string) {
+    if (!jobId) return;
+    const nextExpanded = expandedNodeIds.includes(nodeId)
+      ? expandedNodeIds.filter((entry) => entry !== nodeId)
+      : [...expandedNodeIds, nodeId];
+    setExpandedNodeIds(nextExpanded);
+    setCurrentCursor('0');
+    setNextCursor(null);
+    setCursorHistory([]);
+    await loadTreePage(jobId, '0', nextExpanded);
+  }
+
   useEffect(() => {
-    if (comparisonIdParam && !sessionId && !leftRevisionId && !rightRevisionId) {
-      setJobId(comparisonIdParam);
+    if (comparisonIdParam) {
+      setJobId((current) => (current === comparisonIdParam ? current : comparisonIdParam));
       setRows([]);
+      setTreeNodes([]);
+      setExpandedNodeIds([]);
       setStatus(null);
       setError(null);
+      resetPagination();
+      lastStatusLoadedRowsRef.current = 0;
       return;
     }
     void startDiffJob();
-  }, [sessionId, leftRevisionId, rightRevisionId]);
+  }, [comparisonIdParam, sessionId, leftRevisionId, rightRevisionId]);
 
   useEffect(() => {
     if (!jobId) return;
+    if (status?.status === 'completed' && !status.errorCode && !status.errorMessage) return;
     const timer = setInterval(async () => {
+      if (statusPollInFlightRef.current) return;
+      statusPollInFlightRef.current = true;
       try {
         const response = await fetch(`/api/diff-jobs/${encodeURIComponent(jobId)}`, {
           method: 'GET',
@@ -269,21 +506,77 @@ export function ResultsGrid() {
         const payload = (await response.json()) as DiffStatus | { code?: string; message?: string };
         if (!response.ok) {
           const err = payload as { code?: string; message?: string };
-          setError(`${err.code || 'DIFF_STATUS_FAILED'}: ${err.message || 'Could not load status.'}`);
+          setError((current) => {
+            const latestStatus = latestStatusRef.current;
+            if (
+              latestStatus?.status === 'completed' &&
+              !latestStatus.errorCode &&
+              !latestStatus.errorMessage
+            ) {
+              return current;
+            }
+            return `${err.code || 'DIFF_STATUS_FAILED'}: ${err.message || 'Could not load status.'}`;
+          });
           return;
         }
         const currentStatus = payload as DiffStatus;
         setStatus(currentStatus);
-        if (currentStatus.loadedRows > rowsCountRef.current) {
-          await pullRows(currentStatus.jobId, String(rowsCountRef.current), currentStatus.loadedRows);
+
+        if (currentStatus.errorCode || currentStatus.errorMessage) {
+          setError(
+            `${currentStatus.errorCode || 'DIFF_STATUS_FAILED'}: ${
+              currentStatus.errorMessage || 'Diff job failed.'
+            }`
+          );
+          return;
+        }
+        setError((current) => (current?.startsWith('DIFF_STATUS_') ? null : current));
+
+        const statusAdvanced = currentStatus.loadedRows !== lastStatusLoadedRowsRef.current;
+        const currentViewCount =
+          viewMode === 'tree' ? treeRowsCountRef.current : rowsCountRef.current;
+        const needsHydration = currentStatus.status === 'completed' && currentViewCount === 0;
+        if (statusAdvanced || needsHydration) {
+          lastStatusLoadedRowsRef.current = currentStatus.loadedRows;
+          if (viewMode === 'tree') {
+            await loadTreePage(currentStatus.jobId, currentCursor);
+          } else {
+            await loadPage(currentStatus.jobId, currentCursor);
+          }
         }
       } catch {
-        setError('DIFF_STATUS_FAILED: Could not load status.');
+        setError((current) => {
+          const latestStatus = latestStatusRef.current;
+          if (
+            latestStatus?.status === 'completed' &&
+            !latestStatus.errorCode &&
+            !latestStatus.errorMessage
+          ) {
+            return current;
+          }
+          return 'DIFF_STATUS_FAILED: Could not load status.';
+        });
+      } finally {
+        statusPollInFlightRef.current = false;
       }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [jobId]);
+  }, [jobId, currentCursor, pageSize, search, partFilter, changeFilter, sortMode, status, viewMode, expandedNodeIds]);
+
+  useEffect(() => {
+    if (!jobId) return;
+    setRows([]);
+    setTreeNodes([]);
+    setCurrentCursor('0');
+    setNextCursor(null);
+    setCursorHistory([]);
+    if (viewMode === 'tree') {
+      void loadTreePage(jobId, '0');
+    } else {
+      void loadPage(jobId, '0');
+    }
+  }, [jobId, search, partFilter, changeFilter, sortMode, pageSize, viewMode, expandedNodeIds]);
 
   useEffect(() => {
     if (!activeComparisonId) {
@@ -294,42 +587,17 @@ export function ResultsGrid() {
     void loadShareRecipients(activeComparisonId);
   }, [activeComparisonId]);
 
-  const visibleRows = useMemo(() => {
-    let filtered = rows;
-    if (changeFilter !== 'all') {
-      filtered = filtered.filter((row) => row.changeType === changeFilter);
-    }
-    const query = search.trim().toLowerCase();
-    if (query) {
-      filtered = filtered.filter((row) => {
-        const text = [
-          row.keyFields.partNumber,
-          row.keyFields.revision,
-          row.keyFields.description,
-          row.changeType,
-          row.rationale.classificationReason
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-        return text.includes(query);
-      });
-    }
-    const partQuery = partFilter.trim().toLowerCase();
-    if (partQuery) {
-      filtered = filtered.filter((row) => (row.keyFields.partNumber || '').toLowerCase().includes(partQuery));
-    }
-
-    const sorted = [...filtered];
-    if (sortMode === 'part') {
-      sorted.sort((a, b) => (a.keyFields.partNumber || '').localeCompare(b.keyFields.partNumber || ''));
-    } else if (sortMode === 'change') {
-      sorted.sort((a, b) => a.changeType.localeCompare(b.changeType) || a.sourceIndex - b.sourceIndex);
-    } else {
-      sorted.sort((a, b) => a.sourceIndex - b.sourceIndex || a.targetIndex - b.targetIndex);
-    }
-    return sorted;
-  }, [rows, changeFilter, search, partFilter, sortMode]);
+  const visibleRows = rows;
+  const visibleTreeNodes = treeNodes;
+  const currentOffset = Number(currentCursor) || 0;
+  const pageStart = filteredTotalRows === 0 ? 0 : currentOffset + 1;
+  const pageEnd =
+    filteredTotalRows === 0
+      ? 0
+      : Math.min(
+          currentOffset + (viewMode === 'tree' ? visibleTreeNodes.length : visibleRows.length),
+          filteredTotalRows
+        );
 
   if (!resultsGridEnabled) {
     return (
@@ -382,12 +650,12 @@ export function ResultsGrid() {
 
       {status && status.status === 'running' && (
         <div className="alertWarning" data-testid="results-partial-badge">
-          Partial results ({rows.length}/{status.totalRows}) - {status.phase} {status.percentComplete}%
+          Running - {status.phase} {status.percentComplete}% ({status.loadedRows}/{status.totalRows})
         </div>
       )}
-      {status && status.status === 'completed' && (
+      {status && status.status === 'completed' && !status.errorCode && !status.errorMessage && (
         <div className="alertSuccess" data-testid="results-complete-badge">
-          Completed ({rows.length}/{status.totalRows}) - {status.percentComplete}%
+          Completed ({status.loadedRows}/{status.totalRows}) - {status.percentComplete}%
         </div>
       )}
       {error && (
@@ -465,22 +733,56 @@ export function ResultsGrid() {
         )}
       </section>
 
+      <div className="resultsFilters" data-testid="results-view-toggle">
+        <button
+          className="btn"
+          type="button"
+          onClick={() => void toggleView('flat')}
+          disabled={viewMode === 'flat'}
+          data-testid="results-view-flat-btn"
+        >
+          Flat View
+        </button>
+        <button
+          className="btn"
+          type="button"
+          onClick={() => void toggleView('tree')}
+          disabled={!resultsTreeViewEnabled || viewMode === 'tree'}
+          data-testid="results-view-tree-btn"
+        >
+          Tree View
+        </button>
+      </div>
+      {!resultsTreeViewEnabled && (
+        <div className="alertWarning" data-testid="results-tree-feature-disabled">
+          RESULTS_TREE_VIEW_DISABLED: Tree view is currently disabled by feature flag.
+        </div>
+      )}
+      {!resultsDynamicFiltersEnabled && (
+        <div className="alertWarning" data-testid="results-dynamic-filters-disabled">
+          RESULTS_DYNAMIC_FILTERS_DISABLED: Dynamic search/sort/filter controls are disabled by feature flag.
+        </div>
+      )}
+
       <div className="resultsFilters">
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(event) => setSearch(event.target.value)}
           placeholder="Search text..."
+          disabled={!resultsDynamicFiltersEnabled}
           data-testid="results-search-input"
         />
         <input
           value={partFilter}
-          onChange={(e) => setPartFilter(e.target.value)}
+          onChange={(event) => setPartFilter(event.target.value)}
           placeholder="Part number filter..."
+          disabled={!resultsDynamicFiltersEnabled}
           data-testid="results-part-filter-input"
         />
         <select
           value={changeFilter}
-          onChange={(e) => setChangeFilter(e.target.value as 'all' | ChangeType)}
+          onChange={(event) => setChangeFilter(event.target.value as 'all' | ChangeType)}
+          disabled={!resultsDynamicFiltersEnabled}
           data-testid="results-change-filter"
         >
           {CHANGE_FILTERS.map((opt) => (
@@ -491,52 +793,177 @@ export function ResultsGrid() {
         </select>
         <select
           value={sortMode}
-          onChange={(e) => setSortMode(e.target.value as 'source' | 'part' | 'change')}
+          onChange={(event) => setSortMode(event.target.value as 'source' | 'part' | 'change')}
+          disabled={!resultsDynamicFiltersEnabled}
           data-testid="results-sort-select"
         >
           <option value="source">Sort: Source Order</option>
           <option value="part">Sort: Part Number</option>
           <option value="change">Sort: Change Type</option>
         </select>
+        <select
+          value={pageSize}
+          onChange={(event) => setPageSize(Number(event.target.value) as PageSize)}
+          data-testid="results-page-size-select"
+        >
+          {PAGE_SIZE_OPTIONS.map((size) => (
+            <option key={size} value={size}>
+              {size} rows
+            </option>
+          ))}
+        </select>
       </div>
 
-      <div className="mappingTableWrap">
-        <table className="mappingTable" data-testid="results-grid-table">
-          <thead>
-            <tr>
-              <th>Change</th>
-              <th>Part Number</th>
-              <th>Revision</th>
-              <th>Description</th>
-              <th>Rationale</th>
-              <th>Changed Fields</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleRows.map((row) => (
-              <tr key={row.rowId} className={`diffRow diffRow-${row.changeType}`} data-testid={`results-row-${row.rowId}`}>
-                <td>
-                  <span className={`chip chip-${row.changeType}`}>{row.changeType}</span>
-                </td>
-                <td>{row.keyFields.partNumber || '-'}</td>
-                <td>{row.keyFields.revision || '-'}</td>
-                <td>{row.keyFields.description || '-'}</td>
-                <td>{row.rationale.classificationReason}</td>
-                <td>
-                  <div className="cellChips">
-                    {row.rationale.changedFields.length === 0 && <span className="chip">none</span>}
-                    {row.rationale.changedFields.map((field) => (
-                      <span className="chip" key={`${row.rowId}-${field}`}>
-                        {field}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="resultsFilters" data-testid="results-pagination-controls">
+        <span>
+          Showing {pageStart}-{pageEnd} of {filteredTotalRows}
+        </span>
+        <button
+          className="btn"
+          type="button"
+          onClick={() => void goToPreviousPage()}
+          disabled={cursorHistory.length === 0 || !jobId}
+          data-testid="results-page-prev"
+        >
+          Previous
+        </button>
+        <button
+          className="btn"
+          type="button"
+          onClick={() => void goToNextPage()}
+          disabled={!nextCursor || !jobId}
+          data-testid="results-page-next"
+        >
+          Next
+        </button>
       </div>
+
+      {viewMode === 'flat' && (
+        <div className="mappingTableWrap">
+          <table className="mappingTable" data-testid="results-grid-table">
+            <thead>
+              <tr>
+                <th>Change</th>
+                <th>Part Number</th>
+                <th>Revision</th>
+                <th>Description</th>
+                <th>Rationale</th>
+                <th>Changed Fields</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleRows.map((row) => (
+                <tr key={row.rowId} className={`diffRow diffRow-${row.changeType}`} data-testid={`results-row-${row.rowId}`}>
+                  <td>
+                    <span className={`chip chip-${row.changeType}`}>{row.changeType}</span>
+                  </td>
+                  <td>{row.keyFields.partNumber || '-'}</td>
+                  <td>{row.keyFields.revision || '-'}</td>
+                  <td>{row.keyFields.description || '-'}</td>
+                  <td>{row.rationale.classificationReason}</td>
+                  <td>
+                    <div className="cellChips">
+                      {row.rationale.changedFields.length === 0 && <span className="chip">none</span>}
+                      {row.rationale.changedFields.map((field) => (
+                        <span className="chip" key={`${row.rowId}-${field}`}>
+                          {field}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {visibleRows.length === 0 && (
+                <tr>
+                  <td colSpan={6}>No rows for the current page/filter.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {viewMode === 'tree' && (
+        <div className="mappingTableWrap">
+          {status?.status === 'running' && (
+            <div className="alertWarning" data-testid="results-tree-loading-badge">
+              Loading hierarchy...
+            </div>
+          )}
+          <table className="mappingTable" data-testid="results-tree-table">
+            <thead>
+              <tr>
+                <th>Hierarchy</th>
+                <th>Change</th>
+                <th>Part Number</th>
+                <th>Revision</th>
+                <th>Description</th>
+                <th>Changed Fields</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleTreeNodes.map((node) => {
+                const expanded = expandedNodeIds.includes(node.nodeId);
+                return (
+                  <tr
+                    key={node.nodeId}
+                    className={`diffRow diffRow-${node.changeType}`}
+                    data-testid={`tree-node-${node.nodeId}`}
+                  >
+                    <td>
+                      <div style={{ paddingLeft: `${Math.max(0, node.depth) * 16}px`, display: 'flex', gap: '8px' }}>
+                        {node.hasChildren ? (
+                          <button
+                            className="btn"
+                            type="button"
+                            onClick={() => void toggleTreeNode(node.nodeId)}
+                            data-testid={`tree-toggle-${node.nodeId}`}
+                          >
+                            {expanded ? '-' : '+'}
+                          </button>
+                        ) : (
+                          <span style={{ width: '36px', display: 'inline-block' }} />
+                        )}
+                        <span>{node.rowId}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`chip chip-${node.changeType}`}>{node.changeType}</span>
+                    </td>
+                    <td>{node.keyFields.partNumber || '-'}</td>
+                    <td>{node.keyFields.revision || '-'}</td>
+                    <td>
+                      {node.keyFields.description || '-'}
+                      {node.fromParent && node.toParent && (
+                        <div data-testid={`tree-moved-context-${node.nodeId}`}>
+                          {node.fromParent}
+                          {' -> '}
+                          {node.toParent}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <div className="cellChips">
+                        {node.changedFields.length === 0 && <span className="chip">none</span>}
+                        {node.changedFields.map((field) => (
+                          <span className="chip" key={`${node.nodeId}-${field}`}>
+                            {field}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {visibleTreeNodes.length === 0 && (
+                <tr>
+                  <td colSpan={6}>No hierarchy nodes for the current page/filter.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }

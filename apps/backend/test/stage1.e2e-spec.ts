@@ -35,6 +35,8 @@ import {
 import { MatcherService } from '../src/diff/matcher.service';
 import { NormalizationService } from '../src/diff/normalization.service';
 import { ClassificationService } from '../src/diff/classification.service';
+import { DiffComputationService } from '../src/diff/diff-computation.service';
+import { ProfileAdapterService } from '../src/diff/profile-adapter.service';
 
 const binaryParser = (res: any, callback: (err: Error | null, body: Buffer) => void): void => {
   const data: Buffer[] = [];
@@ -56,6 +58,8 @@ describe('Stage 1 API baseline (e2e)', () => {
   let normalizationService: NormalizationService;
   let matcherService: MatcherService;
   let classificationService: ClassificationService;
+  let diffComputationService: DiffComputationService;
+  let profileAdapterService: ProfileAdapterService;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -89,6 +93,8 @@ describe('Stage 1 API baseline (e2e)', () => {
     normalizationService = moduleFixture.get(NormalizationService);
     matcherService = moduleFixture.get(MatcherService);
     classificationService = moduleFixture.get(ClassificationService);
+    diffComputationService = moduleFixture.get(DiffComputationService);
+    profileAdapterService = moduleFixture.get(ProfileAdapterService);
   });
 
   afterAll(async () => {
@@ -834,6 +840,180 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(classified.some((row) => row.cells.length >= 0 && !!row.reasonCode)).toBe(true);
   });
 
+  it('stage 7 adapter contract emits stable/snapshot keys with SAP profile detection', () => {
+    const adapted = profileAdapterService.adaptRows({
+      context: {
+        fileName: 'example-sap.xlsx',
+        headers: ['Component Number', 'Path predecessor', 'Explosion level', 'Plant', 'Item node']
+      },
+      rows: [
+        {
+          rowId: 'A-1',
+          partNumber: '22K203AF',
+          description: 'BRKT - BRK CLIP',
+          parentPath: 'IDX:1',
+          hierarchyLevel: 2,
+          position: '0010'
+        }
+      ]
+    });
+
+    expect(adapted.profileName).toBe('sap');
+    expect(adapted.confidence).toBeGreaterThanOrEqual(0.5);
+    expect(adapted.rows[0].stableOccurrenceKey).toContain('sap|');
+    expect(adapted.rows[0].snapshotRowKey).toContain('|row:');
+    expect(adapted.rows[0].internalId).toBe(adapted.rows[0].stableOccurrenceKey);
+  });
+
+  it('stage 7 generic adapter fallback is deterministic across runs for unknown formats', () => {
+    const inputRows = [
+      {
+        rowId: 'A-10',
+        partNumber: 'ABC-100',
+        description: 'Widget',
+        parentPath: '/root',
+        position: '10'
+      },
+      {
+        rowId: 'A-11',
+        partNumber: 'ABC-100',
+        description: 'Widget',
+        parentPath: '/root',
+        position: '20'
+      }
+    ];
+
+    const first = profileAdapterService
+      .adaptRows({
+        context: {
+          fileName: 'mystery.xlsx',
+          headers: ['My PN', 'My Description', 'My Qty']
+        },
+        rows: inputRows
+      })
+      .rows.map((row) => ({
+        stableOccurrenceKey: row.stableOccurrenceKey,
+        snapshotRowKey: row.snapshotRowKey
+      }));
+
+    const second = profileAdapterService
+      .adaptRows({
+        context: {
+          fileName: 'mystery.xlsx',
+          headers: ['My PN', 'My Description', 'My Qty']
+        },
+        rows: inputRows
+      })
+      .rows.map((row) => ({
+        stableOccurrenceKey: row.stableOccurrenceKey,
+        snapshotRowKey: row.snapshotRowKey
+      }));
+
+    expect(first).toEqual(second);
+    expect(first.every((row) => !!row.stableOccurrenceKey)).toBe(true);
+  });
+
+  it('stage 7 profile field policy keeps Plant as comparable delta (not identity break)', () => {
+    const computed = diffComputationService.compute({
+      sourceRows: [
+        {
+          rowId: 's1',
+          partNumber: '22K203AF',
+          description: 'BRKT - BRK CLIP',
+          parentPath: 'IDX:1',
+          position: '0010',
+          plant: '1862'
+        }
+      ],
+      targetRows: [
+        {
+          rowId: 't1',
+          partNumber: '22K203AF',
+          description: 'BRKT - BRK CLIP',
+          parentPath: 'IDX:1',
+          position: '0010',
+          plant: '1863'
+        }
+      ],
+      sourceContext: {
+        fileName: 'example-sap.xlsx',
+        headers: ['Component Number', 'Path predecessor', 'Plant']
+      },
+      targetContext: {
+        fileName: 'example-sap.xlsx',
+        headers: ['Component Number', 'Path predecessor', 'Plant']
+      }
+    });
+
+    expect(computed.rows.length).toBe(1);
+    expect(computed.rows[0].changeType).toBe('modified');
+    expect(computed.rows[0].rationale.changedFields).toContain('plant');
+    expect(computed.counters.replaced).toBe(0);
+  });
+
+  it('stage 7 strict ambiguity gate suppresses ambiguous replacement pairing', () => {
+    const previousStrict = process.env.MATCHER_AMBIGUITY_STRICT_V1;
+    const previousComposite = process.env.MATCHER_COMPOSITE_KEY_V1;
+    process.env.MATCHER_AMBIGUITY_STRICT_V1 = 'true';
+    process.env.MATCHER_COMPOSITE_KEY_V1 = 'false';
+
+    try {
+      const computed = diffComputationService.compute({
+        sourceRows: [
+          { rowId: 's1', partNumber: 'OLD-1', description: 'SWITCH', parentPath: '/p', position: '10', quantity: 1 },
+          { rowId: 's2', partNumber: 'OLD-2', description: 'SWITCH', parentPath: '/p', position: '10', quantity: 1 }
+        ],
+        targetRows: [
+          { rowId: 't1', partNumber: 'NEW-1', description: 'SWITCH', parentPath: '/p', position: '10', quantity: 1 },
+          { rowId: 't2', partNumber: 'NEW-2', description: 'SWITCH', parentPath: '/p', position: '10', quantity: 1 }
+        ]
+      });
+
+      expect(computed.counters.replaced).toBe(0);
+      expect(computed.diagnostics.replacementSuppressionRate).toBeGreaterThanOrEqual(0);
+      expect(computed.diagnostics.flags.ambiguityStrictEnabled).toBe(true);
+      expect(computed.diagnostics.ambiguityRate).toBeGreaterThanOrEqual(0);
+    } finally {
+      if (previousStrict === undefined) delete process.env.MATCHER_AMBIGUITY_STRICT_V1;
+      else process.env.MATCHER_AMBIGUITY_STRICT_V1 = previousStrict;
+      if (previousComposite === undefined) delete process.env.MATCHER_COMPOSITE_KEY_V1;
+      else process.env.MATCHER_COMPOSITE_KEY_V1 = previousComposite;
+    }
+  });
+
+  it('stage 7 matcher flags disable adapter/composite behavior safely', () => {
+    const previousProfile = process.env.MATCHER_PROFILE_ADAPTERS_V1;
+    const previousComposite = process.env.MATCHER_COMPOSITE_KEY_V1;
+    const previousStrict = process.env.MATCHER_AMBIGUITY_STRICT_V1;
+    process.env.MATCHER_PROFILE_ADAPTERS_V1 = 'false';
+    process.env.MATCHER_COMPOSITE_KEY_V1 = 'false';
+    process.env.MATCHER_AMBIGUITY_STRICT_V1 = 'false';
+
+    try {
+      const computed = diffComputationService.compute({
+        sourceRows: [
+          { rowId: 's1', partNumber: 'A-1', description: 'Widget', quantity: 1 }
+        ],
+        targetRows: [
+          { rowId: 't1', partNumber: 'A-1', description: 'Widget', quantity: 1 }
+        ]
+      });
+
+      expect(computed.rows[0].sourceSnapshot?.stableOccurrenceKey ?? null).toBeNull();
+      expect(computed.rows[0].targetSnapshot?.stableOccurrenceKey ?? null).toBeNull();
+      expect(computed.diagnostics.flags.profileAdaptersEnabled).toBe(false);
+      expect(computed.diagnostics.flags.compositeKeyEnabled).toBe(false);
+      expect(computed.diagnostics.flags.ambiguityStrictEnabled).toBe(false);
+    } finally {
+      if (previousProfile === undefined) delete process.env.MATCHER_PROFILE_ADAPTERS_V1;
+      else process.env.MATCHER_PROFILE_ADAPTERS_V1 = previousProfile;
+      if (previousComposite === undefined) delete process.env.MATCHER_COMPOSITE_KEY_V1;
+      else process.env.MATCHER_COMPOSITE_KEY_V1 = previousComposite;
+      if (previousStrict === undefined) delete process.env.MATCHER_AMBIGUITY_STRICT_V1;
+      else process.env.MATCHER_AMBIGUITY_STRICT_V1 = previousStrict;
+    }
+  });
+
   it('POST /api/diff-jobs requires authentication', async () => {
     await request(app.getHttpServer()).post('/api/diff-jobs').send({}).expect(401);
   });
@@ -1515,5 +1695,453 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(target).toBeDefined();
     expect(target?.changeType).toBe('modified');
     expect(target?.rationale.changedFields).toEqual(expect.arrayContaining(['color', 'quantity', 'cost']));
+  });
+
+  it(
+    'stage 7 parses BOM Example MEVS headers and resolves non-empty part identities deterministically',
+    async () => {
+      const fixtureA = readFileSync(
+      resolve(process.cwd(), '..', '..', 'docs', 'BOM Examples', 'Example 6 ver 1 MEVS.xlsx')
+      );
+      const fixtureB = readFileSync(
+      resolve(process.cwd(), '..', '..', 'docs', 'BOM Examples', 'Example 6 ver 2 MEVS.xlsx')
+      );
+
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'diff.stage7.cms@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const intake = await agent
+      .post('/api/uploads/intake')
+      .attach('fileA', fixtureA, {
+        filename: 'example6-ver1.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      .attach('fileB', fixtureB, {
+        filename: 'example6-ver2.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      .expect(202);
+
+    const started = await agent
+      .post('/api/diff-jobs')
+      .send({
+        sessionId: intake.body.sessionId,
+        leftRevisionId: intake.body.leftRevisionId,
+        rightRevisionId: intake.body.rightRevisionId
+      })
+      .expect(201);
+
+    await new Promise((resolveDone) => setTimeout(resolveDone, 1200));
+    const rowsResponse = await agent.get(`/api/diff-jobs/${started.body.jobId}/rows?limit=5000`).expect(200);
+    const rows = rowsResponse.body.rows as Array<{
+      changeType: string;
+      keyFields: { partNumber: string | null };
+    }>;
+
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.some((row) => !!row.keyFields.partNumber)).toBe(true);
+    const replacedCount = rows.filter((row) => row.changeType === 'replaced').length;
+    expect(replacedCount).toBeLessThanOrEqual(Math.ceil(rows.length * 0.05));
+    },
+    60000
+  );
+
+  it(
+    'stage 7 SAP same-file comparison avoids mass false replaced classifications',
+    async () => {
+      const fixture = readFileSync(
+        resolve(process.cwd(), '..', '..', 'docs', 'BOM Examples', 'Example 3 ver 1 SAP.xlsx')
+      );
+
+      const agent = request.agent(app.getHttpServer());
+      await agent
+        .post('/api/auth/test/login')
+        .send({ email: 'diff.stage7.sap.same@example.com', tenantId: 'tenant-a', provider: 'google' })
+        .expect(201);
+
+      const intake = await agent
+        .post('/api/uploads/intake')
+        .attach('fileA', fixture, {
+          filename: 'example3-ver1-A.xlsx',
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+        .attach('fileB', fixture, {
+          filename: 'example3-ver1-B.xlsx',
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+        .expect(202);
+
+      const started = await agent
+        .post('/api/diff-jobs')
+        .send({
+          sessionId: intake.body.sessionId,
+          leftRevisionId: intake.body.leftRevisionId,
+          rightRevisionId: intake.body.rightRevisionId
+        })
+        .expect(201);
+
+      await new Promise((resolveDone) => setTimeout(resolveDone, 1500));
+      const rowsResponse = await agent.get(`/api/diff-jobs/${started.body.jobId}/rows?limit=5000`).expect(200);
+      const rows = rowsResponse.body.rows as Array<{
+        changeType: string;
+        rationale: { sourceProfile?: string | null; targetProfile?: string | null };
+      }>;
+
+      const replacedCount = rows.filter((row) => row.changeType === 'replaced').length;
+      const noChangeCount = rows.filter((row) => row.changeType === 'no_change').length;
+      expect(rows.length).toBeGreaterThan(0);
+      expect(replacedCount).toBe(0);
+      expect(noChangeCount).toBeGreaterThan(0);
+      expect(rows.every((row) => row.rationale.sourceProfile === 'sap')).toBe(true);
+      expect(rows.every((row) => row.rationale.targetProfile === 'sap')).toBe(true);
+    },
+    60000
+  );
+
+  it(
+    'stage 7 fixture matrix: Example 1 pair produces bounded replacement rate with localized deltas',
+    async () => {
+      const fixtureA = readFileSync(
+        resolve(process.cwd(), '..', '..', 'docs', 'BOM Examples', 'Example 1 ver 1.xlsx')
+      );
+      const fixtureB = readFileSync(
+        resolve(process.cwd(), '..', '..', 'docs', 'BOM Examples', 'Example 1 ver 2.xlsx')
+      );
+
+      const agent = request.agent(app.getHttpServer());
+      await agent
+        .post('/api/auth/test/login')
+        .send({ email: 'diff.stage7.matrix.example1@example.com', tenantId: 'tenant-a', provider: 'google' })
+        .expect(201);
+
+      const intake = await agent
+        .post('/api/uploads/intake')
+        .attach('fileA', fixtureA, {
+          filename: 'example1-ver1.xlsx',
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+        .attach('fileB', fixtureB, {
+          filename: 'example1-ver2.xlsx',
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+        .expect(202);
+
+      const started = await agent
+        .post('/api/diff-jobs')
+        .send({
+          sessionId: intake.body.sessionId,
+          leftRevisionId: intake.body.leftRevisionId,
+          rightRevisionId: intake.body.rightRevisionId
+        })
+        .expect(201);
+
+      await new Promise((resolveDone) => setTimeout(resolveDone, 1500));
+      const rowsResponse = await agent.get(`/api/diff-jobs/${started.body.jobId}/rows?limit=5000`).expect(200);
+      const rows = rowsResponse.body.rows as Array<{ changeType: string }>;
+
+      expect(rows.length).toBeGreaterThan(0);
+      const replacedCount = rows.filter((row) => row.changeType === 'replaced').length;
+      const noChangeCount = rows.filter((row) => row.changeType === 'no_change').length;
+      expect(replacedCount).toBeLessThanOrEqual(Math.ceil(rows.length * 0.2));
+      expect(noChangeCount).toBeGreaterThan(0);
+    },
+    60000
+  );
+
+  it(
+    'stage 7 fixture matrix: Example 2 same-vs-same converges to no-change-dominant output',
+    async () => {
+      const fixture = readFileSync(
+        resolve(process.cwd(), '..', '..', 'docs', 'BOM Examples', 'Example 2 ver 1 CMS.xlsx')
+      );
+
+      const agent = request.agent(app.getHttpServer());
+      await agent
+        .post('/api/auth/test/login')
+        .send({ email: 'diff.stage7.matrix.example2@example.com', tenantId: 'tenant-a', provider: 'google' })
+        .expect(201);
+
+      const intake = await agent
+        .post('/api/uploads/intake')
+        .attach('fileA', fixture, {
+          filename: 'example2-ver1-A.xlsx',
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+        .attach('fileB', fixture, {
+          filename: 'example2-ver1-B.xlsx',
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+        .expect(202);
+
+      const started = await agent
+        .post('/api/diff-jobs')
+        .send({
+          sessionId: intake.body.sessionId,
+          leftRevisionId: intake.body.leftRevisionId,
+          rightRevisionId: intake.body.rightRevisionId
+        })
+        .expect(201);
+
+      await new Promise((resolveDone) => setTimeout(resolveDone, 1500));
+      const rowsResponse = await agent.get(`/api/diff-jobs/${started.body.jobId}/rows?limit=5000`).expect(200);
+      const rows = rowsResponse.body.rows as Array<{ changeType: string }>;
+
+      expect(rows.length).toBeGreaterThan(0);
+      const noChangeCount = rows.filter((row) => row.changeType === 'no_change').length;
+      const replacedCount = rows.filter((row) => row.changeType === 'replaced').length;
+      expect(noChangeCount).toBeGreaterThanOrEqual(Math.floor(rows.length * 0.6));
+      expect(replacedCount).toBeLessThanOrEqual(Math.ceil(rows.length * 0.05));
+    },
+    90000
+  );
+
+  it(
+    'stage 7 moved rows include fromParent/toParent rationale at confidence >= 0.90',
+    async () => {
+      const previousProfile = process.env.MATCHER_PROFILE_ADAPTERS_V1;
+      const previousComposite = process.env.MATCHER_COMPOSITE_KEY_V1;
+      process.env.MATCHER_PROFILE_ADAPTERS_V1 = 'false';
+      process.env.MATCHER_COMPOSITE_KEY_V1 = 'false';
+      const agent = request.agent(app.getHttpServer());
+      await agent
+        .post('/api/auth/test/login')
+        .send({ email: 'diff.stage7.moved@example.com', tenantId: 'tenant-a', provider: 'google' })
+        .expect(201);
+
+      try {
+        const started = await agent
+          .post('/api/diff-jobs')
+          .send({
+            sourceRows: [
+              {
+                rowId: 's-moved',
+                internalId: 'INT-MOVED',
+                partNumber: 'PN-MOVED',
+                revision: 'A',
+                description: 'Moved row',
+                quantity: 1,
+                parentPath: '/left',
+                position: '10'
+              }
+            ],
+            targetRows: [
+              {
+                rowId: 't-moved',
+                internalId: 'INT-MOVED',
+                partNumber: 'PN-MOVED',
+                revision: 'A',
+                description: 'Moved row',
+                quantity: 1,
+                parentPath: '/right',
+                position: '10'
+              }
+            ]
+          })
+          .expect(201);
+      await new Promise((resolveDone) => setTimeout(resolveDone, 1200));
+      const rowsResponse = await agent.get(`/api/diff-jobs/${started.body.jobId}/rows?limit=500`).expect(200);
+      const moved = (rowsResponse.body.rows as Array<{
+        changeType: string;
+        rationale: { fromParent?: string | null; toParent?: string | null };
+      }>).find((row) => row.changeType === 'moved');
+
+      expect(moved).toBeDefined();
+      expect(moved?.rationale.fromParent).toBeTruthy();
+      expect(moved?.rationale.toParent).toBeTruthy();
+      } finally {
+        if (previousProfile === undefined) delete process.env.MATCHER_PROFILE_ADAPTERS_V1;
+        else process.env.MATCHER_PROFILE_ADAPTERS_V1 = previousProfile;
+        if (previousComposite === undefined) delete process.env.MATCHER_COMPOSITE_KEY_V1;
+        else process.env.MATCHER_COMPOSITE_KEY_V1 = previousComposite;
+      }
+    },
+    20000
+  );
+
+  it(
+    'stage 7 dynamic query contract filters, sorts, and validates fields',
+    async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'diff.stage7.query@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const started = await agent.post('/api/diff-jobs').send({}).expect(201);
+    await new Promise((resolveDone) => setTimeout(resolveDone, 1200));
+
+    const filters = encodeURIComponent(JSON.stringify([{ field: 'changeType', op: 'eq', value: 'added' }]));
+    const filtered = await agent
+      .get(`/api/diff-jobs/${started.body.jobId}/rows?limit=100&sortBy=partNumber&sortDir=asc&filters=${filters}`)
+      .expect(200);
+    const filteredRows = filtered.body.rows as Array<{
+      changeType: string;
+      keyFields: { partNumber: string | null };
+    }>;
+    expect(filteredRows.length).toBeGreaterThan(0);
+    expect(filteredRows.every((row) => row.changeType === 'added')).toBe(true);
+
+    const orderedPartNumbers = filteredRows
+      .map((row) => row.keyFields.partNumber || '')
+      .slice();
+    const sortedCopy = [...orderedPartNumbers].sort((a, b) => a.localeCompare(b));
+    expect(orderedPartNumbers).toEqual(sortedCopy);
+
+    await agent
+      .get(`/api/diff-jobs/${started.body.jobId}/rows?limit=10&filters=${encodeURIComponent('not-json')}`)
+      .expect(400);
+    },
+    30000
+  );
+
+  it(
+    'stage 7 tree endpoint returns deterministic hierarchy and supports expanded node loading',
+    async () => {
+      const agent = request.agent(app.getHttpServer());
+      await agent
+        .post('/api/auth/test/login')
+        .send({ email: 'diff.stage7.tree@example.com', tenantId: 'tenant-a', provider: 'google' })
+        .expect(201);
+
+      const started = await agent
+        .post('/api/diff-jobs')
+        .send({
+          sourceRows: [
+            {
+              rowId: 's-root',
+              internalId: 'TREE-001',
+              partNumber: 'TREE-ROOT',
+              revision: 'A',
+              description: 'Tree Root',
+              quantity: 1,
+              parentPath: '/root',
+              position: '10',
+              hierarchyLevel: 0
+            },
+            {
+              rowId: 's-child-1',
+              internalId: 'TREE-002',
+              partNumber: 'TREE-CHILD-1',
+              revision: 'A',
+              description: 'Tree Child One',
+              quantity: 1,
+              parentPath: '/root/10',
+              position: '20',
+              hierarchyLevel: 1
+            },
+            {
+              rowId: 's-child-2',
+              internalId: 'TREE-003',
+              partNumber: 'TREE-CHILD-2',
+              revision: 'A',
+              description: 'Tree Child Two',
+              quantity: 1,
+              parentPath: '/root/10',
+              position: '30',
+              hierarchyLevel: 1
+            }
+          ],
+          targetRows: [
+            {
+              rowId: 't-root',
+              internalId: 'TREE-001',
+              partNumber: 'TREE-ROOT',
+              revision: 'A',
+              description: 'Tree Root',
+              quantity: 1,
+              parentPath: '/root',
+              position: '10',
+              hierarchyLevel: 0
+            },
+            {
+              rowId: 't-child-1',
+              internalId: 'TREE-002',
+              partNumber: 'TREE-CHILD-1',
+              revision: 'A',
+              description: 'Tree Child One',
+              quantity: 1,
+              parentPath: '/root/10',
+              position: '20',
+              hierarchyLevel: 1
+            },
+            {
+              rowId: 't-child-2',
+              internalId: 'TREE-003',
+              partNumber: 'TREE-CHILD-2',
+              revision: 'A',
+              description: 'Tree Child Two',
+              quantity: 1,
+              parentPath: '/root/10',
+              position: '30',
+              hierarchyLevel: 1
+            }
+          ]
+        })
+        .expect(201);
+
+      await new Promise((resolveDone) => setTimeout(resolveDone, 1200));
+      const collapsed = await agent
+        .get(`/api/diff-jobs/${started.body.jobId}/tree?limit=50`)
+        .expect(200);
+      const collapsedNodes = collapsed.body.nodes as Array<{
+        nodeId: string;
+        depth: number;
+        hasChildren: boolean;
+      }>;
+      expect(collapsedNodes.length).toBeGreaterThan(0);
+      const expandable = collapsedNodes.find((node) => node.hasChildren);
+      expect(expandable).toBeDefined();
+
+      const expanded = await agent
+        .get(
+          `/api/diff-jobs/${started.body.jobId}/tree?limit=50&expandedNodeIds=${encodeURIComponent(
+            expandable?.nodeId || ''
+          )}`
+        )
+        .expect(200);
+      const expandedNodes = expanded.body.nodes as Array<{ depth: number }>;
+      expect(expandedNodes.length).toBeGreaterThanOrEqual(collapsedNodes.length);
+      expect(expandedNodes.some((node) => node.depth > (expandable?.depth || 0))).toBe(true);
+    },
+    30000
+  );
+
+  it('stage 7 tree and dynamic query flags gate the respective endpoints', async () => {
+    const previousTree = process.env.RESULTS_TREE_VIEW_V1;
+    const previousDynamic = process.env.RESULTS_DYNAMIC_FILTERS_V1;
+    process.env.RESULTS_TREE_VIEW_V1 = 'false';
+    process.env.RESULTS_DYNAMIC_FILTERS_V1 = 'false';
+
+    try {
+      const agent = request.agent(app.getHttpServer());
+      await agent
+        .post('/api/auth/test/login')
+        .send({ email: 'diff.stage7.flags@example.com', tenantId: 'tenant-a', provider: 'google' })
+        .expect(201);
+
+      const started = await agent.post('/api/diff-jobs').send({}).expect(201);
+      await new Promise((resolveDone) => setTimeout(resolveDone, 1200));
+
+      const dynamicQueryFilters = encodeURIComponent(
+        JSON.stringify([{ field: 'changeType', op: 'eq', value: 'added' }])
+      );
+      const dynamicDisabled = await agent
+        .get(`/api/diff-jobs/${started.body.jobId}/rows?filters=${dynamicQueryFilters}`)
+        .expect(503);
+      expect(dynamicDisabled.body.code).toBe('RESULTS_DYNAMIC_FILTERS_DISABLED');
+
+      const treeDisabled = await agent
+        .get(`/api/diff-jobs/${started.body.jobId}/tree?limit=50`)
+        .expect(503);
+      expect(treeDisabled.body.code).toBe('RESULTS_TREE_VIEW_DISABLED');
+    } finally {
+      if (previousTree === undefined) delete process.env.RESULTS_TREE_VIEW_V1;
+      else process.env.RESULTS_TREE_VIEW_V1 = previousTree;
+      if (previousDynamic === undefined) delete process.env.RESULTS_DYNAMIC_FILTERS_V1;
+      else process.env.RESULTS_DYNAMIC_FILTERS_V1 = previousDynamic;
+    }
   });
 });

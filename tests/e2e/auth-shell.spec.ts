@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 const e2eApiBaseUrl = process.env.E2E_API_BASE_URL || 'http://localhost:4100';
 const uniqueEmail = (prefix: string) => `${prefix}.${Date.now()}@example.com`;
 const fixturePath = (name: string) => resolve(process.cwd(), 'tests', 'fixtures', 'stage4', name);
+const bomExamplePath = (name: string) => resolve(process.cwd(), 'docs', 'BOM Examples', name);
 
 test('upload route redirects to login when unauthenticated', async ({ page }) => {
   await page.goto('/upload');
@@ -252,6 +253,129 @@ test('upload can open results using uploaded revision pair (real file rows)', as
   await context.close();
 });
 
+test('results load starts a single diff job and does not auto-restart in a loop', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.results.single-start');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({
+    baseURL,
+    storageState
+  });
+  const page = await context.newPage();
+
+  let diffStartCount = 0;
+  page.on('request', (req) => {
+    if (req.method() === 'POST' && req.url().includes('/api/diff-jobs')) {
+      diffStartCount += 1;
+    }
+  });
+
+  await page.goto('/upload');
+  await page.setInputFiles('[data-testid="file-input-a"]', fixturePath('bill-of-materials.xlsx'));
+  await page.setInputFiles('[data-testid="file-input-b"]', fixturePath('bill-of-materialsv2.xlsx'));
+
+  await page.getByTestId('queue-upload-btn').click();
+  await expect(page.getByTestId('upload-view-results-link')).toBeVisible();
+  await page.getByTestId('upload-view-results-link').click();
+
+  await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
+  await page.waitForTimeout(1200);
+  expect(diffStartCount).toBe(1);
+
+  await context.close();
+});
+
+test('stage 7 adapter scenario: SAP same-vs-same yields no-change-dominant without replaced noise', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.s7.sap.same');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({
+    baseURL,
+    storageState
+  });
+  const page = await context.newPage();
+
+  await page.goto('/upload');
+  await page.setInputFiles('[data-testid="file-input-a"]', bomExamplePath('Example 3 ver 1 SAP.xlsx'));
+  await page.setInputFiles('[data-testid="file-input-b"]', bomExamplePath('Example 3 ver 1 SAP.xlsx'));
+  await page.getByTestId('queue-upload-btn').click();
+  await expect(page.getByTestId('upload-view-results-link')).toBeVisible();
+  await page.getByTestId('upload-view-results-link').click();
+
+  await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
+  const noChangeCount = await page.locator('[data-testid="results-grid-table"] .chip-no_change').count();
+  const replacedCount = await page.locator('[data-testid="results-grid-table"] .chip-replaced').count();
+  expect(noChangeCount).toBeGreaterThan(0);
+  expect(replacedCount).toBe(0);
+
+  await context.close();
+});
+
+test('stage 7 adapter scenario: SAP version delta surfaces modified changed fields', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.s7.sap.delta');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({
+    baseURL,
+    storageState
+  });
+  const page = await context.newPage();
+
+  await page.goto('/upload');
+  await page.setInputFiles('[data-testid="file-input-a"]', bomExamplePath('Example 3 ver 1 SAP.xlsx'));
+  await page.setInputFiles('[data-testid="file-input-b"]', bomExamplePath('Example 3 ver 2 SAP.xlsx'));
+  await page.getByTestId('queue-upload-btn').click();
+  await expect(page.getByTestId('upload-view-results-link')).toBeVisible();
+  await page.getByTestId('upload-view-results-link').click();
+
+  await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
+  await page.getByTestId('results-change-filter').selectOption('modified');
+  await expect(page.getByTestId('results-grid-table')).toContainText('modified');
+  const hasPartOrPlantField = await page
+    .locator('[data-testid="results-grid-table"]')
+    .filter({ hasText: /partNumber|plant/i })
+    .count();
+  expect(hasPartOrPlantField).toBeGreaterThan(0);
+
+  await context.close();
+});
+
 test('mapping preview shows strategy/confidence and requires warning acknowledgement', async ({
   browser,
   request,
@@ -387,6 +511,73 @@ test('results page supports search/sort/filter/change-type controls', async ({
 
   await page.getByTestId('results-sort-select').selectOption('change');
   await expect(page.getByTestId('results-grid-table')).toBeVisible();
+
+  await context.close();
+});
+
+test('results page supports tree mode toggle and expand/collapse behavior', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.results.tree');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({
+    baseURL,
+    storageState
+  });
+  const page = await context.newPage();
+
+  await page.goto('/upload');
+  await page.setInputFiles('[data-testid="file-input-a"]', {
+    name: 'tree-a.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(
+      'part_number,description,quantity,parentPath,position,level\nROOT,Root Node,1,/root,10,0\nCH-1,Child 1,1,/root/10,20,1\nCH-2,Child 2,1,/root/10,30,1\n'
+    )
+  });
+  await page.setInputFiles('[data-testid="file-input-b"]', {
+    name: 'tree-b.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(
+      'part_number,description,quantity,parentPath,position,level\nROOT,Root Node,1,/root,10,0\nCH-1,Child 1,2,/root/10,20,1\nCH-2,Child 2,1,/root/10,30,1\n'
+    )
+  });
+  await page.getByTestId('queue-upload-btn').click();
+  await expect(page.getByTestId('upload-view-results-link')).toBeVisible();
+  await page.getByTestId('upload-view-results-link').click();
+
+  await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
+  await page.getByTestId('results-view-tree-btn').click();
+  await expect(page.getByTestId('results-tree-table')).toBeVisible();
+  await expect
+    .poll(
+      async () => page.locator('[data-testid^="tree-toggle-"]').count(),
+      { timeout: 10000 }
+    )
+    .toBeGreaterThan(0);
+
+  const toggleButtons = page.locator('[data-testid^="tree-toggle-"]');
+  const toggleCount = await toggleButtons.count();
+  expect(toggleCount).toBeGreaterThan(0);
+
+  const beforeCount = await page.locator('[data-testid^="tree-node-"]').count();
+  await toggleButtons.first().click();
+  await page.waitForTimeout(300);
+  const afterCount = await page.locator('[data-testid^="tree-node-"]').count();
+  expect(afterCount).toBeGreaterThanOrEqual(beforeCount);
+
+  await page.getByTestId('results-change-filter').selectOption('quantity_change');
+  await expect(page.getByTestId('results-tree-table')).toContainText('quantity_change');
 
   await context.close();
 });

@@ -70,6 +70,19 @@ V1 excludes:
    - identity ambiguous/unmatched => `added`/`removed`
    - `moved` rationale includes `fromParent` and `toParent`
    - `moved` + quantity delta keeps `changeType = moved` and includes quantity in `changedFields`
+19. Stage 7 moved high-confidence threshold is `>=0.90`.
+20. Stage 7 tree API uses dedicated endpoint: `GET /diff-jobs/{id}/tree?...` (node-focused payload).
+21. Stage 7 fixture source-of-truth for deterministic and performance validation is `docs/BOM Examples` paired version files with header/hierarchy-column variance.
+22. Stage 7 graph table physical names are camelCase: `partNode`, `containsEdge`.
+23. Stage 7 cutover policy is new revisions only, no dual-write, automatic per-revision read-path selection.
+24. Stage 7 observability sink is Application Insights with logs as backup.
+25. Stage 7 flag source is env-based now, App Configuration later.
+26. Stage 7 default flags:
+   - Dev: all Stage 7 flags enabled
+   - Test: all Stage 7 flags disabled initially
+   - Prod: all Stage 7 flags disabled initially
+27. Stage 7 SLO runtime telemetry is delivered behind metric flags and remains disabled initially.
+28. Stage 7 alert thresholds are enforced only when corresponding runtime SLO metric flags are enabled.
 
 ---
 
@@ -158,6 +171,20 @@ V1 excludes:
   - comparisons reference `leftRevisionId` and `rightRevisionId` snapshots
   - moved classification uses parent-context delta with required rationale fields `fromParent` and `toParent`
   - no Cosmos DB/Gremlin dependencies
+  - dedicated tree endpoint contract: `GET /diff-jobs/{id}/tree?...`
+  - moved high-confidence threshold for parent-change classification is `>=0.90`
+- Stage 7 format-scalability contract (Option B):
+  - profile-adapter framework chooses ecosystem-specific occurrence identity logic with deterministic fallback
+  - profile detection mode is auto-detect + confidence with optional operator override
+  - matching uses contextual composite occurrence identity (`stableOccurrenceKey`) before generic/fuzzy fallback
+  - immutable persistence identity uses `snapshotRowKey`
+  - strict ambiguity gate prevents ambiguous identity from auto-classifying as `replaced`; user may proceed with explicit ambiguity state
+  - `replaced` requires high-confidence context-aligned pairing
+  - replacement confidence baseline starts at `>=0.90` and is tuned by telemetry/profile
+  - effectivity/change-control fields are secondary identity context by default; profile can elevate to primary when needed
+  - onboarding model is config-driven profile definitions with code hooks for advanced transforms
+  - profile field policy distinguishes `identity`, `comparable`, and `display-only` fields
+  - identical-file comparisons must converge to no-change-dominant output (no mass false replacements)
 
 ### FR-008 Results UI
 - Result table supports:
@@ -182,6 +209,15 @@ V1 excludes:
   - Backend flags: `DIFF_ENGINE_V1`, `DIFF_PROGRESSIVE_API_V1`
   - Frontend flag: `NEXT_PUBLIC_RESULTS_GRID_STAGE4_V1`
   - When disabled, APIs/UI return deterministic feature-disabled responses (no silent failure).
+- Stage 7 dedicated hierarchy API contract:
+  - `GET /diff-jobs/{id}/tree?cursor=&limit=&expandedNodeIds=`
+  - request notes:
+    - `cursor` and `limit` follow deterministic pagination rules
+    - `expandedNodeIds` is optional and limits child expansion scope
+  - response minimum:
+    - `nodes[]` with `nodeId`, `parentNodeId`, `depth`, key fields (`part_number`, `revision`, `description`), `changeType`, `changedFields`
+    - moved rationale fields where applicable: `fromParent`, `toParent`
+    - pagination metadata: `nextCursor`, `hasMore`
 
 ### FR-009 Revision Chain in Session
 - User can upload additional files after first comparison.
@@ -267,6 +303,12 @@ V1 excludes:
   - first hierarchy response <2s
   - first meaningful hierarchy rows <5s
   - graph-aware matching overhead <=15% versus Stage 4 baseline at same fixture tier
+- Stage 7 CI performance gate policy:
+  - first 3 performance runs are non-blocking
+  - subsequent runs are blocking
+- Performance measurement protocol for Stage 7:
+  - CI benchmark suite is the gating source of truth
+  - local benchmark harness is diagnostic and required for triage
 
 ### NFR-SCALE
 - Phase 1 supports 2 concurrent uploads with queueing for overflow.
@@ -276,6 +318,12 @@ V1 excludes:
 - Retry strategy for transient worker failures.
 - Dead-letter handling for repeated failures.
 - Failed jobs surface clear status and reason in history.
+- Stage 7 CI gate policy:
+  - hard gate before merge
+  - required checks: `backend:ci`, `frontend:ci`, `playwright`, `verify:story`
+  - baseline branch is `main`
+  - full CI on every PR
+  - flaky-test quarantine requires owner + deadline
 
 ### NFR-SECURITY
 - Tenant isolation across all data access paths.
@@ -287,6 +335,13 @@ V1 excludes:
 - Detection mapping strategy and confidence events logged.
 - Stage 4 operational metrics are emitted as structured events:
   - `stage4.diff.compute`, `stage4.diff.first_status`, `stage4.diff.first_rows`, `stage4.diff.completed`.
+- Stage 7 correlation dimensions (minimum): `tenantId`, `comparisonId`, `revisionPair`, `flagState`, `correlationId`.
+- Stage 7 runtime SLO telemetry flags (default `false` initially):
+  - `OBS_S7_TREE_EXPAND_P95`
+  - `OBS_S7_DYNAMIC_QUERY_P95`
+  - `OBS_S7_FIRST_HIERARCHY_RESPONSE`
+  - `OBS_S7_FIRST_MEANINGFUL_TREE_ROWS`
+  - `OBS_S7_OVERHEAD_VS_S4`
 
 ---
 
@@ -296,8 +351,8 @@ V1 excludes:
 - users
 - comparison_sessions
 - bom_revisions
-- part_nodes (`PartNode`, revision-scoped canonical node model)
-- contains_edges (`ContainsEdge`, revision-scoped parent-child edge model)
+- partNode (`PartNode`, revision-scoped canonical node model)
+- containsEdge (`ContainsEdge`, revision-scoped parent-child edge model)
 - bom_components
 - component_links
 - comparison_diffs
@@ -402,6 +457,30 @@ Compatibility note:
   - any-column filter/sort/search <=500ms p95 for up to 5k rows
   - first hierarchy response <2s, first meaningful rows <5s
   - graph-aware matching overhead <=15% vs Stage 4 baseline.
+- Stage 7 rollout and cutover behavior is validated:
+  - new-revision-only graph writes to `partNode`/`containsEdge`
+  - no dual-write
+  - per-revision automatic graph/fallback read-path selection
+  - dedicated tree endpoint contract is implemented and verified
+  - flag defaults by environment are respected
+  - runtime SLO telemetry flags exist and default to disabled
+- Stage 7 format-scalability behavior is validated:
+  - profile-adapter framework + deterministic generic fallback are active behind flags
+  - contextual composite key matching reduces duplicate-heavy false replacement outcomes
+  - strict ambiguity gate prevents broad unmatched-pair replacement artifacts
+  - same-vs-same fixture comparisons converge to no-change-dominant results
+
+### Stage 8 — Security + Compliance Baseline Closure
+**Done when:**
+- Rate limiting is active at gateway and app layers with baseline `100 req/min` and stricter limits on heavy endpoints.
+- Authenticated requests are throttled by tenant key; unauthenticated requests fall back to IP keying.
+- Terms and Privacy consent are versioned separately and acceptance records persist user + timestamp.
+- Policy updates force re-acceptance at next login before app access continues.
+- History parity is complete for rename/tag/delete with delete implemented as soft-delete + audit trail.
+- Audit export governance is hardened on top of existing Stage 6 export services.
+- Audit archives are produced daily as append-only artifacts in geo-redundant Blob storage with 7+ year target retention.
+- Secure SDLC checks are blocking in CI for high/critical vulnerabilities, secrets, and license-policy violations.
+- Compliance/admin access model remains database role-claim based and audited.
 
 ---
 
@@ -424,6 +503,10 @@ Compatibility note:
 15. Compatibility projection behavior for `bom_components`/`component_links` queries.
 16. Moved classification parent-change behavior with `fromParent`/`toParent` rationale.
 17. Stage 7 hierarchy/tree performance targets and graph-aware overhead budget.
+18. Stage 7 format-scalability assertions:
+  - contextual composite key behavior across known and unknown profile adapters
+  - strict ambiguity gating and replacement suppression on duplicate-heavy fixtures
+  - same-vs-same fixture no-change convergence.
 
 ---
 
