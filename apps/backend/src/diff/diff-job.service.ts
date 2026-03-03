@@ -1131,18 +1131,23 @@ export class DiffJobService {
     if (!this.databaseService.enabled) return;
 
     try {
-      await this.databaseService.client.partNode.createMany({
-        data: nodes.map((node) => ({
-          ...node,
-          createdAtUtc: new Date(node.createdAtUtc)
-        }))
-      });
-      await this.databaseService.client.containsEdge.createMany({
-        data: edges.map((edge) => ({
-          ...edge,
-          createdAtUtc: new Date(edge.createdAtUtc)
-        }))
-      });
+      for (const nodeBatch of this.chunkArray(nodes, 200)) {
+        await this.databaseService.client.partNode.createMany({
+          data: nodeBatch.map((node) => ({
+            ...node,
+            createdAtUtc: new Date(node.createdAtUtc)
+          }))
+        });
+      }
+
+      for (const edgeBatch of this.chunkArray(edges, 200)) {
+        await this.databaseService.client.containsEdge.createMany({
+          data: edgeBatch.map((edge) => ({
+            ...edge,
+            createdAtUtc: new Date(edge.createdAtUtc)
+          }))
+        });
+      }
     } catch (error) {
       const prismaCode = (error as { code?: string } | null)?.code;
       if (prismaCode === 'P2002') {
@@ -1155,6 +1160,15 @@ export class DiffJobService {
 
   private nodeIdForRow(revisionId: string, rowId: string): string {
     return createHash('sha256').update(`${revisionId}::${rowId}`).digest('hex').slice(0, 64);
+  }
+
+  private chunkArray<T>(items: T[], chunkSize: number): T[][] {
+    if (chunkSize <= 0) return [items];
+    const chunks: T[][] = [];
+    for (let index = 0; index < items.length; index += chunkSize) {
+      chunks.push(items.slice(index, index + chunkSize));
+    }
+    return chunks;
   }
 
   private emitMetricEvent(

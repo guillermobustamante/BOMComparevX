@@ -10,185 +10,74 @@
   - Local:        http://localhost:3000
 
  Γ£ô Starting...
- Γ£ô Ready in 1960ms
+ Γ£ô Ready in 3.4s
+ Γùï Compiling / ...
+ Γ£ô Compiled / in 10s (458 modules)
+ GET / 307 in 10832ms
  Γùï Compiling /upload ...
- Γ£ô Compiled /upload in 5.6s (521 modules)
- GET /upload 307 in 6036ms
- Γùï Compiling /login ...
- Γ£ô Compiled /login in 6.9s (511 modules)
- GET /login?returnTo=/upload 200 in 7115ms
- GET /upload 200 in 117ms
+ Γ£ô Compiled /upload in 6.6s (511 modules)
+ GET /upload 307 in 6915ms
+ Γ£ô Compiled /login in 325ms (513 modules)
+ GET /login?returnTo=/upload 200 in 484ms
+ GET /upload 307 in 2662ms
+ Γùï Compiling /consent ...
+ Γ£ô Compiled /consent in 12.1s (520 modules)
+ GET /consent?returnTo=/upload 200 in 13944ms
+ Γùï Compiling /_not-found ...
+ Γ£ô Compiled /_not-found in 4.4s (523 modules)
+ GET /terms 404 in 5287ms
+ GET /privacy 404 in 444ms
+ Γ£ô Compiled in 704ms (489 modules)
+ Γùï Compiling /terms ...
+ Γ£ô Compiled /terms in 13.5s (491 modules)
+ GET /terms 200 in 18681ms
+ Γùï Compiling /api/auth/consent/accept ...
+ Γ£ô Compiled /api/auth/consent/accept in 4.1s (271 modules)
+ POST /api/auth/consent/accept 201 in 4381ms
+ Γ£ô Compiled /upload in 414ms (302 modules)
+ Γùï Compiling /history ...
+ Γ£ô Compiled /history in 1298ms (560 modules)
+ Γ£ô Compiled /api/history/sessions in 248ms (309 modules)
+ GET /api/history/sessions 200 in 361ms
+ GET /api/history/sessions 200 in 367ms
  Γùï Compiling /api/uploads/intake ...
- Γ£ô Compiled /api/uploads/intake in 845ms (294 modules)
- POST /api/uploads/intake 202 in 13002ms
+ Γ£ô Compiled /api/uploads/intake in 1132ms (311 modules)
+ POST /api/uploads/intake 202 in 3951ms
  Γùï Compiling /results ...
- Γ£ô Compiled /results in 673ms (551 modules)
- GET /results?sessionId=74865e87-423b-41ed-b358-298102429fd2&leftRevisionId=ed4991a7-17e4-4e86-a491-1b2df07a9469&rightRevisionId=6d9a769d-c745-4bec-a700-f50a5e80d15c 200 in 1010ms
- Γ£ô Compiled /api/diff-jobs in 323ms (302 modules)
- POST /api/diff-jobs 201 in 1571ms
- POST /api/diff-jobs 201 in 1625ms
- Γ£ô Compiled /api/shares/[comparisonId] in 359ms (304 modules)
- Γ£ô Compiled (306 modules)
- GET /api/diff-jobs/5f58db8b-458d-4007-822b-242f5edcaa52/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 2030ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 1974ms
- GET /api/diff-jobs/5f58db8b-458d-4007-822b-242f5edcaa52/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 2058ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 1188ms
- Γ£ô Compiled /api/diff-jobs/[jobId] in 444ms (308 modules)
- GET /api/shares/e03b02fa-240d-4843-821d-07bad95fd897 200 in 1620ms
- GET /api/shares/5f58db8b-458d-4007-822b-242f5edcaa52 200 in 2606ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 1410ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 32ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 30ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 29ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 112ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 41ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 31ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 25ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 25ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 32ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 34ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 28ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 24ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 39ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 32ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 30ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 25ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 32ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 31ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 25ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 26ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 35ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 35ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 71ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 30ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 29ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 39ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 36ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 41ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 46ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 42ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 36ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 37ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 34ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 29ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 27ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 25ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 30ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 25ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 33ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 29ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 34ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 35ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 28ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 26ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 30ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 26ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 31ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 30ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 31ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 25ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 30ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 67ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 58ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 78ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 104ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 188ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 1839ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 102ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 161ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 39ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 37ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 33ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 31ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 38ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 34ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 45ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 24ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 29ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 31ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 32ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 27ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 26ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 27ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 23ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 30ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 23ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 25ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 29ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 29ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 27ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 30ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 31ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 29ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 30ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 30ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 26ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 30ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 28ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 28ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 36ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 28ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 24ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 27ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 22ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 28ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 28ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 26ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 19ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 27ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 26ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 36ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 25ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 22ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 32ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 27ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 33ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 26ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 35ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 26ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 29ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 27ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 35ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 24ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 33ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 35ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 29ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 39ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 30ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 35ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 30ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 22ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 23ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 25ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 19ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 20ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 21ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 22ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 35ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 19ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 15ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 26ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 502 in 20307ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897 200 in 32ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 48ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897/rows?cursor=0&limit=50&filters=%5B%7B%22field%22%3A%22changeType%22%2C%22op%22%3A%22eq%22%2C%22value%22%3A%22added%22%7D%5D&sortBy=sourceIndex&sortDir=asc 200 in 45ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897/rows?cursor=0&limit=50&filters=%5B%7B%22field%22%3A%22changeType%22%2C%22op%22%3A%22eq%22%2C%22value%22%3A%22removed%22%7D%5D&sortBy=sourceIndex&sortDir=asc 200 in 34ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897/rows?cursor=0&limit=50&filters=%5B%7B%22field%22%3A%22changeType%22%2C%22op%22%3A%22eq%22%2C%22value%22%3A%22replaced%22%7D%5D&sortBy=sourceIndex&sortDir=asc 200 in 44ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897/rows?cursor=0&limit=50&filters=%5B%7B%22field%22%3A%22changeType%22%2C%22op%22%3A%22eq%22%2C%22value%22%3A%22modified%22%7D%5D&sortBy=sourceIndex&sortDir=asc 200 in 31ms
- GET /api/diff-jobs/e03b02fa-240d-4843-821d-07bad95fd897/rows?cursor=0&limit=50&filters=%5B%7B%22field%22%3A%22changeType%22%2C%22op%22%3A%22eq%22%2C%22value%22%3A%22moved%22%7D%5D&sortBy=sourceIndex&sortDir=asc 200 in 38ms
- Γ£ô Compiled in 2.5s (519 modules)
- Γ£ô Compiled in 482ms (519 modules)
- Γ£ô Compiled in 364ms (519 modules)
- Γ£ô Compiled in 366ms (519 modules)
- Γ£ô Compiled in 536ms (519 modules)
- Γ£ô Compiled in 322ms (519 modules)
- Γ£ô Compiled in 352ms (519 modules)
- Γ£ô Compiled in 522ms (519 modules)
- Γ£ô Compiled in 413ms (519 modules)
- Γ£ô Compiled in 316ms (519 modules)
- Γ£ô Compiled in 480ms (519 modules)
- Γ£ô Compiled in 391ms (519 modules)
- Γ£ô Compiled in 743ms (519 modules)
- Γ£ô Compiled in 277ms (519 modules)
- Γ£ô Compiled in 560ms (519 modules)
- Γ£ô Compiled in 1028ms (519 modules)
+ Γ£ô Compiled /results in 3.1s (569 modules)
+ GET /results?sessionId=0783b85d-8313-4897-9b44-73f5f3222518&leftRevisionId=c7da7553-717c-4513-8aff-1045bda72f0f&rightRevisionId=17d3da41-d5b6-4ea6-b91f-48cebbd8c942 200 in 4690ms
+ Γ£ô Compiled /api/diff-jobs in 268ms (316 modules)
+ POST /api/diff-jobs 201 in 470ms
+ POST /api/diff-jobs 201 in 567ms
+ Γ£ô Compiled /api/shares/[comparisonId] in 377ms (318 modules)
+ Γ£ô Compiled (320 modules)
+ GET /api/shares/3c0a3570-2f74-4132-923f-44feccf2e793 200 in 5291ms
+ GET /api/diff-jobs/3c0a3570-2f74-4132-923f-44feccf2e793/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 5574ms
+ GET /api/diff-jobs/195b9b95-923c-4d82-8b36-da6e2788b651/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 5682ms
+ GET /api/diff-jobs/3c0a3570-2f74-4132-923f-44feccf2e793/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 6134ms
+ GET /api/diff-jobs/195b9b95-923c-4d82-8b36-da6e2788b651/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 4738ms
+ GET /api/shares/195b9b95-923c-4d82-8b36-da6e2788b651 200 in 1869ms
+ GET /api/diff-jobs/195b9b95-923c-4d82-8b36-da6e2788b651/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 895ms
+ Γùï Compiling /api/diff-jobs/[jobId] ...
+ Γ£ô Compiled /api/diff-jobs/[jobId] in 6.2s (320 modules)
+ GET /api/diff-jobs/195b9b95-923c-4d82-8b36-da6e2788b651 200 in 13301ms
+ GET /api/diff-jobs/195b9b95-923c-4d82-8b36-da6e2788b651/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 1094ms
+ GET /api/history/sessions 200 in 579ms
+ GET /api/history/sessions 200 in 547ms
+ Γùï Compiling /api/history/sessions/[historyId]/tag ...
+ Γ£ô Compiled /api/history/sessions/[historyId]/rename in 4.3s (322 modules)
+ Γ£ô Compiled (324 modules)
+ POST /api/history/sessions/d4b0a1cc-c6d4-4fbb-8d8c-6545ef312aab/tag 201 in 5218ms
+ POST /api/history/sessions/d4b0a1cc-c6d4-4fbb-8d8c-6545ef312aab/rename 201 in 2603ms
+ GET /api/history/sessions 200 in 30ms
+ GET /api/history/sessions 200 in 24ms
+ POST /api/history/sessions/d4b0a1cc-c6d4-4fbb-8d8c-6545ef312aab/rename 201 in 379ms
+ GET /api/history/sessions 200 in 536ms
+ POST /api/history/sessions/d4b0a1cc-c6d4-4fbb-8d8c-6545ef312aab/tag 201 in 842ms
+ GET /api/history/sessions 200 in 2426ms
+ GET /api/history/sessions 200 in 202ms
+ GET /api/history/sessions 200 in 337ms
+ Γùï Compiling /api/history/sessions/[historyId]/delete ...
+ Γ£ô Compiled /api/history/sessions/[historyId]/delete in 2.1s (316 modules)
+ POST /api/history/sessions/d4b0a1cc-c6d4-4fbb-8d8c-6545ef312aab/delete 201 in 4464ms
+ GET /api/history/sessions 200 in 1914ms

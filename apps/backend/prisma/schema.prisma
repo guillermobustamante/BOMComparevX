@@ -33,12 +33,18 @@ model HistoryEntry {
   historyId       String   @id
   jobId           String   @unique
   sessionId       String
+  sessionName     String?
+  tagLabel        String?
   createdAtUtc    DateTime
+  updatedAtUtc    DateTime
+  deletedAtUtc    DateTime?
+  deletedBy       String?
   status          String
   initiatorEmail  String
   tenantId        String
 
   @@index([tenantId, initiatorEmail, createdAtUtc], map: "ix_historyEntries_tenant_user_createdAt")
+  @@index([tenantId, initiatorEmail, deletedAtUtc, createdAtUtc], map: "ix_historyEntries_tenant_user_deleted_createdAt")
   @@map("historyEntries")
 }
 

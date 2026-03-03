@@ -213,6 +213,64 @@ test('upload can queue a valid intake and show accepted job feedback', async ({ 
   await context.close();
 });
 
+test('history page supports rename, tag, and soft-delete actions', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.history');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({
+    baseURL,
+    storageState
+  });
+  const page = await context.newPage();
+
+  await page.goto('/upload');
+  await page.setInputFiles('[data-testid="file-input-a"]', {
+    name: 'history-a.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('part_number,description,quantity\nHX-100,History Item,1\n')
+  });
+  await page.setInputFiles('[data-testid="file-input-b"]', {
+    name: 'history-b.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('part_number,description,quantity\nHX-100,History Item,2\n')
+  });
+  await page.getByTestId('queue-upload-btn').click();
+  await expect(page.getByTestId('upload-intake-success')).toContainText('UPLOAD_ACCEPTED');
+
+  await page.goto('/history');
+  await expect(page.getByTestId('history-table')).toBeVisible();
+  const row = page.locator('[data-testid^="history-row-"]').first();
+  await expect(row).toBeVisible();
+  const rowTestId = await row.getAttribute('data-testid');
+  expect(rowTestId).toBeTruthy();
+
+  await row.locator('input').nth(0).fill('History Smoke');
+  await row.getByRole('button', { name: 'Rename' }).click();
+  await expect(page.getByTestId('history-feedback')).toContainText('Session name updated.');
+
+  await row.locator('input').nth(1).fill('smoke');
+  await row.getByRole('button', { name: 'Save Tag' }).click();
+  await expect(page.getByTestId('history-feedback')).toContainText('Tag updated.');
+
+  await row.getByRole('button', { name: 'Delete' }).click();
+  await expect(page.getByTestId('history-feedback')).toContainText('Session deleted.');
+  await expect(page.locator(`[data-testid="${rowTestId}"]`)).toHaveCount(0);
+
+  await context.close();
+});
+
 test('upload can open results using uploaded revision pair (real file rows)', async ({
   browser,
   request,

@@ -9,10 +9,12 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UseGuards
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
+import { AuditGovernanceService } from '../audit/audit-governance.service';
 import { AuditService } from '../audit/audit.service';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { SessionState } from '../auth/session-user.interface';
@@ -26,7 +28,8 @@ export class AdminController {
     private readonly adminRoleService: AdminRoleService,
     private readonly uploadPolicyService: UploadPolicyService,
     private readonly auditService: AuditService,
-    private readonly retentionService: RetentionService
+    private readonly retentionService: RetentionService,
+    private readonly auditGovernanceService: AuditGovernanceService
   ) {}
 
   @Get('me')
@@ -201,6 +204,157 @@ export class AdminController {
       ok: true,
       ...result
     };
+  }
+
+  @Get('audit/export')
+  @UseGuards(SessionAuthGuard)
+  async exportAuditEvents(
+    @Req() req: Request,
+    @Query('format') format: string | undefined,
+    @Query('fromUtcIso') fromUtcIso: string | undefined,
+    @Query('toUtcIso') toUtcIso: string | undefined,
+    @Query('actionType') actionType: string | undefined,
+    @Query('outcome') outcome: string | undefined,
+    @Query('actorEmail') actorEmail: string | undefined,
+    @Query('limit') limit: string | undefined,
+    @Res({ passthrough: true }) response: Response
+  ): Promise<string> {
+    this.ensureFeatureEnabled(
+      'audit_export_stage8_v1',
+      'AUDIT_EXPORT_STAGE8_DISABLED',
+      'Stage 8 audit export is currently disabled by feature flag.'
+    );
+    const session = req.session as SessionState;
+    const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const requestedBy = session.user?.email || 'unknown-user';
+    await this.ensureAdmin(tenantId, requestedBy);
+
+    const resolvedFormat = (format || 'csv').trim().toLowerCase() === 'ndjson' ? 'ndjson' : 'csv';
+
+    try {
+      const payload = await this.auditGovernanceService.exportTenantAudit({
+        tenantId,
+        format: resolvedFormat,
+        fromUtcIso,
+        toUtcIso,
+        actionType: actionType || undefined,
+        outcome: outcome || undefined,
+        actorEmail: actorEmail || undefined,
+        limit: limit ? Number(limit) : undefined
+      });
+
+      response.setHeader('Content-Type', payload.contentType);
+      response.setHeader('Content-Disposition', `attachment; filename="${payload.fileName}"`);
+      response.setHeader('Cache-Control', 'no-store');
+
+      this.auditService.emit({
+        eventType: 'audit.export',
+        outcome: 'success',
+        actorEmail: requestedBy,
+        tenantId,
+        reason: `format=${resolvedFormat};rows=${payload.rowCount}`,
+        correlationId: randomUUID()
+      });
+      return payload.content;
+    } catch (error) {
+      this.auditService.emit({
+        eventType: 'audit.export',
+        outcome: 'failure',
+        actorEmail: requestedBy,
+        tenantId,
+        reason: `format=${resolvedFormat}`,
+        correlationId: randomUUID()
+      });
+      throw error;
+    }
+  }
+
+  @Post('audit/archive/run')
+  @UseGuards(SessionAuthGuard)
+  async runAuditArchive(
+    @Req() req: Request,
+    @Body() body: { nowUtcIso?: string }
+  ): Promise<{
+    ok: true;
+    archive: {
+      archiveId: string;
+      tenantId: string;
+      archiveDateUtc: string;
+      triggeredAtUtc: string;
+      triggeredBy: string;
+      storageTarget: 'local' | 'azure_blob_grs';
+      artifactUri: string;
+      manifestUri: string;
+      appendOnly: true;
+      recordCount: number;
+      payloadBytes: number;
+      sha256: string;
+      retentionYears: number;
+    };
+  }> {
+    this.ensureFeatureEnabled(
+      'audit_archive_stage8_v1',
+      'AUDIT_ARCHIVE_STAGE8_DISABLED',
+      'Stage 8 audit archive is currently disabled by feature flag.'
+    );
+    const session = req.session as SessionState;
+    const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const actorEmail = session.user?.email || 'unknown-user';
+    await this.ensureAdmin(tenantId, actorEmail);
+
+    const archive = await this.auditGovernanceService.runDailyArchive({
+      tenantId,
+      actorEmail,
+      nowUtcIso: body.nowUtcIso
+    });
+    this.auditService.emit({
+      eventType: 'audit.archive.run',
+      outcome: 'success',
+      actorEmail,
+      tenantId,
+      reason: `date=${archive.archiveDateUtc};records=${archive.recordCount};target=${archive.storageTarget}`,
+      correlationId: randomUUID()
+    });
+    return { ok: true, archive };
+  }
+
+  @Get('audit/archive/runs')
+  @UseGuards(SessionAuthGuard)
+  async listAuditArchiveRuns(
+    @Req() req: Request,
+    @Query('limit') limit?: string
+  ): Promise<{
+    runs: Array<{
+      archiveId: string;
+      tenantId: string;
+      archiveDateUtc: string;
+      triggeredAtUtc: string;
+      triggeredBy: string;
+      storageTarget: 'local' | 'azure_blob_grs';
+      artifactUri: string;
+      manifestUri: string;
+      appendOnly: true;
+      recordCount: number;
+      payloadBytes: number;
+      sha256: string;
+      retentionYears: number;
+    }>;
+  }> {
+    this.ensureFeatureEnabled(
+      'audit_archive_stage8_v1',
+      'AUDIT_ARCHIVE_STAGE8_DISABLED',
+      'Stage 8 audit archive is currently disabled by feature flag.'
+    );
+    const session = req.session as SessionState;
+    const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const actorEmail = session.user?.email || 'unknown-user';
+    await this.ensureAdmin(tenantId, actorEmail);
+
+    const runs = await this.auditGovernanceService.listArchiveRuns({
+      tenantId,
+      limit: limit ? Number(limit) : undefined
+    });
+    return { runs };
   }
 
   @Post('test/grant-role')

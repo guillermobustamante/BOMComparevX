@@ -28,6 +28,16 @@ Execution baseline for Stage 1 with selected stack:
 - This executes:
 `ci:checks` (contracts + backend + frontend build checks) and Playwright browser tests.
 
+## Stage 8 Security Gates
+- Run secure SDLC gates:
+`npm run ci:security`
+- Includes:
+  - vulnerability gate (`tools/security/check-vulnerabilities.mjs`)
+  - license policy gate (`tools/security/check-licenses.mjs`)
+  - secret scan gate (`tools/security/check-secrets.mjs`)
+- Stage 8 runbook:
+`docs/runbooks/s8-security-compliance-closeout.md`
+
 ## Unlimited Test Accounts (Dev/Test)
 Use this when selected tester accounts must bypass upload credits/cooldown.
 

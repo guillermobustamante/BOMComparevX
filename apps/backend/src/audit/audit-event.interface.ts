@@ -10,7 +10,12 @@ export type AuditEventType =
   | 'admin.policy.reset'
   | 'admin.policy.override'
   | 'admin.role.grant'
+  | 'history.rename'
+  | 'history.tag'
+  | 'history.delete'
   | 'consent.accepted'
+  | 'audit.export'
+  | 'audit.archive.run'
   | 'rate_limit.exempt'
   | 'rate_limit.exceeded';
 

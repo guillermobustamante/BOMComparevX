@@ -23,9 +23,16 @@ Planned framework: NestJS + TypeScript with Passport strategies for Google/Micro
 - `POST /api/uploads/intake` (protected, multipart `fileA` + `fileB`, async accept)
 - `GET /api/exports/csv/:comparisonId` (protected, synchronous CSV download; full dataset default)
 - `GET /api/exports/excel/:comparisonId` (protected, synchronous Excel download; full dataset default)
+- `GET /api/history/sessions` (protected, owner sessions only, soft-deleted hidden)
+- `POST /api/history/sessions/:historyId/rename` (protected)
+- `POST /api/history/sessions/:historyId/tag` (protected)
+- `POST /api/history/sessions/:historyId/delete` (protected, soft-delete)
 - `GET /api/notifications` (protected)
 - `POST /api/notifications/:notificationId/read` (protected)
 - `POST /api/admin/retention/run` (protected, admin role required)
+- `GET /api/admin/audit/export` (protected, admin role required, tenant-scoped)
+- `POST /api/admin/audit/archive/run` (protected, admin role required, append-only archive run)
+- `GET /api/admin/audit/archive/runs` (protected, admin role required)
 
 Optional query support for start endpoints:
 - `returnTo` (internal path only, e.g. `/upload` or `/history`).
@@ -43,6 +50,8 @@ Audit events:
 - `export.download`
 - `notification.created`
 - `retention.sweep`
+- `audit.export`
+- `audit.archive.run`
 - `rate_limit.exempt`
 - `rate_limit.exceeded`
 - Events are emitted as structured JSON logs with correlation ID and UTC timestamp.
@@ -102,6 +111,17 @@ Stage 8 consent flags:
 - `PRIVACY_VERSION`
 - `TERMS_URL`
 - `PRIVACY_URL`
+
+Stage 8 history parity flags:
+- `HISTORY_PARITY_V1`
+
+Stage 8 audit governance flags:
+- `AUDIT_EXPORT_STAGE8_V1`
+- `AUDIT_ARCHIVE_STAGE8_V1`
+- `AUDIT_ARCHIVE_STORAGE_TARGET` (`local` or `azure_blob_grs`)
+- `AUDIT_ARCHIVE_BLOB_BASE_URI` (required when target is `azure_blob_grs`)
+- `AUDIT_ARCHIVE_LOCAL_DIR` (default `artifacts/audit-archive`)
+- `AUDIT_ARCHIVE_RETENTION_YEARS` (minimum `7`)
 
 Stage 5 retention defaults:
 - `STAGE5_RETENTION_ENABLED=true`

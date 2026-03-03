@@ -139,7 +139,7 @@ Require re-acceptance when either version changes, and store durable compliance 
 - Estimate: `5`
 - Owner: `AI Coding Agent (FE/BE)`
 - Sprint: `S8`
-- Status: `Ready`
+- Status: `Completed`
 
 ### Traceability
 - Requirement link(s): `FR-010`
@@ -187,7 +187,7 @@ Emit audit events for all actions and preserve immutable audit evidence.
 - Estimate: `3`
 - Owner: `AI Coding Agent (BE)`
 - Sprint: `S8`
-- Status: `Ready`
+- Status: `Completed`
 
 ### Traceability
 - Requirement link(s): `NFR-AUDIT`, `NFR-COMP-004`, `NFR-COMP-009`
@@ -237,7 +237,7 @@ Add daily append-only archive to Blob with geo-redundancy assumptions and 7+ yea
 - Estimate: `3`
 - Owner: `AI Coding Agent (DevOps)`
 - Sprint: `S8`
-- Status: `Ready`
+- Status: `Completed`
 
 ### Traceability
 - Requirement link(s): `NFR-SEC-011`, `NFR-SEC-012`, `NFR-SEC-013`
@@ -288,7 +288,7 @@ Publish concise artifacts/logs so failures are actionable.
 - Estimate: `5`
 - Owner: `AI Coding Agent (QA/DevOps)`
 - Sprint: `S8`
-- Status: `Ready`
+- Status: `Completed`
 
 ### Traceability
 - Requirement link(s): `Stage 8 acceptance criteria`

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { AuditModule } from '../audit/audit.module';
 import { UploadsController } from './uploads.controller';
+import { HistoryController } from './history.controller';
 import { UploadHistoryService } from './upload-history.service';
 import { UploadJobService } from './upload-job.service';
 import { UploadPolicyService } from './upload-policy.service';
@@ -11,7 +12,7 @@ import { UploadValidationService } from './upload-validation.service';
 
 @Module({
   imports: [AuditModule],
-  controllers: [UploadsController],
+  controllers: [UploadsController, HistoryController],
   providers: [
     UploadValidationService,
     UploadPolicyService,

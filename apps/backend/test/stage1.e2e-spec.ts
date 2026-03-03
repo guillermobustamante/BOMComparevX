@@ -257,6 +257,7 @@ describe('Stage 1 API baseline (e2e)', () => {
     const previousExemptTenants = process.env.RATE_LIMIT_EXEMPT_TENANT_IDS;
 
     const exemptAgent = request.agent(app.getHttpServer());
+    
 
     try {
       process.env.RATE_LIMITING_V1 = 'false';
@@ -344,9 +345,11 @@ describe('Stage 1 API baseline (e2e)', () => {
 
   it('upload validate accepts two valid files', async () => {
     const agent = request.agent(app.getHttpServer());
+    const email = `uploader.${Date.now()}@example.com`;
     await agent
       .post('/api/auth/test/login')
-      .send({ email: 'uploader@example.com', tenantId: 'tenant-a', provider: 'google' })
+      //.send({ email: 'uploader@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .send({ email, tenantId: 'tenant-a', provider: 'google' })
       .expect(201);
 
     const response = await agent
@@ -517,6 +520,66 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(response.body.code).toBe('UPLOAD_PARSE_WORKBOOK_INVALID');
     expect(response.body.correlationId).toBeDefined();
     expect(response.body.parserMode).toBe('xlsx');
+  });
+
+  it('history parity supports list, rename, tag, and soft-delete for owner only', async () => {
+    const ownerEmail = `history.owner.${Date.now()}@example.com`;
+    const ownerAgent = request.agent(app.getHttpServer());
+    await ownerAgent
+      .post('/api/auth/test/login')
+      .send({ email: ownerEmail, tenantId: 'tenant-history', provider: 'google' })
+      .expect(201);
+
+    const intake = await ownerAgent
+      .post('/api/uploads/intake')
+      .attach('fileA', Buffer.from('part_number,description,quantity\nBOM-H,Widget H,2\n'), {
+        filename: 'history-a.csv',
+        contentType: 'text/csv'
+      })
+      .attach('fileB', Buffer.from('part_number,description,quantity\nBOM-H,Widget H,3\n'), {
+        filename: 'history-b.csv',
+        contentType: 'text/csv'
+      })
+      .expect(202);
+
+    const historyId = intake.body.historyId as string;
+    expect(historyId).toBeDefined();
+
+    const listed = await ownerAgent.get('/api/history/sessions').expect(200);
+    const existing = (listed.body.sessions as Array<{ historyId: string }>).find(
+      (entry) => entry.historyId === historyId
+    );
+    expect(existing).toBeDefined();
+
+    const renamed = await ownerAgent
+      .post(`/api/history/sessions/${historyId}/rename`)
+      .send({ sessionName: 'Release Compare A' })
+      .expect(201);
+    expect(renamed.body.session.sessionName).toBe('Release Compare A');
+
+    const tagged = await ownerAgent
+      .post(`/api/history/sessions/${historyId}/tag`)
+      .send({ tagLabel: 'release-a' })
+      .expect(201);
+    expect(tagged.body.session.tagLabel).toBe('release-a');
+
+    const otherAgent = request.agent(app.getHttpServer());
+    await otherAgent
+      .post('/api/auth/test/login')
+      .send({ email: `history.other.${Date.now()}@example.com`, tenantId: 'tenant-history', provider: 'google' })
+      .expect(201);
+    await otherAgent
+      .post(`/api/history/sessions/${historyId}/rename`)
+      .send({ sessionName: 'HACK' })
+      .expect(404);
+
+    await ownerAgent.post(`/api/history/sessions/${historyId}/delete`).expect(201);
+    const afterDelete = await ownerAgent.get('/api/history/sessions').expect(200);
+    expect(
+      (afterDelete.body.sessions as Array<{ historyId: string }>).some(
+        (entry) => entry.historyId === historyId
+      )
+    ).toBe(false);
   });
 
   it('upload policy allows first three comparisons unrestricted and tracks usage', async () => {
@@ -1619,6 +1682,67 @@ describe('Stage 1 API baseline (e2e)', () => {
 
     const users = await admin.get('/api/admin/users?query=policy.target').expect(200);
     expect(users.body.users.some((row: { email: string }) => row.email === 'policy.target@example.com')).toBe(true);
+  });
+
+  it('admin audit export and archive endpoints enforce tenant scope and append-only evidence metadata', async () => {
+    const tenantAAdmin = request.agent(app.getHttpServer());
+    await tenantAAdmin
+      .post('/api/auth/test/login')
+      .send({ email: 'audit.admin.a@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const denied = await tenantAAdmin.get('/api/admin/audit/export?format=csv').expect(403);
+    expect(denied.body.code).toBe('ADMIN_REQUIRED');
+
+    await tenantAAdmin
+      .post('/api/admin/test/grant-role')
+      .send({ userEmail: 'audit.admin.a@example.com' })
+      .expect(201);
+    await tenantAAdmin.get('/api/admin/me').expect(200);
+
+    const tenantBAdmin = request.agent(app.getHttpServer());
+    await tenantBAdmin
+      .post('/api/auth/test/login')
+      .send({ email: 'audit.admin.b@example.com', tenantId: 'tenant-b', provider: 'google' })
+      .expect(201);
+    await tenantBAdmin
+      .post('/api/admin/test/grant-role')
+      .send({ userEmail: 'audit.admin.b@example.com' })
+      .expect(201);
+    await tenantBAdmin.get('/api/admin/me').expect(200);
+
+    const exportCsv = await tenantAAdmin
+      .get('/api/admin/audit/export?format=csv&limit=500')
+      .expect(200);
+    expect(exportCsv.headers['content-type']).toContain('text/csv');
+    expect(exportCsv.text).toContain('tenantId');
+    expect(exportCsv.text).toContain('tenant-a');
+    const csvRows = exportCsv.text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(1);
+    for (const row of csvRows) {
+      expect(row.startsWith('202')).toBe(true);
+      expect(row).toContain(',tenant-a,');
+    }
+
+    const archiveNow = new Date().toISOString();
+    const archiveRun = await tenantAAdmin
+      .post('/api/admin/audit/archive/run')
+      .send({ nowUtcIso: archiveNow })
+      .expect(201);
+    expect(archiveRun.body.ok).toBe(true);
+    expect(archiveRun.body.archive.appendOnly).toBe(true);
+    expect(archiveRun.body.archive.retentionYears).toBeGreaterThanOrEqual(7);
+    expect(archiveRun.body.archive.recordCount).toBeGreaterThan(0);
+    expect(archiveRun.body.archive.tenantId).toBe('tenant-a');
+
+    const archiveList = await tenantAAdmin.get('/api/admin/audit/archive/runs?limit=20').expect(200);
+    const currentRun = (archiveList.body.runs as Array<{ archiveId: string }>).find(
+      (row) => row.archiveId === archiveRun.body.archive.archiveId
+    );
+    expect(currentRun).toBeDefined();
   });
 
   it('stage 5 retention sweep enforces export/notification defaults and keeps active shares', async () => {

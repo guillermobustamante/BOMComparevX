@@ -1,0 +1,12 @@
+{
+  "denyPatterns": [
+    "gpl",
+    "agpl",
+    "lgpl",
+    "sspl",
+    "busl"
+  ],
+  "failOnUnknown": false,
+  "notes": "Stage 8 baseline: block copyleft/commercial-restricted licenses; unknowns are report-only for now."
+}
+
