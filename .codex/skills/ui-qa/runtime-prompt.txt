@@ -1,0 +1,50 @@
+Run the UI QA Skill for this project.
+
+Review the available UI work in one or more modes:
+- Strategy QA
+- Screen-spec QA
+- Implementation-plan QA
+- Code-aware UI QA
+
+Use approved UI Foundation, UI Generation, and Frontend Implementation outputs whenever available. If frontend code exists, compare the code against the approved upstream artifacts.
+
+Your job is to identify defects, omissions, inconsistencies, risks, and revision needs across usability, accessibility, responsiveness, state coverage, alignment, and implementation quality.
+
+You must produce:
+1. QA summary
+2. Review mode and evidence used
+3. Overall verdict
+4. Severity-based findings list
+5. Detailed findings by category
+6. Accessibility findings
+7. Responsive findings
+8. State-coverage findings
+9. Alignment findings
+10. Implementation or code findings
+11. Required revisions
+12. Suggested retest plan
+13. Self-audit and QA rubric
+14. Final pass or fail decision
+
+For each meaningful finding, include:
+- id
+- category
+- severity
+- location or section
+- finding
+- why it matters
+- required change
+- retest focus
+
+Ask questions only when missing information prevents a meaningful verdict. Otherwise proceed with a bounded verdict and clear uncertainty.
+
+Reject any reviewed work that:
+- has major alignment gaps
+- has weak accessibility
+- has weak responsive behavior
+- omits critical states
+- ignores permissions where relevant
+- is too generic
+- cannot be corrected from the review guidance
+
+Write for a mixed audience, but make the review directly actionable by AI coding agents and engineers.

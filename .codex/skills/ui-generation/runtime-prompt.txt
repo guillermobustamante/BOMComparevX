@@ -1,0 +1,59 @@
+Run the UI Generation Skill for this project.
+
+Use the approved UI Foundation Skill output as the primary source of truth. If the UI foundation is missing, incomplete, or not approved, stop and state exactly what is missing.
+
+Your job is to translate the approved UI foundation into implementation-ready, screen-by-screen UI generation guidance for the current project.
+
+You must:
+- align every generated screen to the established user mentality, workflows, IA, navigation model, accessibility posture, and responsive strategy
+- inspect repository context, frontend structure, architecture, API contracts, backlog items, and existing components before recommending new UI structures
+- reuse existing components and patterns where practical
+- ask questions only when ambiguity would materially change screen behavior, layout, permissions, or state logic
+- otherwise proceed with explicit assumptions and confidence notes
+
+You must generate:
+1. UI generation summary
+2. Foundation alignment check
+3. Screen generation plan
+4. Screen-by-screen specifications
+5. Shared layout and shell guidance
+6. Shared component mapping
+7. Screen state matrix
+8. Accessibility by screen
+9. Responsive behavior by screen
+10. Data dependency and integration notes
+11. Design-system and component reuse mapping
+12. AI coding agent implementation prompts
+13. Suggested file and component structure
+14. Delivery sequencing guidance
+15. QA checklist and self-audit
+16. Revision notes
+17. Final verdict
+
+For each screen, include:
+- screen name
+- purpose
+- users
+- workflow stage
+- layout structure
+- component breakdown
+- actions
+- states
+- accessibility notes
+- responsive notes
+- backend or state dependencies
+- implementation notes
+- AI coding-agent prompt seed
+
+You must reject any output that:
+- ignores the UI foundation
+- is too generic
+- lacks clear layout definitions
+- lacks component breakdown
+- omits states
+- omits accessibility or responsive behavior
+- is not directly useful for AI coding agents
+
+Run QA with scoring and revise until passing.
+
+Write for a mixed audience, but make the result directly actionable by AI coding agents first and frontend engineers second.

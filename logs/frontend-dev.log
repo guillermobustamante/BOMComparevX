@@ -10,74 +10,60 @@
   - Local:        http://localhost:3000
 
  Γ£ô Starting...
- Γ£ô Ready in 3.4s
- Γùï Compiling / ...
- Γ£ô Compiled / in 10s (458 modules)
- GET / 307 in 10832ms
+ Γ£ô Ready in 3.3s
  Γùï Compiling /upload ...
- Γ£ô Compiled /upload in 6.6s (511 modules)
- GET /upload 307 in 6915ms
- Γ£ô Compiled /login in 325ms (513 modules)
- GET /login?returnTo=/upload 200 in 484ms
- GET /upload 307 in 2662ms
+ Γ£ô Compiled /upload in 8.8s (521 modules)
+ GET /upload 307 in 9607ms
+ Γùï Compiling /login ...
+ Γ£ô Compiled /login in 8s (511 modules)
+ GET /login?returnTo=/upload 200 in 8287ms
+ GET /upload 307 in 186ms
  Γùï Compiling /consent ...
- Γ£ô Compiled /consent in 12.1s (520 modules)
- GET /consent?returnTo=/upload 200 in 13944ms
- Γùï Compiling /_not-found ...
- Γ£ô Compiled /_not-found in 4.4s (523 modules)
- GET /terms 404 in 5287ms
- GET /privacy 404 in 444ms
- Γ£ô Compiled in 704ms (489 modules)
- Γùï Compiling /terms ...
- Γ£ô Compiled /terms in 13.5s (491 modules)
- GET /terms 200 in 18681ms
- Γùï Compiling /api/auth/consent/accept ...
- Γ£ô Compiled /api/auth/consent/accept in 4.1s (271 modules)
- POST /api/auth/consent/accept 201 in 4381ms
- Γ£ô Compiled /upload in 414ms (302 modules)
- Γùï Compiling /history ...
- Γ£ô Compiled /history in 1298ms (560 modules)
- Γ£ô Compiled /api/history/sessions in 248ms (309 modules)
- GET /api/history/sessions 200 in 361ms
- GET /api/history/sessions 200 in 367ms
- Γùï Compiling /api/uploads/intake ...
- Γ£ô Compiled /api/uploads/intake in 1132ms (311 modules)
- POST /api/uploads/intake 202 in 3951ms
+ Γ£ô Compiled /consent in 797ms (520 modules)
+ GET /consent?returnTo=/upload 200 in 1092ms
+ Γ£ô Compiled /api/auth/consent/accept in 407ms (300 modules)
+ POST /api/auth/consent/accept 201 in 560ms
+ Γ£ô Compiled /api/uploads/intake in 468ms (302 modules)
+ POST /api/uploads/intake 202 in 1458ms
  Γùï Compiling /results ...
- Γ£ô Compiled /results in 3.1s (569 modules)
- GET /results?sessionId=0783b85d-8313-4897-9b44-73f5f3222518&leftRevisionId=c7da7553-717c-4513-8aff-1045bda72f0f&rightRevisionId=17d3da41-d5b6-4ea6-b91f-48cebbd8c942 200 in 4690ms
- Γ£ô Compiled /api/diff-jobs in 268ms (316 modules)
- POST /api/diff-jobs 201 in 470ms
- POST /api/diff-jobs 201 in 567ms
- Γ£ô Compiled /api/shares/[comparisonId] in 377ms (318 modules)
- Γ£ô Compiled (320 modules)
- GET /api/shares/3c0a3570-2f74-4132-923f-44feccf2e793 200 in 5291ms
- GET /api/diff-jobs/3c0a3570-2f74-4132-923f-44feccf2e793/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 5574ms
- GET /api/diff-jobs/195b9b95-923c-4d82-8b36-da6e2788b651/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 5682ms
- GET /api/diff-jobs/3c0a3570-2f74-4132-923f-44feccf2e793/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 6134ms
- GET /api/diff-jobs/195b9b95-923c-4d82-8b36-da6e2788b651/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 4738ms
- GET /api/shares/195b9b95-923c-4d82-8b36-da6e2788b651 200 in 1869ms
- GET /api/diff-jobs/195b9b95-923c-4d82-8b36-da6e2788b651/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 895ms
- Γùï Compiling /api/diff-jobs/[jobId] ...
- Γ£ô Compiled /api/diff-jobs/[jobId] in 6.2s (320 modules)
- GET /api/diff-jobs/195b9b95-923c-4d82-8b36-da6e2788b651 200 in 13301ms
- GET /api/diff-jobs/195b9b95-923c-4d82-8b36-da6e2788b651/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 1094ms
- GET /api/history/sessions 200 in 579ms
- GET /api/history/sessions 200 in 547ms
- Γùï Compiling /api/history/sessions/[historyId]/tag ...
- Γ£ô Compiled /api/history/sessions/[historyId]/rename in 4.3s (322 modules)
- Γ£ô Compiled (324 modules)
- POST /api/history/sessions/d4b0a1cc-c6d4-4fbb-8d8c-6545ef312aab/tag 201 in 5218ms
- POST /api/history/sessions/d4b0a1cc-c6d4-4fbb-8d8c-6545ef312aab/rename 201 in 2603ms
- GET /api/history/sessions 200 in 30ms
- GET /api/history/sessions 200 in 24ms
- POST /api/history/sessions/d4b0a1cc-c6d4-4fbb-8d8c-6545ef312aab/rename 201 in 379ms
- GET /api/history/sessions 200 in 536ms
- POST /api/history/sessions/d4b0a1cc-c6d4-4fbb-8d8c-6545ef312aab/tag 201 in 842ms
- GET /api/history/sessions 200 in 2426ms
- GET /api/history/sessions 200 in 202ms
- GET /api/history/sessions 200 in 337ms
- Γùï Compiling /api/history/sessions/[historyId]/delete ...
- Γ£ô Compiled /api/history/sessions/[historyId]/delete in 2.1s (316 modules)
- POST /api/history/sessions/d4b0a1cc-c6d4-4fbb-8d8c-6545ef312aab/delete 201 in 4464ms
- GET /api/history/sessions 200 in 1914ms
+ Γ£ô Compiled /results in 1002ms (560 modules)
+ GET /results?sessionId=5ef4fa3d-93ae-46af-8340-adbb9b308645&leftRevisionId=f20ff5ef-c12c-46f2-8c54-a7eaabcc6622&rightRevisionId=fa8f91ec-aed8-4d3e-8fda-74f8434a517c 200 in 1287ms
+ Γ£ô Compiled /api/diff-jobs in 375ms (309 modules)
+ POST /api/diff-jobs 201 in 680ms
+ POST /api/diff-jobs 201 in 779ms
+ Γ£ô Compiled /api/shares/[comparisonId] in 499ms (311 modules)
+ Γ£ô Compiled (313 modules)
+ GET /api/diff-jobs/1bdd6ad2-5786-4295-bf8e-e14950d1ee0e/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 2323ms
+ GET /api/diff-jobs/ba2aaf43-26c7-4371-8de4-1212bff086ff/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 2214ms
+ GET /api/diff-jobs/1bdd6ad2-5786-4295-bf8e-e14950d1ee0e/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 2364ms
+ GET /api/diff-jobs/ba2aaf43-26c7-4371-8de4-1212bff086ff/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 1283ms
+ GET /api/shares/1bdd6ad2-5786-4295-bf8e-e14950d1ee0e 200 in 2365ms
+ GET /api/shares/ba2aaf43-26c7-4371-8de4-1212bff086ff 200 in 1176ms
+ GET /api/diff-jobs/ba2aaf43-26c7-4371-8de4-1212bff086ff/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 54ms
+ Γ£ô Compiled /api/diff-jobs/[jobId] in 391ms (315 modules)
+ GET /api/diff-jobs/ba2aaf43-26c7-4371-8de4-1212bff086ff 200 in 1192ms
+ GET /api/diff-jobs/ba2aaf43-26c7-4371-8de4-1212bff086ff/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 59ms
+ GET /upload 200 in 2513ms
+ Γùï Compiling / ...
+ Γ£ô Compiled / in 1928ms (526 modules)
+ GET / 307 in 2345ms
+ GET /upload 200 in 162ms
+ Γùï Compiling /api/uploads/intake ...
+ Γ£ô Compiled /api/uploads/intake in 803ms (302 modules)
+ POST /api/uploads/intake 202 in 2860ms
+ GET /results?sessionId=49944b5f-556e-4619-b44e-8741d7eaa7a9&leftRevisionId=7b6f71cf-19f6-410d-8134-f39dc924edae&rightRevisionId=858eca74-53e4-4f2f-b9d8-027e54720d59 200 in 223ms
+ Γ£ô Compiled /api/diff-jobs in 338ms (304 modules)
+ POST /api/diff-jobs 201 in 590ms
+ POST /api/diff-jobs 201 in 685ms
+ Γ£ô Compiled /api/shares/[comparisonId] in 375ms (306 modules)
+ Γ£ô Compiled (308 modules)
+ GET /api/diff-jobs/28ef95e7-709a-4964-b16e-6bedc469894c/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 979ms
+ GET /api/diff-jobs/6afb35dc-5b0b-4c72-bbfa-61a12826cbdd/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 875ms
+ GET /api/diff-jobs/28ef95e7-709a-4964-b16e-6bedc469894c/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 1019ms
+ GET /api/shares/28ef95e7-709a-4964-b16e-6bedc469894c 200 in 1025ms
+ GET /api/diff-jobs/6afb35dc-5b0b-4c72-bbfa-61a12826cbdd/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 249ms
+ GET /api/shares/6afb35dc-5b0b-4c72-bbfa-61a12826cbdd 200 in 104ms
+ GET /api/diff-jobs/6afb35dc-5b0b-4c72-bbfa-61a12826cbdd/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 59ms
+ Γ£ô Compiled /api/diff-jobs/[jobId] in 485ms (310 modules)
+ GET /api/diff-jobs/6afb35dc-5b0b-4c72-bbfa-61a12826cbdd 200 in 600ms
+ GET /api/diff-jobs/6afb35dc-5b0b-4c72-bbfa-61a12826cbdd/rows?cursor=0&limit=50&sortBy=sourceIndex&sortDir=asc 200 in 69ms

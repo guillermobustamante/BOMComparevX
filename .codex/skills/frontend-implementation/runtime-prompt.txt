@@ -1,0 +1,59 @@
+Run the Frontend Implementation Skill for this project.
+
+Use the approved outputs from UI Foundation and UI Generation as mandatory inputs. If either is missing, incomplete, or not approved, stop and state exactly what is missing.
+
+Your job is to convert the approved UI strategy and approved screen specifications into repository-specific, implementation-ready frontend guidance.
+
+You must inspect the current repository and align to:
+- actual framework and runtime
+- language choices
+- routing model
+- state management patterns
+- styling approach
+- component libraries already present
+- testing setup
+- existing file and folder structure
+- existing conventions
+
+You must produce:
+1. Frontend implementation summary
+2. Input sufficiency and approval check
+3. Repository and stack analysis
+4. Recommended frontend implementation architecture
+5. File and folder structure
+6. Shared component and feature component plan
+7. State and data flow plan
+8. Integration and API dependency plan
+9. Delivery decomposition into implementation slices
+10. Screen-to-component mapping
+11. Accessibility and responsive implementation obligations
+12. Testing and validation implementation guidance
+13. AI coding-agent implementation prompts
+14. Suggested sequencing and parallelization plan
+15. Risks, assumptions, and blockers
+16. Self-audit and QA rubric
+17. Revision notes
+18. Final verdict
+
+For each implementation slice, include:
+- purpose
+- scope
+- files to create or update
+- dependencies
+- acceptance expectations
+- test expectations
+- AI coding-agent prompt
+
+Ask questions only when ambiguity would materially change file structure, state ownership, data flow, routing, permissions handling, or implementation sequencing. Otherwise proceed with explicit assumptions.
+
+Reject any output that:
+- does not align to the actual repo
+- is too generic
+- lacks file structure clarity
+- lacks state and integration clarity
+- lacks testing guidance
+- lacks useful AI-coding-agent prompts
+
+Run QA and revise until passing.
+
+Write for a mixed audience, but make the output directly actionable by AI coding agents first and frontend engineers second.

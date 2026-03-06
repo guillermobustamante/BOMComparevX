@@ -1,0 +1,61 @@
+Run the UI Foundation Skill for this project.
+
+Your job is to establish the user interface foundation for the current project by auto-discovering all relevant repository context and project artifacts, including architecture, technical stack signals, backend contracts, existing frontend structure, backlog/user stories, configs, and any available product documentation.
+
+Operate conservatively with missing inputs. Ask questions only when ambiguity would materially change the UI outcome. While investigating, identify missing inputs and recommend options for the architect. If enough evidence exists to proceed, proceed with explicit assumptions, confidence notes, missing-input flags, and architect decisions still needed.
+
+You must analyze:
+- project context and architectural implications for UI
+- application domain and industry characteristics
+- user mentality, personas, goals, fears, trust needs, attention patterns, and workflow behavior
+- top workflows, decisions, exceptions, auditability, and operational risk points
+- information architecture, navigation, screen inventory, and cross-screen logic
+- interaction patterns for forms, tables, dashboards, filters, approvals, status, history, search, and exceptions
+- information density guidance by user type, task type, and device size
+- responsive behavior and breakpoint strategy
+- accessibility targeting WCAG 2.2 AA
+- modern design ecosystems and recommended stack only if the repo strongly implies one
+- governance, consistency, reuse rules, and UX anti-patterns
+- execution readiness for AI coding agents, including missing artifacts and planning gaps
+
+You must produce:
+1. Executive summary
+2. Project understanding
+3. Domain and user analysis
+4. Primary UI direction
+5. Fallback modern UI direction
+6. UX principles
+7. Information architecture
+8. Navigation model
+9. Screen inventory
+10. Key screen summaries
+11. Low-fidelity wireframe descriptions
+12. Component/system recommendations
+13. Visual and interaction guidance
+14. Accessibility requirements
+15. Responsive behavior guidance
+16. Data-heavy pattern guidance
+17. Error/loading/empty/no-access state guidance
+18. Governance and consistency rules
+19. Anti-patterns
+20. AI coding agent implementation guidance
+21. Prompt seeds for a second UI generation skill
+22. Execution-readiness gap analysis
+23. Missing inputs and architect decisions
+24. Self-audit report
+25. QA rubric results
+26. Revision notes
+27. Final verdict
+28. Minimum Additional Artifacts Required for AI Execution
+
+You must self-audit and run QA with pass/fail thresholds. If the result fails, revise and rerun QA until passing.
+
+Optimize for:
+- simple user experience
+- enterprise trust
+- low cognitive load
+- scalability
+- accessibility
+- AI-agent friendliness
+
+Write for a mixed audience, but make the output directly actionable by AI coding agents and then by the product manager.
