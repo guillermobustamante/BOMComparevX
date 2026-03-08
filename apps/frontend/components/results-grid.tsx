@@ -2,6 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import {
+  CheckCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CloseIcon,
+  ExportIcon,
+  FlatViewIcon,
+  RunIcon,
+  ShareIcon,
+  TreeViewIcon
+} from '@/components/mission-icons';
 
 type ChangeType = 'added' | 'removed' | 'replaced' | 'modified' | 'moved' | 'quantity_change' | 'no_change';
 type PageSize = 50 | 100 | 200;
@@ -128,6 +139,8 @@ export function ResultsGrid() {
   const [shareRecipients, setShareRecipients] = useState<ShareRecipient[]>([]);
   const [shareError, setShareError] = useState<string | null>(null);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   useEffect(() => {
     rowsCountRef.current = rows.length;
@@ -612,147 +625,97 @@ export function ResultsGrid() {
 
   return (
     <section className="panel" data-testid="results-panel">
-      <div className="resultsHeader">
-        <h1 className="h1">Results</h1>
-        <div className="resultsActions">
-          {activeComparisonId ? (
-            <>
-              <a
-                className="btn"
-                href={`/api/exports/csv/${encodeURIComponent(activeComparisonId)}`}
-                data-testid="results-export-csv-link"
-              >
-                Export CSV
-              </a>
-              <a
-                className="btn"
-                href={`/api/exports/excel/${encodeURIComponent(activeComparisonId)}`}
-                data-testid="results-export-excel-link"
-              >
-                Export Excel
-              </a>
-            </>
-          ) : (
-            <>
-              <button className="btn" type="button" disabled data-testid="results-export-csv-disabled">
-                Export CSV
-              </button>
-              <button className="btn" type="button" disabled data-testid="results-export-excel-disabled">
-                Export Excel
-              </button>
-            </>
+      <div className="screenToolbar" data-testid="results-toolbar">
+        <div className="screenToolbarMeta">
+          <span className="missionShellEyebrow">Diff workspace</span>
+        </div>
+        <div className="screenToolbarActions resultsToolbarActionsDense">
+          {status && status.status === 'running' && (
+            <div className="resultsProgressBadge" data-testid="results-partial-badge">
+              <span className="resultsProgressLabel">Running</span>
+              <div className="resultsProgressTrack" aria-hidden="true">
+                <span className="resultsProgressFill" style={{ width: `${status.percentComplete}%` }} />
+              </div>
+              <span className="resultsProgressMeta">
+                {status.phase} {status.percentComplete}%
+              </span>
+            </div>
           )}
-          <button className="btn" type="button" onClick={() => void startDiffJob()} disabled={isStarting} data-testid="results-run-btn">
-            {isStarting ? 'Starting...' : 'Run Diff'}
+          {status && status.status === 'completed' && !status.errorCode && !status.errorMessage && (
+            <div className="resultsProgressBadge resultsProgressBadgeComplete" data-testid="results-complete-badge">
+              <CheckCircleIcon />
+              <div className="resultsProgressTrack" aria-hidden="true">
+                <span className="resultsProgressFill" style={{ width: '100%' }} />
+              </div>
+              <span className="resultsProgressMeta">
+                Completed {status.loadedRows}/{status.totalRows}
+              </span>
+            </div>
+          )}
+          <button
+            className={`screenIconAction ${viewMode === 'flat' ? 'screenIconActionActive' : ''}`}
+            type="button"
+            onClick={() => void toggleView('flat')}
+            disabled={viewMode === 'flat'}
+            aria-label="Flat view"
+            title="Flat view"
+            data-testid="results-view-flat-btn"
+          >
+            <FlatViewIcon />
+          </button>
+          <button
+            className={`screenIconAction ${viewMode === 'tree' ? 'screenIconActionActive' : ''}`}
+            type="button"
+            onClick={() => void toggleView('tree')}
+            disabled={!resultsTreeViewEnabled || viewMode === 'tree'}
+            aria-label="Tree view"
+            title="Tree view"
+            data-testid="results-view-tree-btn"
+          >
+            <TreeViewIcon />
+          </button>
+          <button
+            className="screenIconAction"
+            type="button"
+            onClick={() => setShareDialogOpen(true)}
+            disabled={!activeComparisonId}
+            aria-label="Share"
+            title="Share"
+            data-testid="results-share-btn"
+          >
+            <ShareIcon />
+          </button>
+          <button
+            className="screenIconAction"
+            type="button"
+            onClick={() => setExportDialogOpen(true)}
+            disabled={!activeComparisonId}
+            aria-label="Export"
+            title="Export"
+            data-testid="results-export-menu-btn"
+          >
+            <ExportIcon />
+          </button>
+          <button
+            className="screenIconAction"
+            type="button"
+            onClick={() => void startDiffJob()}
+            disabled={isStarting}
+            aria-label={isStarting ? 'Starting diff' : 'Run diff'}
+            title={isStarting ? 'Starting diff' : 'Run diff'}
+            data-testid="results-run-btn"
+          >
+            <RunIcon />
           </button>
         </div>
       </div>
 
-      {status && status.status === 'running' && (
-        <div className="alertWarning" data-testid="results-partial-badge">
-          Running - {status.phase} {status.percentComplete}% ({status.loadedRows}/{status.totalRows})
-        </div>
-      )}
-      {status && status.status === 'completed' && !status.errorCode && !status.errorMessage && (
-        <div className="alertSuccess" data-testid="results-complete-badge">
-          Completed ({status.loadedRows}/{status.totalRows}) - {status.percentComplete}%
-        </div>
-      )}
       {error && (
         <div className="alertError" data-testid="results-error">
           {error}
         </div>
       )}
 
-      <section className="panel sectionSubtle" data-testid="share-panel">
-        <div className="resultsHeader">
-          <h2 className="h2">Sharing</h2>
-        </div>
-        {!activeComparisonId && <p className="p">Run diff first to enable sharing for this comparison.</p>}
-        {activeComparisonId && (
-          <>
-            <p className="p">Invite same-tenant recipients (view-only). Access is bound to exact invited email.</p>
-            <div className="resultsFilters">
-              <input
-                value={shareInput}
-                onChange={(event) => setShareInput(event.target.value)}
-                placeholder="alice@example.com, bob@example.com"
-                data-testid="share-invite-input"
-              />
-              <button className="btn" type="button" onClick={() => void inviteRecipients()} data-testid="share-invite-btn">
-                Invite
-              </button>
-            </div>
-            {shareError && (
-              <div className="alertError" data-testid="share-error">
-                {shareError}
-              </div>
-            )}
-            {shareFeedback && (
-              <div className="alertSuccess" data-testid="share-feedback">
-                {shareFeedback}
-              </div>
-            )}
-            <div className="mappingTableWrap">
-              <table className="mappingTable" data-testid="share-recipients-table">
-                <thead>
-                  <tr>
-                    <th>Email</th>
-                    <th>Permission</th>
-                    <th>Invited</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shareRecipients.length === 0 && (
-                    <tr>
-                      <td colSpan={4}>No active recipients.</td>
-                    </tr>
-                  )}
-                  {shareRecipients.map((recipient) => (
-                    <tr key={recipient.invitedEmail}>
-                      <td>{recipient.invitedEmail}</td>
-                      <td>{recipient.permission}</td>
-                      <td>{new Date(recipient.createdAtUtc).toLocaleString()}</td>
-                      <td>
-                        <button
-                          className="btn"
-                          type="button"
-                          onClick={() => void revokeRecipient(recipient.invitedEmail)}
-                          data-testid={`share-revoke-${recipient.invitedEmail}`}
-                        >
-                          Revoke
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </section>
-
-      <div className="resultsFilters" data-testid="results-view-toggle">
-        <button
-          className="btn"
-          type="button"
-          onClick={() => void toggleView('flat')}
-          disabled={viewMode === 'flat'}
-          data-testid="results-view-flat-btn"
-        >
-          Flat View
-        </button>
-        <button
-          className="btn"
-          type="button"
-          onClick={() => void toggleView('tree')}
-          disabled={!resultsTreeViewEnabled || viewMode === 'tree'}
-          data-testid="results-view-tree-btn"
-        >
-          Tree View
-        </button>
-      </div>
       {!resultsTreeViewEnabled && (
         <div className="alertWarning" data-testid="results-tree-feature-disabled">
           RESULTS_TREE_VIEW_DISABLED: Tree view is currently disabled by feature flag.
@@ -764,7 +727,7 @@ export function ResultsGrid() {
         </div>
       )}
 
-      <div className="resultsFilters">
+      <div className="resultsFilters resultsFiltersMain">
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -814,27 +777,31 @@ export function ResultsGrid() {
         </select>
       </div>
 
-      <div className="resultsFilters" data-testid="results-pagination-controls">
-        <span>
+      <div className="resultsPagination" data-testid="results-pagination-controls">
+        <span className="resultsPaginationSummary">
           Showing {pageStart}-{pageEnd} of {filteredTotalRows}
         </span>
         <button
-          className="btn"
+          className="screenIconAction screenIconActionCompact"
           type="button"
           onClick={() => void goToPreviousPage()}
           disabled={cursorHistory.length === 0 || !jobId}
+          aria-label="Previous page"
+          title="Previous page"
           data-testid="results-page-prev"
         >
-          Previous
+          <ChevronLeftIcon />
         </button>
         <button
-          className="btn"
+          className="screenIconAction screenIconActionCompact"
           type="button"
           onClick={() => void goToNextPage()}
           disabled={!nextCursor || !jobId}
+          aria-label="Next page"
+          title="Next page"
           data-testid="results-page-next"
         >
-          Next
+          <ChevronRightIcon />
         </button>
       </div>
 
@@ -962,6 +929,160 @@ export function ResultsGrid() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {shareDialogOpen && (
+        <div className="screenModalLayer" role="presentation">
+          <button
+            type="button"
+            className="screenModalBackdrop"
+            aria-label="Close share dialog"
+            onClick={() => setShareDialogOpen(false)}
+          />
+          <section
+            className="screenModalCard panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="results-share-dialog-title"
+            data-testid="share-panel"
+          >
+            <div className="screenModalHeader">
+              <div>
+                <p className="missionShellEyebrow">Share Results</p>
+                <h2 className="h2" id="results-share-dialog-title">
+                  Same-tenant recipients
+                </h2>
+              </div>
+              <button
+                className="screenIconAction"
+                type="button"
+                aria-label="Close share dialog"
+                title="Close"
+                onClick={() => setShareDialogOpen(false)}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            {!activeComparisonId && <p className="p">Run diff first to enable sharing for this comparison.</p>}
+            {activeComparisonId && (
+              <>
+                <p className="p">Invite same-tenant recipients (view-only). Access is bound to exact invited email.</p>
+                <div className="screenInlineForm">
+                  <input
+                    value={shareInput}
+                    onChange={(event) => setShareInput(event.target.value)}
+                    placeholder="alice@example.com, bob@example.com"
+                    data-testid="share-invite-input"
+                  />
+                  <button className="btn" type="button" onClick={() => void inviteRecipients()} data-testid="share-invite-btn">
+                    Invite
+                  </button>
+                </div>
+                {shareError && (
+                  <div className="alertError" data-testid="share-error">
+                    {shareError}
+                  </div>
+                )}
+                {shareFeedback && (
+                  <div className="alertSuccess" data-testid="share-feedback">
+                    {shareFeedback}
+                  </div>
+                )}
+                <div className="mappingTableWrap">
+                  <table className="mappingTable" data-testid="share-recipients-table">
+                    <thead>
+                      <tr>
+                        <th>Email</th>
+                        <th>Permission</th>
+                        <th>Invited</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {shareRecipients.length === 0 && (
+                        <tr>
+                          <td colSpan={4}>No active recipients.</td>
+                        </tr>
+                      )}
+                      {shareRecipients.map((recipient) => (
+                        <tr key={recipient.invitedEmail}>
+                          <td>{recipient.invitedEmail}</td>
+                          <td>{recipient.permission}</td>
+                          <td>{new Date(recipient.createdAtUtc).toLocaleString()}</td>
+                          <td>
+                            <button
+                              className="btn"
+                              type="button"
+                              onClick={() => void revokeRecipient(recipient.invitedEmail)}
+                              data-testid={`share-revoke-${recipient.invitedEmail}`}
+                            >
+                              Revoke
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+      )}
+
+      {exportDialogOpen && (
+        <div className="screenModalLayer" role="presentation">
+          <button
+            type="button"
+            className="screenModalBackdrop"
+            aria-label="Close export dialog"
+            onClick={() => setExportDialogOpen(false)}
+          />
+          <section
+            className="screenModalCard screenModalCardCompact panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="results-export-dialog-title"
+          >
+            <div className="screenModalHeader">
+              <div>
+                <p className="missionShellEyebrow">Export Results</p>
+                <h2 className="h2" id="results-export-dialog-title">
+                  Download format
+                </h2>
+              </div>
+              <button
+                className="screenIconAction"
+                type="button"
+                aria-label="Close export dialog"
+                title="Close"
+                onClick={() => setExportDialogOpen(false)}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            {!activeComparisonId ? (
+              <p className="p">Run diff first to enable exports for this comparison.</p>
+            ) : (
+              <div className="screenDialogActions">
+                <a
+                  className="btn"
+                  href={`/api/exports/csv/${encodeURIComponent(activeComparisonId)}`}
+                  data-testid="results-export-csv-link"
+                >
+                  CSV
+                </a>
+                <a
+                  className="btn"
+                  href={`/api/exports/excel/${encodeURIComponent(activeComparisonId)}`}
+                  data-testid="results-export-excel-link"
+                >
+                  Excel
+                </a>
+              </div>
+            )}
+          </section>
         </div>
       )}
     </section>

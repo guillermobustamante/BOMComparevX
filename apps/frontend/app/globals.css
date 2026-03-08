@@ -253,11 +253,89 @@ a {
   gap: 12px;
 }
 
+.screenToolbar,
+.resultsToolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.screenToolbarMeta,
+.resultsToolbarMeta {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .resultsActions {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.screenToolbarActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.resultsToolbarActionsDense {
+  gap: 8px;
+}
+
+.screenIconAction,
+.resultsIconAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+}
+
+.screenIconAction:hover:not(:disabled),
+.resultsIconAction:hover:not(:disabled) {
+  background: #f8fbff;
+}
+
+.screenIconAction:disabled,
+.resultsIconAction:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.screenIconActionActive,
+.resultsIconActionActive {
+  background: #eef7fb;
+  border-color: #b7d1d6;
+}
+
+.screenIconActionCompact {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.screenIconAction svg,
+.resultsIconAction svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .sectionSubtle {
@@ -274,6 +352,16 @@ a {
   gap: 10px;
 }
 
+.resultsFiltersMain {
+  grid-template-columns:
+    minmax(180px, 1.15fr)
+    minmax(180px, 1.15fr)
+    minmax(160px, 0.9fr)
+    minmax(180px, 1fr)
+    minmax(120px, 0.55fr);
+  align-items: center;
+}
+
 .resultsFilters input,
 .resultsFilters select {
   border: 1px solid var(--line);
@@ -281,6 +369,149 @@ a {
   padding: 9px 10px;
   background: #fff;
   color: var(--ink);
+}
+
+.resultsProgressBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+  max-width: 320px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fbfdff;
+  color: var(--muted);
+}
+
+.resultsProgressBadgeComplete {
+  background: #f7fbf8;
+}
+
+.resultsProgressBadgeComplete svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: #2d8a57;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.resultsProgressLabel {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.resultsProgressTrack {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 72px;
+  height: 6px;
+  border-radius: 999px;
+  background: #e8edf2;
+  overflow: hidden;
+}
+
+.resultsProgressFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7ecfe0 0%, #5db86f 100%);
+}
+
+.resultsProgressMeta {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.resultsPagination {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.resultsPaginationSummary {
+  color: var(--muted);
+}
+
+.screenRowActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.screenModalLayer,
+.resultsModalLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.screenModalBackdrop,
+.resultsModalBackdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.screenModalCard,
+.resultsModalCard {
+  position: relative;
+  z-index: 1;
+  width: min(960px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+.screenModalCardCompact,
+.resultsExportCard {
+  width: min(420px, calc(100vw - 48px));
+}
+
+.screenModalHeader,
+.resultsModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.screenInlineForm,
+.resultsShareForm {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto;
+  gap: 10px;
+}
+
+.screenInlineForm input,
+.resultsShareForm input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.screenDialogActions,
+.resultsExportActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .diffRow-added {
@@ -309,6 +540,32 @@ a {
 
 .diffRow-no_change {
   background: #f8f9fa;
+}
+
+@media (max-width: 960px) {
+  .screenToolbar,
+  .resultsToolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .resultsActions,
+  .screenToolbarActions {
+    justify-content: flex-start;
+  }
+
+  .resultsFiltersMain {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+
+  .resultsPagination {
+    flex-wrap: wrap;
+  }
+
+  .screenInlineForm,
+  .resultsShareForm {
+    grid-template-columns: 1fr;
+  }
 }
 
 .chip-added {
@@ -364,5 +621,1784 @@ a {
 
   .resultsFilters {
     grid-template-columns: 1fr;
+  }
+}
+
+.approvalPage {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  transition: background 160ms ease, color 160ms ease;
+  color: var(--mission-ink);
+  background:
+    radial-gradient(circle at 12% 10%, rgba(97, 201, 203, 0.08) 0%, rgba(97, 201, 203, 0) 24%),
+    linear-gradient(180deg, var(--mission-bg) 0%, var(--mission-bg-soft) 100%);
+}
+
+.approvalPage[data-nav='expanded'] {
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+
+.approvalPage[data-theme='dark'] {
+  --mission-bg: #0c1418;
+  --mission-bg-soft: #111c22;
+  --mission-panel: rgba(19, 29, 35, 0.94);
+  --mission-panel-strong: rgba(25, 37, 44, 0.98);
+  --mission-ink: #e6eff1;
+  --mission-muted: #95abb1;
+  --mission-line: rgba(127, 180, 189, 0.22);
+  --mission-accent: #72d4d2;
+  --mission-accent-soft: rgba(114, 212, 210, 0.12);
+  --mission-good: #9fcca7;
+  --mission-good-bg: rgba(159, 204, 167, 0.14);
+  --mission-review: #d2b372;
+  --mission-review-bg: rgba(210, 179, 114, 0.14);
+  --mission-highlight: rgba(124, 168, 218, 0.16);
+  --mission-shadow: rgba(3, 8, 10, 0.42);
+}
+
+.approvalPage[data-theme='light'] {
+  --mission-bg: #eef1f2;
+  --mission-bg-soft: #dde4e7;
+  --mission-panel: rgba(250, 251, 252, 0.95);
+  --mission-panel-strong: rgba(242, 246, 247, 0.98);
+  --mission-ink: #1f262c;
+  --mission-muted: #5f6b73;
+  --mission-line: rgba(37, 78, 88, 0.2);
+  --mission-accent: #2b7f84;
+  --mission-accent-soft: rgba(43, 127, 132, 0.1);
+  --mission-good: #5d8e67;
+  --mission-good-bg: rgba(93, 142, 103, 0.12);
+  --mission-review: #a47d2c;
+  --mission-review-bg: rgba(164, 125, 44, 0.12);
+  --mission-highlight: rgba(146, 186, 227, 0.18);
+  --mission-shadow: rgba(58, 76, 85, 0.12);
+}
+
+.missionRail,
+.missionSurface,
+.missionTopbar,
+.missionPanel,
+.missionLaunchPanel,
+.missionThemeToggle,
+.missionNavLink,
+.missionIconControl,
+.missionPresetButton,
+.missionThemeButton,
+.missionSearchToken,
+.missionStatCard,
+.missionMetaChip,
+.missionPill,
+.missionDropzone,
+.missionExportCard,
+.missionPreviewItem,
+.missionNotice {
+  border: 1px solid var(--mission-line);
+}
+
+.missionRail {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  min-height: 100vh;
+  padding: 18px 12px;
+  background: linear-gradient(180deg, var(--mission-panel-strong) 0%, var(--mission-panel) 100%);
+  box-shadow: 10px 0 24px var(--mission-shadow);
+}
+
+.missionRailTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.missionRailToggle,
+.missionIconControl,
+.missionThemeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  background: var(--mission-panel);
+  color: var(--mission-ink);
+}
+
+.missionRailToggle {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+
+.missionRailToggle svg,
+.missionIconControl svg,
+.missionThemeButton svg,
+.missionNavIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.missionBrand {
+  display: none;
+  min-width: 0;
+}
+
+.missionBrand strong,
+.missionBrand span,
+.missionSurfaceHeader,
+.missionPanelTitle,
+.missionMetaChip,
+.missionRailMeta,
+.missionSearchToken,
+.missionStatCard span,
+.missionGridTable th,
+.missionGridTable td,
+.missionStatusTag,
+.missionPresetButton {
+  font-family: "Consolas", "SFMono-Regular", "Menlo", monospace;
+}
+
+.missionBrand strong,
+.missionBrand span {
+  display: block;
+}
+
+.missionBrand strong {
+  font-size: 14px;
+  letter-spacing: 0.06em;
+}
+
+.missionBrand span,
+.missionRailMeta,
+.missionGridTable td,
+.missionViewHint,
+.missionSearchToken,
+.missionPreviewItem span,
+.missionNotice,
+.missionPanelCopy,
+.missionTopbar p {
+  color: var(--mission-muted);
+}
+
+.missionBrand span {
+  font-size: 11px;
+}
+
+.missionNav {
+  margin-top: 22px;
+  display: grid;
+  gap: 8px;
+}
+
+.missionNavLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--mission-panel);
+}
+
+.missionNavIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  color: var(--mission-accent);
+}
+
+.missionNavLabel {
+  display: none;
+  font-weight: 600;
+}
+
+.approvalPage[data-nav='expanded'] .missionBrand,
+.approvalPage[data-nav='expanded'] .missionNavLabel {
+  display: block;
+}
+
+.missionRailFooter {
+  margin-top: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.missionRailMeta {
+  display: none;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.approvalPage[data-nav='expanded'] .missionRailMeta {
+  display: block;
+}
+
+.missionWorkspace {
+  padding: 24px;
+}
+
+.missionTopbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 18px;
+  margin-bottom: 22px;
+  padding: 22px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--mission-panel-strong) 0%, var(--mission-panel) 100%);
+  box-shadow: 0 24px 60px var(--mission-shadow);
+}
+
+.missionEyebrow,
+.missionSectionIndex {
+  display: inline-block;
+  color: var(--mission-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.missionTopbar h1,
+.missionSectionHeader h2,
+.missionPanel h3,
+.missionLaunchPanel h3 {
+  margin: 8px 0 10px;
+  font-family: "Aptos Display", "Segoe UI Variable", "Trebuchet MS", sans-serif;
+}
+
+.missionTopbar h1 {
+  font-size: clamp(30px, 3vw, 42px);
+  line-height: 1.04;
+  max-width: 14ch;
+}
+
+.missionTopbar p {
+  margin: 0;
+  line-height: 1.7;
+  max-width: 62ch;
+}
+
+.missionTopbarActions {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.missionThemeToggle,
+.missionTopbarMeta,
+.missionActionRow,
+.missionToolbarCluster,
+.missionSectionTags,
+.missionResultsToolbar,
+.missionPresetStrip,
+.missionToggleStrip {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.missionThemeToggle {
+  padding: 8px;
+  border-radius: 16px;
+  background: var(--mission-panel);
+}
+
+.missionThemeButton {
+  padding: 10px 12px;
+}
+
+.missionThemeButton span {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.missionThemeButtonActive,
+.missionIconControlActive,
+.missionPresetButtonActive {
+  background: var(--mission-accent-soft);
+  color: var(--mission-accent);
+}
+
+.missionMetaChip,
+.missionPill,
+.missionStatusTag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.missionMetaChip,
+.missionPill {
+  background: var(--mission-panel);
+}
+
+.missionSection {
+  margin-top: 24px;
+}
+
+.missionSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.missionSectionHeader h2 {
+  font-size: 30px;
+}
+
+.missionSectionHeader p {
+  margin: 0;
+  color: var(--mission-muted);
+  max-width: 68ch;
+}
+
+.missionSurface {
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(180deg, var(--mission-panel-strong) 0%, var(--mission-panel) 100%);
+  box-shadow: 0 24px 60px var(--mission-shadow);
+}
+
+.missionSurfaceHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  color: var(--mission-muted);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.missionStatRow,
+.missionDualGrid,
+.missionActionGrid,
+.missionMappingLayout,
+.missionResultsLayout,
+.missionExportsGrid {
+  display: grid;
+  gap: 14px;
+  padding: 0 20px 20px;
+}
+
+.missionStatRow {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.missionStatRowWide {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.missionStatCard {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--mission-panel);
+}
+
+.missionStatCard span {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--mission-muted);
+}
+
+.missionStatCard strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 18px;
+}
+
+.missionDualGrid,
+.missionActionGrid,
+.missionExportsGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.missionMappingLayout,
+.missionResultsLayout {
+  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.85fr);
+}
+
+.missionPanel,
+.missionLaunchPanel {
+  padding: 18px;
+  border-radius: 20px;
+  background: var(--mission-panel);
+}
+
+.missionLaunchPanel {
+  background: linear-gradient(180deg, var(--mission-accent-soft) 0%, var(--mission-panel) 100%);
+}
+
+.missionPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.missionPanelTitle {
+  color: var(--mission-muted);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.missionViewHint {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.missionDropzone {
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--mission-accent-soft) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.missionDropzoneAlt {
+  background: linear-gradient(180deg, var(--mission-review-bg) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.missionDropzone strong,
+.missionDropzone span {
+  display: block;
+}
+
+.missionDropzone span,
+.missionMetaGrid span {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--mission-muted);
+}
+
+.missionMetaGrid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  font-family: "Consolas", "SFMono-Regular", "Menlo", monospace;
+  font-size: 12px;
+}
+
+.missionStatusTag {
+  border: 1px solid transparent;
+}
+
+.missionStatusTagGood {
+  color: var(--mission-good);
+  background: var(--mission-good-bg);
+  border-color: rgba(159, 204, 167, 0.3);
+}
+
+.missionStatusTagReview {
+  color: var(--mission-review);
+  background: var(--mission-review-bg);
+  border-color: rgba(210, 179, 114, 0.32);
+}
+
+.missionStatusTag-modified {
+  color: var(--mission-accent);
+  background: var(--mission-accent-soft);
+  border-color: rgba(114, 212, 210, 0.22);
+}
+
+.missionStatusTag-added {
+  color: var(--mission-good);
+  background: var(--mission-good-bg);
+  border-color: rgba(159, 204, 167, 0.3);
+}
+
+.missionStatusTag-qty {
+  color: var(--mission-review);
+  background: var(--mission-review-bg);
+  border-color: rgba(210, 179, 114, 0.32);
+}
+
+.missionPrimaryButton,
+.missionGhostButton,
+.missionPresetButton {
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-weight: 700;
+}
+
+.missionPrimaryButton {
+  border: 1px solid rgba(114, 212, 210, 0.24);
+  background: var(--mission-accent);
+  color: #051113;
+}
+
+.missionGhostButton,
+.missionPresetButton {
+  border: 1px solid var(--mission-line);
+  background: var(--mission-panel);
+  color: var(--mission-ink);
+}
+
+.missionIconControl {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+
+.missionSearchToken {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: var(--mission-panel);
+  font-size: 12px;
+}
+
+.missionTablePanel {
+  overflow: hidden;
+}
+
+.missionGridTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+}
+
+.missionGridTable th,
+.missionGridTable td {
+  padding: 14px 12px;
+  border-top: 1px solid var(--mission-line);
+  text-align: left;
+  font-size: 14px;
+}
+
+.missionGridTable th {
+  color: var(--mission-muted);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.missionGridTableDense td {
+  font-size: 15px;
+}
+
+.missionRowHighlight {
+  background: var(--mission-highlight);
+}
+
+.missionPreviewStack {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.missionPreviewItem,
+.missionExportCard,
+.missionNotice {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--mission-panel-strong);
+}
+
+.missionPreviewItem strong,
+.missionExportCard strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.missionNotice {
+  margin-top: 14px;
+  line-height: 1.6;
+}
+
+.missionResultsToolbar {
+  justify-content: space-between;
+  padding: 0 20px 18px;
+}
+
+.missionToggleStrip {
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--mission-panel);
+}
+
+.missionShareComposer {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1200px) {
+  .approvalPage,
+  .approvalPage[data-nav='expanded'] {
+    grid-template-columns: 1fr;
+  }
+
+  .missionRail {
+    position: static;
+    min-height: auto;
+    display: grid;
+    gap: 14px;
+  }
+
+  .missionBrand,
+  .missionNavLabel,
+  .missionRailMeta {
+    display: block;
+  }
+
+  .missionTopbar,
+  .missionMappingLayout,
+  .missionResultsLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .missionWorkspace {
+    padding: 16px;
+  }
+
+  .missionStatRow,
+  .missionStatRowWide,
+  .missionDualGrid,
+  .missionActionGrid,
+  .missionExportsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .missionSectionHeader,
+  .missionResultsToolbar {
+    align-items: flex-start;
+  }
+
+  .missionMetaGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .missionTopbar {
+    padding: 18px;
+  }
+
+  .missionTopbar h1,
+  .missionSectionHeader h2 {
+    font-size: 28px;
+    max-width: none;
+  }
+
+  .missionSurfaceHeader,
+  .missionStatRow,
+  .missionDualGrid,
+  .missionActionGrid,
+  .missionMappingLayout,
+  .missionResultsLayout,
+  .missionExportsGrid,
+  .missionResultsToolbar {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .missionGridTable th,
+  .missionGridTable td {
+    padding: 12px 8px;
+  }
+}
+
+.missionShellRoot {
+  --mission-bg: #edf2f1;
+  --mission-panel: rgba(255, 255, 255, 0.92);
+  --mission-panel-strong: rgba(255, 255, 255, 0.98);
+  --mission-line: rgba(23, 87, 92, 0.16);
+  --mission-line-strong: rgba(23, 87, 92, 0.28);
+  --mission-ink: #122123;
+  --mission-muted: #596e71;
+  --mission-accent: #1f8585;
+  --mission-accent-soft: rgba(31, 133, 133, 0.1);
+  --mission-good: #39704b;
+  --mission-good-bg: rgba(57, 112, 75, 0.1);
+  --mission-review: #9d7325;
+  --mission-review-bg: rgba(157, 115, 37, 0.1);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(31, 133, 133, 0.12), transparent 28%),
+    linear-gradient(180deg, #f4f8f8 0%, #edf2f1 100%);
+  color: var(--mission-ink);
+}
+
+.missionShellRoot.shell {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 8px;
+  padding: 12px;
+}
+
+.missionShellRoot[data-theme='dark'] {
+  --mission-bg: #071215;
+  --mission-panel: rgba(12, 24, 28, 0.88);
+  --mission-panel-strong: rgba(16, 31, 36, 0.96);
+  --mission-line: rgba(114, 212, 210, 0.18);
+  --mission-line-strong: rgba(114, 212, 210, 0.32);
+  --mission-ink: #edf6f7;
+  --mission-muted: #9bb6b7;
+  --mission-accent: #72d4d2;
+  --mission-accent-soft: rgba(114, 212, 210, 0.12);
+  --mission-good: #9fccaa;
+  --mission-good-bg: rgba(159, 204, 167, 0.12);
+  --mission-review: #d2b372;
+  --mission-review-bg: rgba(210, 179, 114, 0.12);
+  background:
+    radial-gradient(circle at top left, rgba(114, 212, 210, 0.14), transparent 30%),
+    linear-gradient(180deg, #050b0d 0%, #081114 100%);
+}
+
+.missionShellRoot,
+.missionShellRoot .missionShellRail,
+.missionShellRoot .missionShellContent,
+.missionShellRoot .missionShellHeaderActions,
+.missionShellRoot .missionShellNav,
+.missionShellRoot .missionShellNavItem,
+.missionShellRoot .missionShellNavText,
+.missionShellRoot .missionComparePage,
+.missionShellRoot .missionCompareCard,
+.missionShellRoot .missionCompareLaunchCard,
+.missionShellRoot .missionCompareCardHeader,
+.missionShellRoot .missionCompareActionRow,
+.missionShellRoot .missionCompareMetaGrid {
+  display: flex;
+}
+
+.missionShellRoot svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.missionShellRoot .btn,
+.missionShellRoot .chip,
+.missionShellRoot .panel,
+.missionShellRoot .dropzone,
+.missionShellRoot .alertError,
+.missionShellRoot .alertSuccess,
+.missionShellRoot .alertWarning,
+.missionShellRoot .mappingSampleRows,
+.missionShellRoot .mappingTable select {
+  border-color: var(--mission-line);
+  background: var(--mission-panel);
+  color: var(--mission-ink);
+}
+
+.missionShellRoot .btn {
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.missionShellRoot .btnPrimary {
+  border-color: rgba(31, 133, 133, 0.2);
+  background: var(--mission-accent);
+  color: #071215;
+}
+
+.missionShellRoot[data-theme='dark'] .btnPrimary {
+  color: #051113;
+}
+
+.missionShellRoot .chip {
+  color: var(--mission-muted);
+}
+
+.missionShellRoot .panel,
+.missionShellRoot .mappingSampleRows {
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+.missionShellRoot .shell {
+  min-height: 100vh;
+}
+
+.missionShellRoot .missionShellBackdrop {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  background: rgba(3, 6, 7, 0.46);
+  z-index: 15;
+}
+
+.missionShellRoot .missionShellRail {
+  position: sticky;
+  top: 12px;
+  align-self: start;
+  flex-direction: column;
+  gap: 10px;
+  width: 76px;
+  min-height: calc(100vh - 24px);
+  padding: 8px 6px;
+  border: 1px solid var(--mission-line);
+  border-radius: 22px;
+  background: var(--mission-panel);
+  backdrop-filter: blur(18px);
+  overflow: hidden auto;
+  z-index: 20;
+}
+
+.missionShellRoot .missionShellRailExpanded {
+  width: 252px;
+  padding: 10px 8px;
+  border-color: var(--mission-line-strong);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+}
+
+.missionShellRoot .missionShellRailTop {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.missionShellRoot .missionShellRailToggle {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin-inline: auto;
+  border-radius: 10px;
+}
+
+.missionShellRoot .missionShellBrand {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.missionShellRoot .missionShellRailExpanded .missionShellBrand {
+  display: flex;
+}
+
+.missionShellRoot .missionShellEyebrow {
+  margin: 0;
+  color: var(--mission-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.missionShellRoot .missionShellNav {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.missionShellRoot .missionShellNavItem {
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.missionShellRoot .missionShellNavIcon {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mission-line);
+  border-radius: 10px;
+}
+
+.missionShellRoot .missionShellNavItem:hover .missionShellNavIcon,
+.missionShellRoot .missionShellNavItemActive .missionShellNavIcon {
+  border-color: var(--mission-line-strong);
+  background: var(--mission-accent-soft);
+}
+
+.missionShellRoot .missionShellNavText {
+  display: none;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.missionShellRoot .missionShellRailExpanded .missionShellNavItem {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 6px;
+  border: 1px solid transparent;
+}
+
+.missionShellRoot .missionShellRailExpanded .missionShellNavItemActive,
+.missionShellRoot .missionShellRailExpanded .missionShellNavItem:hover {
+  border-color: var(--mission-line);
+  background: var(--mission-accent-soft);
+}
+
+.missionShellRoot .missionShellRailExpanded .missionShellNavText {
+  display: flex;
+}
+
+.missionShellRoot .missionShellNavText strong {
+  font-size: 13px;
+}
+
+.missionShellRoot .missionShellNavText small {
+  color: var(--mission-muted);
+  font-size: 10px;
+}
+
+.missionShellRoot .missionShellRailMeta {
+  display: none;
+  margin-top: auto;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.missionShellRoot .missionShellRailExpanded .missionShellRailMeta {
+  display: flex;
+}
+
+.missionShellRoot .missionShellContent {
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+}
+
+.missionShellRoot .missionShellHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 12px 14px;
+  border: 1px solid var(--mission-line);
+  border-radius: 20px;
+  background: var(--mission-panel);
+}
+
+.missionShellRoot .missionShellTitle {
+  margin: 4px 0 0;
+  font-family: "Aptos Display", "Segoe UI Variable", "Trebuchet MS", sans-serif;
+  font-size: clamp(28px, 3vw, 40px);
+}
+
+.missionShellRoot .missionShellHeaderActions {
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.missionShellRoot .missionShellThemeToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--mission-line);
+  border-radius: 999px;
+  background: var(--mission-panel);
+}
+
+.missionShellRoot .missionShellThemeButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mission-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.missionShellRoot .missionShellThemeButtonActive {
+  background: var(--mission-accent-soft);
+}
+
+.missionShellRoot .missionShellBody {
+  min-width: 0;
+}
+
+.missionShellRoot .missionComparePage {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.missionShellRoot .missionCompareStepStrip,
+.missionShellRoot .missionCompareGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.missionShellRoot .missionCompareStepStrip {
+  grid-template-columns: repeat(3, minmax(0, max-content));
+}
+
+.missionShellRoot .chipMissionActive {
+  background: var(--mission-accent-soft);
+  color: var(--mission-good);
+}
+
+.missionShellRoot .missionCompareGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.missionShellRoot .missionCompareCard,
+.missionShellRoot .missionCompareLaunchCard {
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--mission-line);
+  border-radius: 20px;
+  background: var(--mission-panel);
+}
+
+.missionShellRoot .missionCompareCardHeader {
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.missionShellRoot .missionCompareEyebrow {
+  margin: 0 0 4px;
+  color: var(--mission-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.missionShellRoot .missionCompareInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.missionShellRoot .missionCompareMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.missionShellRoot .missionCompareMetaGrid span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--mission-muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.missionShellRoot .missionCompareMetaGrid strong {
+  font-family: "IBM Plex Mono", "Consolas", monospace;
+  font-size: 14px;
+}
+
+.missionShellRoot .missionCompareDropzone {
+  margin-top: 0;
+  min-height: 112px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-style: dashed;
+  border-color: rgba(71, 117, 127, 0.38);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(243, 249, 251, 0.96) 100%);
+  color: var(--mission-ink);
+}
+
+.missionShellRoot .missionCompareDropzone.dropzoneActive {
+  border-color: rgba(71, 117, 127, 0.62);
+  background: linear-gradient(180deg, rgba(227, 244, 248, 0.92) 0%, rgba(241, 250, 252, 1) 100%);
+}
+
+.missionShellRoot .missionCompareDropzoneIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(71, 117, 127, 0.24);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.missionShellRoot .missionCompareDropzoneIcon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.missionShellRoot .missionCompareDropzoneContent {
+  display: grid;
+  gap: 4px;
+}
+
+.missionShellRoot .missionCompareDropzoneContent strong {
+  font-size: 15px;
+}
+
+.missionShellRoot .missionCompareDropzoneContent span {
+  color: var(--mission-muted);
+}
+
+.missionShellRoot .missionCompareActionRow {
+  margin-top: 0;
+}
+
+@media (max-width: 1100px) {
+  .missionShellRoot.shell {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+
+  .missionShellRoot .missionShellHeader {
+    grid-template-columns: 1fr;
+  }
+
+  .missionShellRoot .missionShellRailExpanded {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    bottom: 8px;
+    width: min(252px, calc(100vw - 16px));
+  }
+
+  .missionShellRoot .missionCompareGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .missionShellRoot.shell {
+    grid-template-columns: 68px minmax(0, 1fr);
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .missionShellRoot .missionShellHeaderActions,
+  .missionShellRoot .missionCompareCardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .missionShellRoot .missionCompareMetaGrid,
+  .missionShellRoot .missionCompareStepStrip {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Approval remediation overrides */
+.missionApprovalRoot {
+  --mission-bg: #071215;
+  --mission-panel: rgba(12, 24, 28, 0.88);
+  --mission-line: rgba(114, 212, 210, 0.18);
+  --mission-line-strong: rgba(114, 212, 210, 0.32);
+  --mission-ink: #edf6f7;
+  --mission-muted: #9bb6b7;
+  --mission-accent: #72d4d2;
+  --mission-accent-soft: rgba(114, 212, 210, 0.12);
+  --mission-good: #9fccaa;
+  --mission-good-bg: rgba(159, 204, 167, 0.12);
+  --mission-review: #d2b372;
+  --mission-review-bg: rgba(210, 179, 114, 0.12);
+  --mission-highlight: rgba(127, 188, 255, 0.12);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(114, 212, 210, 0.14), transparent 30%),
+    linear-gradient(180deg, #050b0d 0%, #081114 100%);
+  color: var(--mission-ink);
+}
+
+.missionApprovalRootLight {
+  --mission-bg: #edf2f1;
+  --mission-panel: rgba(255, 255, 255, 0.92);
+  --mission-line: rgba(23, 87, 92, 0.16);
+  --mission-line-strong: rgba(23, 87, 92, 0.28);
+  --mission-ink: #122123;
+  --mission-muted: #596e71;
+  --mission-accent: #1f8585;
+  --mission-accent-soft: rgba(31, 133, 133, 0.1);
+  --mission-good: #39704b;
+  --mission-good-bg: rgba(57, 112, 75, 0.1);
+  --mission-review: #9d7325;
+  --mission-review-bg: rgba(157, 115, 37, 0.1);
+  --mission-highlight: rgba(123, 171, 224, 0.12);
+  background:
+    radial-gradient(circle at top left, rgba(31, 133, 133, 0.12), transparent 30%),
+    linear-gradient(180deg, #f4f8f8 0%, #edf2f1 100%);
+}
+
+.missionApprovalRoot svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.missionApprovalRoot .missionAppShell {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 4px;
+  padding: 12px;
+}
+
+.missionApprovalRoot .missionRailBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  border: 0;
+  background: rgba(3, 6, 7, 0.46);
+}
+
+.missionApprovalRoot .missionRail {
+  position: sticky;
+  top: 12px;
+  align-self: start;
+  height: calc(100vh - 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 76px;
+  padding: 8px 6px;
+  border: 1px solid var(--mission-line);
+  border-radius: 22px;
+  background: var(--mission-panel);
+  backdrop-filter: blur(18px);
+  overflow: hidden auto;
+  z-index: 20;
+  transition: width 180ms ease, box-shadow 180ms ease, border-color 180ms ease, padding 180ms ease;
+  justify-content: flex-start;
+}
+
+.missionApprovalRoot .missionRailExpanded {
+  width: 252px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+  border-color: var(--mission-line-strong);
+  padding: 10px 8px;
+}
+
+.missionApprovalRoot .missionRailTop,
+.missionApprovalRoot .missionRailBrand,
+.missionApprovalRoot .missionRailNav,
+.missionApprovalRoot .missionRailItem,
+.missionApprovalRoot .missionRailItemText,
+.missionApprovalRoot .missionWorkspace,
+.missionApprovalRoot .missionTopbar,
+.missionApprovalRoot .missionTopbarActions,
+.missionApprovalRoot .missionHeroBand,
+.missionApprovalRoot .missionHeroMeta,
+.missionApprovalRoot .missionScreenStack,
+.missionApprovalRoot .missionCard,
+.missionApprovalRoot .missionCardHeader,
+.missionApprovalRoot .missionToolbarGroup,
+.missionApprovalRoot .missionStateStrip,
+.missionApprovalRoot .missionStateStripGroup,
+.missionApprovalRoot .missionInlineActions,
+.missionApprovalRoot .missionTreePanel {
+  display: flex;
+}
+
+.missionApprovalRoot .missionWorkspace,
+.missionApprovalRoot .missionScreenStack,
+.missionApprovalRoot .missionRailBrand,
+.missionApprovalRoot .missionRailItemText,
+.missionApprovalRoot .missionCard,
+.missionApprovalRoot .missionTreePanel {
+  flex-direction: column;
+}
+
+.missionApprovalRoot .missionRailTop,
+.missionApprovalRoot .missionTopbar,
+.missionApprovalRoot .missionCardHeader,
+.missionApprovalRoot .missionStateStrip {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.missionApprovalRoot .missionRailTop,
+.missionApprovalRoot .missionStateStrip {
+  flex-direction: column;
+}
+
+.missionApprovalRoot .missionRailTop {
+  align-items: stretch;
+  gap: 6px;
+  margin-bottom: 0;
+  flex: 0 0 auto;
+}
+
+.missionApprovalRoot .missionRailBrand strong,
+.missionApprovalRoot .missionRailBrand .missionEyebrow,
+.missionApprovalRoot .missionRailItemText {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-6px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.missionApprovalRoot .missionRailExpanded .missionRailBrand strong,
+.missionApprovalRoot .missionRailExpanded .missionRailBrand .missionEyebrow,
+.missionApprovalRoot .missionRailExpanded .missionRailItemText {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.missionApprovalRoot .missionRailBrand {
+  display: none;
+}
+
+.missionApprovalRoot .missionRailExpanded .missionRailBrand {
+  display: flex;
+}
+
+.missionApprovalRoot .missionRailNav {
+  flex-direction: column;
+  gap: 4px;
+  flex: 0 0 auto;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.missionApprovalRoot .missionRailItem {
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--mission-ink);
+  text-align: left;
+}
+
+.missionApprovalRoot .missionRail:not(.missionRailExpanded) .missionRailItem {
+  display: grid;
+  place-items: center;
+}
+
+.missionApprovalRoot .missionRailItemActive {
+  background: transparent;
+  border-color: transparent;
+}
+
+.missionApprovalRoot .missionRail:not(.missionRailExpanded) .missionRailItemActive {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+.missionApprovalRoot .missionRailExpanded .missionRailItem {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  min-height: 0;
+  padding: 5px 6px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.missionApprovalRoot .missionRailItemIcon {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mission-line);
+  border-radius: 10px;
+  flex: 0 0 auto;
+  margin-inline: auto;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.missionApprovalRoot .missionRailExpanded .missionRailItemIcon {
+  margin-inline: 0;
+}
+
+.missionApprovalRoot .missionRailItem:hover .missionRailItemIcon,
+.missionApprovalRoot .missionRailItemActive .missionRailItemIcon {
+  border-color: var(--mission-line-strong);
+  background: var(--mission-accent-soft);
+}
+
+.missionApprovalRoot .missionRailExpanded .missionRailItem:hover,
+.missionApprovalRoot .missionRailExpanded .missionRailItemActive {
+  border-color: var(--mission-line);
+  background: var(--mission-accent-soft);
+}
+
+.missionApprovalRoot .missionRailItemText {
+  align-items: center;
+  text-align: left;
+  gap: 0;
+  line-height: 1.15;
+}
+
+.missionApprovalRoot .missionRailExpanded .missionRailItemText {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.missionApprovalRoot .missionRailItemText strong {
+  font-size: 13px;
+}
+
+.missionApprovalRoot .missionRailItemText small {
+  font-size: 10px;
+}
+
+.missionApprovalRoot .missionWorkspace {
+  min-width: 0;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+}
+
+.missionApprovalRoot .missionScreenStack {
+  gap: 12px;
+}
+
+.missionApprovalRoot .missionTopbar,
+.missionApprovalRoot .missionTopbarActions,
+.missionApprovalRoot .missionHeroBand,
+.missionApprovalRoot .missionHeroMeta,
+.missionApprovalRoot .missionStateStripGroup,
+.missionApprovalRoot .missionInlineActions,
+.missionApprovalRoot .missionToolbarGroup {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.missionApprovalRoot .missionTopbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: var(--mission-panel);
+  box-shadow: none;
+}
+
+.missionApprovalRoot .missionTopbarActions {
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.missionApprovalRoot .missionStateStripGroup {
+  width: auto;
+  justify-content: flex-start;
+}
+
+.missionApprovalRoot .missionHeroBand,
+.missionApprovalRoot .missionCard,
+.missionApprovalRoot .missionStatePanel,
+.missionApprovalRoot .missionTreePanel,
+.missionApprovalRoot .missionExportButton {
+  border: 1px solid var(--mission-line);
+  border-radius: 20px;
+  background: var(--mission-panel);
+}
+
+.missionApprovalRoot .missionHeroBand,
+.missionApprovalRoot .missionCard,
+.missionApprovalRoot .missionStatePanel {
+  padding: 12px 14px;
+}
+
+.missionApprovalRoot .missionCard > * + * {
+  margin-top: 10px;
+}
+
+.missionApprovalRoot .missionStateStrip {
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--mission-line);
+  border-radius: 16px;
+  background: var(--mission-panel);
+}
+
+.missionApprovalRoot .missionSectionGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.missionApprovalRoot .missionSectionGridTwo {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.missionApprovalRoot .missionSectionGridSidebar {
+  grid-template-columns: minmax(0, 1.65fr) minmax(280px, 0.85fr);
+}
+
+.missionApprovalRoot .missionKpiGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.missionApprovalRoot .missionKpiCard {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--mission-line);
+  border-radius: 14px;
+  background: var(--mission-accent-soft);
+}
+
+.missionApprovalRoot .missionDetailList {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.missionApprovalRoot .missionDetailList dd {
+  margin: 4px 0 0;
+}
+
+.missionApprovalRoot .missionEyebrow,
+.missionApprovalRoot .missionSubtle,
+.missionApprovalRoot .missionDetailList dt,
+.missionApprovalRoot .missionStateStrip > span,
+.missionApprovalRoot .missionKpiCard span,
+.missionApprovalRoot .missionExportButton small {
+  color: var(--mission-muted);
+}
+
+.missionApprovalRoot .missionEyebrow,
+.missionApprovalRoot .missionSearchToken,
+.missionApprovalRoot .missionGridTable th,
+.missionApprovalRoot .missionDetailList dt,
+.missionApprovalRoot .missionKpiCard span,
+.missionApprovalRoot .missionStateButton,
+.missionApprovalRoot .missionTableAction {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.missionApprovalRoot .missionGridTable td:last-child {
+  white-space: nowrap;
+}
+
+.missionApprovalRoot .missionCardHeader h2 {
+  margin: 6px 0 0;
+}
+
+.missionApprovalRoot .missionTopbar h1 {
+  margin: 4px 0 0;
+}
+
+.missionApprovalRoot .missionStateButton {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--mission-line);
+  border-radius: 999px;
+  background: var(--mission-panel);
+  color: var(--mission-ink);
+  font-size: 11px;
+}
+
+.missionApprovalRoot .missionStateButtonActive {
+  border-color: var(--mission-line-strong);
+  background: var(--mission-accent-soft);
+}
+
+.missionApprovalRoot .missionInlineAlert {
+  border-color: rgba(210, 179, 114, 0.32);
+  background: var(--mission-review-bg);
+}
+
+.missionApprovalRoot .missionTreePanel {
+  gap: 8px;
+  padding: 12px;
+}
+
+.missionApprovalRoot .missionTreeRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--mission-line);
+  border-radius: 14px;
+}
+
+.missionApprovalRoot .missionTreeIndent1 {
+  margin-left: 22px;
+}
+
+.missionApprovalRoot .missionTreeIndent2 {
+  margin-left: 44px;
+}
+
+.missionApprovalRoot .missionExportActionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.missionApprovalRoot .missionExportButton {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px;
+  color: var(--mission-ink);
+}
+
+.missionApprovalRoot .missionTableAction {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--mission-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mission-ink);
+}
+
+.missionApprovalRoot .missionTableActionPrimary {
+  background: var(--mission-accent-soft);
+}
+
+.missionApprovalRoot .missionPanelSpaced {
+  justify-content: space-between;
+}
+
+.missionApprovalRoot .missionTopbarMenu {
+  display: none;
+}
+
+.missionApprovalRoot .missionThemeToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--mission-line);
+  border-radius: 999px;
+  background: var(--mission-panel);
+}
+
+.missionApprovalRoot .missionThemeButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mission-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.missionApprovalRoot .missionThemeButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.missionApprovalRoot .missionThemeButtonActive {
+  background: var(--mission-accent-soft);
+}
+
+.missionApprovalRoot .missionRail .missionIconControl {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin-inline: auto;
+  border-radius: 10px;
+}
+
+@media (max-width: 1100px) {
+  .missionApprovalRoot .missionSectionGridTwo,
+  .missionApprovalRoot .missionSectionGridSidebar,
+  .missionApprovalRoot .missionExportActionGrid,
+  .missionApprovalRoot .missionKpiGrid,
+  .missionApprovalRoot .missionDetailList {
+    grid-template-columns: 1fr;
+  }
+
+  .missionApprovalRoot .missionTopbarMenu {
+    display: inline-flex;
+  }
+
+  .missionApprovalRoot .missionRailExpanded {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    bottom: 8px;
+    width: min(252px, calc(100vw - 16px));
+    z-index: 30;
+  }
+
+  .missionApprovalRoot .missionTopbar {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .missionApprovalRoot .missionAppShell {
+    grid-template-columns: 68px minmax(0, 1fr);
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .missionApprovalRoot .missionRail {
+    top: 8px;
+    height: calc(100vh - 16px);
+    width: 68px;
+    padding: 6px 5px;
+  }
+
+  .missionApprovalRoot .missionRailExpanded {
+    width: min(244px, calc(100vw - 16px));
+  }
+
+  .missionApprovalRoot .missionTopbar,
+  .missionApprovalRoot .missionHeroBand,
+  .missionApprovalRoot .missionTopbarActions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .missionApprovalRoot .missionHeroBand {
+    padding: 10px 12px;
   }
 }

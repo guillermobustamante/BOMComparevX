@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { ConfirmIcon } from '@/components/mission-icons';
 
 type MappingReviewState = 'AUTO' | 'REVIEW_REQUIRED' | 'LOW_CONFIDENCE_WARNING';
 
@@ -133,7 +134,6 @@ export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
   if (loading) {
     return (
       <div className="panel">
-        <h1 className="h1">Mapping Preview</h1>
         <p className="p">Loading revision mapping...</p>
       </div>
     );
@@ -142,7 +142,6 @@ export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
   if (error || !preview) {
     return (
       <div className="panel">
-        <h1 className="h1">Mapping Preview</h1>
         <div className="alertError" data-testid="mapping-preview-error">
           {error || 'Preview unavailable.'}
         </div>
@@ -152,8 +151,25 @@ export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
 
   return (
     <div className="panel" data-testid="mapping-preview-panel">
-      <h1 className="h1">Mapping Preview</h1>
-      <p className="p">Revision: {preview.revisionId}</p>
+      <div className="screenToolbar">
+        <div className="screenToolbarMeta">
+          <span className="missionShellEyebrow">Confidence review</span>
+          <p className="p">Revision: {preview.revisionId}</p>
+        </div>
+        <div className="screenToolbarActions">
+          <button
+            type="button"
+            className="screenIconAction"
+            onClick={() => void onConfirm()}
+            disabled={!canConfirm}
+            aria-label="Confirm mapping"
+            title="Confirm mapping"
+            data-testid="mapping-confirm-btn"
+          >
+            <ConfirmIcon />
+          </button>
+        </div>
+      </div>
 
       <div className="mappingTableWrap">
         <table className="mappingTable" data-testid="mapping-table">
@@ -227,18 +243,6 @@ export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
           I acknowledge low-confidence mappings and want to proceed.
         </label>
       )}
-
-      <div className="actions">
-        <button
-          type="button"
-          className="btn btnPrimary"
-          onClick={onConfirm}
-          disabled={!canConfirm}
-          data-testid="mapping-confirm-btn"
-        >
-          Confirm Mapping
-        </button>
-      </div>
 
       {confirmError && (
         <div className="alertError" data-testid="mapping-confirm-error">

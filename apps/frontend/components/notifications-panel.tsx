@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { OpenIcon, RefreshIcon } from '@/components/mission-icons';
 
 interface NotificationItem {
   notificationId: string;
@@ -65,11 +66,23 @@ export function NotificationsPanel() {
 
   return (
     <section className="panel" data-testid="notifications-panel">
-      <div className="resultsHeader">
-        <h1 className="h1">Notifications</h1>
-        <button className="btn" type="button" onClick={() => void loadNotifications()} data-testid="notifications-refresh-btn">
-          Refresh
-        </button>
+      <div className="screenToolbar">
+        <div className="screenToolbarMeta">
+          <span className="missionShellEyebrow">Event log</span>
+          <p className="p">Track completion and failure notices, then jump directly to the linked comparison.</p>
+        </div>
+        <div className="screenToolbarActions">
+          <button
+            className="screenIconAction"
+            type="button"
+            onClick={() => void loadNotifications()}
+            aria-label="Refresh notifications"
+            title="Refresh notifications"
+            data-testid="notifications-refresh-btn"
+          >
+            <RefreshIcon />
+          </button>
+        </div>
       </div>
 
       {isLoading && <p className="p">Loading notifications...</p>}
@@ -104,11 +117,13 @@ export function NotificationsPanel() {
                     {item.linkPath ? (
                       <Link
                         href={item.linkPath}
-                        className="linkInline"
+                        className="screenIconAction screenIconActionCompact"
                         onClick={() => void markRead(item.notificationId)}
+                        aria-label={`Open notification ${item.notificationId}`}
+                        title="Open"
                         data-testid={`notification-link-${item.notificationId}`}
                       >
-                        Open
+                        <OpenIcon />
                       </Link>
                     ) : (
                       '-'

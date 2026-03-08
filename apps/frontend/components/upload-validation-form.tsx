@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { UploadTrayIcon } from '@/components/mission-icons';
 
 interface ValidationError {
   code?: string;
@@ -187,11 +188,97 @@ export function UploadValidationForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="panel" data-testid="upload-validation-form">
-      <h1 className="h1">Upload</h1>
-      <p className="p">Validate exactly two files before starting queue intake.</p>
-      <div
-        className={`dropzone ${isDragActive ? 'dropzoneActive' : ''}`}
+    <form onSubmit={onSubmit} className="missionComparePage" data-testid="upload-validation-form">
+      <section className="missionCompareStepStrip" aria-label="Compare workflow">
+        <span className="chip chipMissionActive">Select revisions</span>
+        <span className="chip">Validate</span>
+        <span className="chip">Compare</span>
+      </section>
+
+      <section className="missionCompareGrid">
+        <article className="missionCompareCard">
+          <div className="missionCompareCardHeader">
+            <div>
+              <p className="missionCompareEyebrow">Revision A</p>
+              <h2 className="h2">Primary source revision</h2>
+            </div>
+            <label className="btn" htmlFor="fileA">
+              Select file
+            </label>
+            <input
+              id="fileA"
+              name="fileA"
+              type="file"
+              className="missionCompareInput"
+              disabled={isBlocked}
+              onChange={(e) => applyPickedFiles(e.currentTarget.files?.[0] || null, fileB)}
+              data-testid="file-input-a"
+            />
+          </div>
+
+          <div className="missionCompareMetaGrid">
+            <div>
+              <span>Source A</span>
+              <strong>{fileA ? fileA.name : 'No file selected'}</strong>
+            </div>
+            <div>
+              <span>Size</span>
+              <strong>{fileA ? bytesToMb(fileA.size) : 'Pending'}</strong>
+            </div>
+            <div>
+              <span>Status</span>
+              <strong>{fileA ? 'Ready for validation' : 'Waiting for source'}</strong>
+            </div>
+            <div>
+              <span>Role</span>
+              <strong>Baseline BOM</strong>
+            </div>
+          </div>
+        </article>
+
+        <article className="missionCompareCard">
+          <div className="missionCompareCardHeader">
+            <div>
+              <p className="missionCompareEyebrow">Revision B</p>
+              <h2 className="h2">Candidate comparison revision</h2>
+            </div>
+            <label className="btn" htmlFor="fileB">
+              Select file
+            </label>
+            <input
+              id="fileB"
+              name="fileB"
+              type="file"
+              className="missionCompareInput"
+              disabled={isBlocked}
+              onChange={(e) => applyPickedFiles(fileA, e.currentTarget.files?.[0] || null)}
+              data-testid="file-input-b"
+            />
+          </div>
+
+          <div className="missionCompareMetaGrid">
+            <div>
+              <span>Source B</span>
+              <strong>{fileB ? fileB.name : 'No file selected'}</strong>
+            </div>
+            <div>
+              <span>Size</span>
+              <strong>{fileB ? bytesToMb(fileB.size) : 'Pending'}</strong>
+            </div>
+            <div>
+              <span>Status</span>
+              <strong>{fileB ? 'Ready for validation' : 'Waiting for source'}</strong>
+            </div>
+            <div>
+              <span>Role</span>
+              <strong>Candidate BOM</strong>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section
+        className={`dropzone missionCompareDropzone ${isDragActive ? 'dropzoneActive' : ''}`}
         data-testid="upload-dropzone"
         onDragOver={(e) => {
           e.preventDefault();
@@ -210,110 +297,97 @@ export function UploadValidationForm() {
           applyDroppedFiles(e.dataTransfer.files);
         }}
       >
-        Drop one or two files here. If two are dropped, they map to `fileA` then `fileB` in order.
-      </div>
+        <div className="missionCompareDropzoneIcon" aria-hidden="true">
+          <UploadTrayIcon />
+        </div>
+        <div className="missionCompareDropzoneContent">
+          <strong>Drag and drop BOM files</strong>
+          <span>Drop one or two files here. Two dropped files map to `Revision A` then `Revision B`.</span>
+        </div>
+      </section>
 
-      <div className="actions">
-        <label className="btn" htmlFor="fileA">
-          File A
-        </label>
-        <input
-          id="fileA"
-          name="fileA"
-          type="file"
-          disabled={isBlocked}
-          onChange={(e) => applyPickedFiles(e.currentTarget.files?.[0] || null, fileB)}
-          data-testid="file-input-a"
-        />
-
-        <label className="btn" htmlFor="fileB">
-          File B
-        </label>
-        <input
-          id="fileB"
-          name="fileB"
-          type="file"
-          disabled={isBlocked}
-          onChange={(e) => applyPickedFiles(fileA, e.currentTarget.files?.[0] || null)}
-          data-testid="file-input-b"
-        />
-      </div>
-
-      <div className="actions">
-        <button className="btn btnPrimary" type="submit" disabled={!canSubmit} data-testid="validate-upload-btn">
-          {isSubmitting ? 'Validating...' : 'Validate Upload'}
-        </button>
-        <button
-          className="btn"
-          type="button"
-          disabled={!canSubmit}
-          data-testid="queue-upload-btn"
-          onClick={onQueue}
-        >
-          {isQueueing ? 'Queueing...' : 'Queue Job'}
-        </button>
-      </div>
-
-      {isBlocked && (
-        <div className="alertWarning" data-testid="upload-policy-blocked-banner">
-          <strong>Uploads temporarily blocked</strong>
+      <section className="missionCompareLaunchCard">
+        <div className="missionCompareCardHeader">
           <div>
-            Cooldown active until {blockedUntilUtc ? new Date(blockedUntilUtc).toUTCString() : 'unknown time'}.
+            <p className="missionCompareEyebrow">Validation rail</p>
+            <h2 className="h2">Comparison launch readiness</h2>
           </div>
-          <a className="linkInline" href="/billing" data-testid="more-credits-link">
-            More credits
-          </a>
-        </div>
-      )}
-
-      {fileA && <p className="p">File A: {fileA.name} ({bytesToMb(fileA.size)})</p>}
-      {fileB && <p className="p">File B: {fileB.name} ({bytesToMb(fileB.size)})</p>}
-
-      {error && (
-        <div className="alertError" data-testid="upload-validation-error">
-          <strong>{error.code || 'VALIDATION_ERROR'}</strong>
-          <div>{error.message || 'Upload validation failed.'}</div>
-          {error.correlationId && <div>Correlation ID: {error.correlationId}</div>}
-        </div>
-      )}
-
-      {success && (
-        <div className="alertSuccess" data-testid="upload-validation-success">
-          <strong>UPLOAD_VALIDATED</strong>
-          <div>fileA: {success.files.fileA.name}</div>
-          <div>fileB: {success.files.fileB.name}</div>
-          {success.policy && (
-            <div>
-              Policy:{' '}
-              {success.policy.isUnlimited
-                ? 'unlimited override active'
-                : `used ${success.policy.comparisonsUsed}, remaining ${success.policy.unrestrictedComparisonsRemaining}`}
-            </div>
-          )}
-          <div>Correlation ID: {success.correlationId}</div>
-        </div>
-      )}
-
-      {intakeSuccess && (
-        <div className="alertSuccess" data-testid="upload-intake-success">
-          <strong>UPLOAD_ACCEPTED</strong>
-          <div>Status: {intakeSuccess.status}</div>
-          <div>Job ID: {intakeSuccess.jobId}</div>
-          <div>History ID: {intakeSuccess.historyId || 'n/a'}</div>
-          <div>Left Revision: {intakeSuccess.leftRevisionId || 'n/a'}</div>
-          <div>Right Revision: {intakeSuccess.rightRevisionId || 'n/a'}</div>
-          <div>Correlation ID: {intakeSuccess.correlationId}</div>
-          {intakeSuccess.leftRevisionId && intakeSuccess.rightRevisionId && (
-            <a
-              className="linkInline"
-              href={`/results?sessionId=${encodeURIComponent(intakeSuccess.sessionId)}&leftRevisionId=${encodeURIComponent(intakeSuccess.leftRevisionId)}&rightRevisionId=${encodeURIComponent(intakeSuccess.rightRevisionId)}`}
-              data-testid="upload-view-results-link"
+          <div className="actions missionCompareActionRow">
+            <button className="btn btnPrimary" type="submit" disabled={!canSubmit} data-testid="validate-upload-btn">
+              {isSubmitting ? 'Validating...' : 'Validate revisions'}
+            </button>
+            <button
+              className="btn"
+              type="button"
+              disabled={!canSubmit}
+              data-testid="queue-upload-btn"
+              onClick={onQueue}
             >
-              View Results
-            </a>
-          )}
+              {isQueueing ? 'Queueing...' : 'Start comparison'}
+            </button>
+          </div>
         </div>
-      )}
+
+        <p className="p">Validate exactly two revisions before queueing the comparison job. Queue intake stays disabled during cooldown windows.</p>
+
+        {isBlocked && (
+          <div className="alertWarning" data-testid="upload-policy-blocked-banner">
+            <strong>Uploads temporarily blocked</strong>
+            <div>
+              Cooldown active until {blockedUntilUtc ? new Date(blockedUntilUtc).toUTCString() : 'unknown time'}.
+            </div>
+            <a className="linkInline" href="/billing" data-testid="more-credits-link">
+              More credits
+            </a>
+          </div>
+        )}
+
+        {error && (
+          <div className="alertError" data-testid="upload-validation-error">
+            <strong>{error.code || 'VALIDATION_ERROR'}</strong>
+            <div>{error.message || 'Upload validation failed.'}</div>
+            {error.correlationId && <div>Correlation ID: {error.correlationId}</div>}
+          </div>
+        )}
+
+        {success && (
+          <div className="alertSuccess" data-testid="upload-validation-success">
+            <strong>UPLOAD_VALIDATED</strong>
+            <div>fileA: {success.files.fileA.name}</div>
+            <div>fileB: {success.files.fileB.name}</div>
+            {success.policy && (
+              <div>
+                Policy:{' '}
+                {success.policy.isUnlimited
+                  ? 'unlimited override active'
+                  : `used ${success.policy.comparisonsUsed}, remaining ${success.policy.unrestrictedComparisonsRemaining}`}
+              </div>
+            )}
+            <div>Correlation ID: {success.correlationId}</div>
+          </div>
+        )}
+
+        {intakeSuccess && (
+          <div className="alertSuccess" data-testid="upload-intake-success">
+            <strong>UPLOAD_ACCEPTED</strong>
+            <div>Status: {intakeSuccess.status}</div>
+            <div>Job ID: {intakeSuccess.jobId}</div>
+            <div>History ID: {intakeSuccess.historyId || 'n/a'}</div>
+            <div>Left Revision: {intakeSuccess.leftRevisionId || 'n/a'}</div>
+            <div>Right Revision: {intakeSuccess.rightRevisionId || 'n/a'}</div>
+            <div>Correlation ID: {intakeSuccess.correlationId}</div>
+            {intakeSuccess.leftRevisionId && intakeSuccess.rightRevisionId && (
+              <a
+                className="linkInline"
+                href={`/results?sessionId=${encodeURIComponent(intakeSuccess.sessionId)}&leftRevisionId=${encodeURIComponent(intakeSuccess.leftRevisionId)}&rightRevisionId=${encodeURIComponent(intakeSuccess.rightRevisionId)}`}
+                data-testid="upload-view-results-link"
+              >
+                Open results workspace
+              </a>
+            )}
+          </div>
+        )}
+      </section>
     </form>
   );
 }

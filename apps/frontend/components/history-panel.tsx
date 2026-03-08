@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { DeleteIcon, EditIcon, OpenIcon, RefreshIcon, TagIcon } from '@/components/mission-icons';
 
 interface HistorySession {
   historyId: string;
@@ -121,7 +122,6 @@ export function HistoryPanel() {
   if (!historyParityEnabled) {
     return (
       <section className="panel" data-testid="history-panel">
-        <h1 className="h1">History</h1>
         <div className="alertWarning" data-testid="history-feature-disabled">
           HISTORY_PARITY_DISABLED: History parity operations are disabled by feature flag.
         </div>
@@ -131,8 +131,24 @@ export function HistoryPanel() {
 
   return (
     <section className="panel" data-testid="history-panel">
-      <h1 className="h1">History</h1>
-      <p className="p">Rename sessions, apply private label tags, and soft-delete history entries.</p>
+      <div className="screenToolbar">
+        <div className="screenToolbarMeta">
+          <span className="missionShellEyebrow">Session archive</span>
+          <p className="p">Rename sessions, apply private label tags, and soft-delete history entries.</p>
+        </div>
+        <div className="screenToolbarActions">
+          <button
+            className="screenIconAction"
+            type="button"
+            onClick={() => void loadSessions()}
+            aria-label="Refresh history"
+            title="Refresh history"
+            data-testid="history-refresh-btn"
+          >
+            <RefreshIcon />
+          </button>
+        </div>
+      </div>
 
       {error && (
         <div className="alertError" data-testid="history-error">
@@ -188,37 +204,45 @@ export function HistoryPanel() {
                 </td>
                 <td>{session.status}</td>
                 <td>
-                  <div className="actions" style={{ marginTop: 0 }}>
+                  <div className="screenRowActions">
                     <button
-                      className="btn"
+                      className="screenIconAction screenIconActionCompact"
                       type="button"
                       onClick={() => void renameSession(session.historyId)}
+                      aria-label={`Rename ${session.sessionName || session.historyId}`}
+                      title="Rename"
                       data-testid={`history-rename-btn-${session.historyId}`}
                     >
-                      Rename
+                      <EditIcon />
                     </button>
                     <button
-                      className="btn"
+                      className="screenIconAction screenIconActionCompact"
                       type="button"
                       onClick={() => void updateTag(session.historyId)}
+                      aria-label={`Save tag for ${session.sessionName || session.historyId}`}
+                      title="Save tag"
                       data-testid={`history-tag-btn-${session.historyId}`}
                     >
-                      Save Tag
+                      <TagIcon />
                     </button>
                     <Link
-                      className="btn"
+                      className="screenIconAction screenIconActionCompact"
                       href={`/results?comparisonId=${encodeURIComponent(session.jobId)}&sessionId=${encodeURIComponent(session.sessionId)}`}
+                      aria-label={`Open ${session.sessionName || session.historyId}`}
+                      title="Open"
                       data-testid={`history-open-results-${session.historyId}`}
                     >
-                      Open
+                      <OpenIcon />
                     </Link>
                     <button
-                      className="btn"
+                      className="screenIconAction screenIconActionCompact"
                       type="button"
                       onClick={() => void softDelete(session.historyId)}
+                      aria-label={`Delete ${session.sessionName || session.historyId}`}
+                      title="Delete"
                       data-testid={`history-delete-btn-${session.historyId}`}
                     >
-                      Delete
+                      <DeleteIcon />
                     </button>
                   </div>
                 </td>
@@ -235,4 +259,3 @@ export function HistoryPanel() {
     </section>
   );
 }
-

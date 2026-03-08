@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { SearchIcon } from '@/components/mission-icons';
 
 interface AdminUserEntry {
   email: string;
@@ -93,8 +94,12 @@ export function AdminPolicyPanel() {
 
   return (
     <section className="panel" data-testid="admin-panel">
-      <h1 className="h1">Admin</h1>
-      <p className="p">Manage upload policy reset/override with DB role-claim authorization.</p>
+      <div className="screenToolbar">
+        <div className="screenToolbarMeta">
+          <span className="missionShellEyebrow">Policy controls</span>
+          <p className="p">Manage upload policy reset and override with DB role-claim authorization.</p>
+        </div>
+      </div>
 
       {error && (
         <div className="alertError" data-testid="admin-error">
@@ -115,15 +120,22 @@ export function AdminPolicyPanel() {
 
       {isAdmin && (
         <>
-          <div className="resultsFilters">
+          <div className="screenInlineForm">
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search users..."
               data-testid="admin-user-search-input"
             />
-            <button className="btn" type="button" onClick={() => void loadAdminContext(query)} data-testid="admin-user-search-btn">
-              Search
+            <button
+              className="screenIconAction"
+              type="button"
+              onClick={() => void loadAdminContext(query)}
+              aria-label="Search users"
+              title="Search users"
+              data-testid="admin-user-search-btn"
+            >
+              <SearchIcon />
             </button>
           </div>
 
