@@ -18,9 +18,18 @@ export interface UploadValidationResult {
   };
 }
 
+interface FileDescriptor {
+  name: string;
+  size: number;
+}
+
 @Injectable()
 export class UploadValidationService {
   validate(files: { fileA?: Express.Multer.File[]; fileB?: Express.Multer.File[] }): UploadValidationResult {
+    return this.validatePair(files);
+  }
+
+  validatePair(files: { fileA?: Express.Multer.File[]; fileB?: Express.Multer.File[] }): UploadValidationResult {
     const correlationId = randomUUID();
     const fileA = files.fileA?.[0];
     const fileB = files.fileB?.[0];
@@ -42,6 +51,33 @@ export class UploadValidationService {
       files: {
         fileA: { name: fileA.originalname, size: fileA.size },
         fileB: { name: fileB.originalname, size: fileB.size }
+      }
+    };
+  }
+
+  validateChainedFollowUp(
+    files: { fileA?: Express.Multer.File[]; fileB?: Express.Multer.File[] },
+    baseline: FileDescriptor
+  ): UploadValidationResult {
+    const correlationId = randomUUID();
+    const nextFile = files.fileB?.[0];
+
+    if (!nextFile || (files.fileB?.length || 0) !== 1 || (files.fileA?.length || 0) !== 0) {
+      throw this.error(
+        'UPLOAD_FILE_COUNT_INVALID',
+        'Exactly one new file is required for chained comparison intake.',
+        correlationId
+      );
+    }
+
+    this.validateSingleFile(nextFile, correlationId);
+
+    return {
+      accepted: true,
+      correlationId,
+      files: {
+        fileA: { name: baseline.name, size: baseline.size },
+        fileB: { name: nextFile.originalname, size: nextFile.size }
       }
     };
   }

@@ -96,12 +96,17 @@ export class UploadHistoryService {
     return this.historyByJobId.get(jobId) || null;
   }
 
-  async listByUser(tenantId: string, initiatorEmail: string): Promise<UploadHistoryEntry[]> {
+  async listByUser(
+    tenantId: string,
+    initiatorEmail: string,
+    sessionId?: string
+  ): Promise<UploadHistoryEntry[]> {
     if (this.databaseService.enabled) {
       const rows = await this.databaseService.client.historyEntry.findMany({
         where: {
           tenantId,
           initiatorEmail,
+          ...(sessionId ? { sessionId } : {}),
           deletedAtUtc: null
         },
         orderBy: {
@@ -116,6 +121,7 @@ export class UploadHistoryService {
         (entry) =>
           entry.tenantId === tenantId &&
           entry.initiatorEmail === initiatorEmail &&
+          (!sessionId || entry.sessionId === sessionId) &&
           !entry.deletedAtUtc
       )
       .sort((a, b) => b.createdAtUtc.localeCompare(a.createdAtUtc));

@@ -296,6 +296,43 @@ full Stage 4 taxonomy classification, row/cell rationale metadata, and progressi
 ### Stage 5 — Export + Sharing + Notifications + Admin
 Sync export downloads (CSV + Excel source-structure fidelity), multi-recipient same-tenant invite/revoke sharing (view-only), completion/failure notifications (in-app with optional email), and full admin UI controls backed by DB role claims.
 
+### Sprint 11 — Frontend Antigravity Mission Control (Completed)
+Completed frontend-system implementation sprint that carried the approved Antigravity "Mission Control" visual direction into the production authenticated routes without expanding backend domain scope.
+
+Delivered frontend scope:
+- authenticated mission-control shell with collapsed-first left navigation
+- dual-theme light/dark frontend system with shared iconography
+- Compare BOMs redesign including drag/drop intake, combined compare flow, popup issue handling, and automatic Results handoff
+- Mapping Check redesign with compact toolbar and icon-first actions
+- Results workspace redesign with table-first layout, compact status/progress treatment, inline filters, modal sharing/export flows, and compact pagination
+- History, Notifications, and Admin route redesign under the same shell
+- approval artifacts, remediation record, and final UI-QA baseline used as implementation traceability
+
+Execution record:
+- sprint planning record: `SPRINT_PLAN.md` Sprint `S11`
+- detailed reverse-engineered sprint record: `docs/SPRINT_S11_FRONTEND_ANTIGRAVITY.md`
+
+### Sprint 12 — Results Revision Chain and Session Comparison History (Completed)
+Completed follow-on frontend workflow sprint that extends the Antigravity results workspace from single comparison review into iterative session-based revision comparison.
+
+Delivered workflow scope:
+- one-file chained upload from `/results` against the latest file in the same session
+- immediate redirect into the new in-progress Results workspace after chained upload intake
+- session-scoped previous-comparisons modal from `/results`
+- system-generated comparison labels with rename support
+- comparison-chain history preserving prior iterations inside the same BOM session
+- compact Results progress-indicator refinement to preserve table dominance
+
+Locked product rules:
+- chained upload always compares the latest file vs the new file with no baseline chooser
+- all uploaded files in the session represent the same BOM
+- exports and shares apply only to the currently open comparison
+- validation/comparison issues remain popup-based; failed chained uploads do not leave the current results context
+
+Execution record:
+- sprint planning record: `SPRINT_PLAN.md` Sprint `S12`
+- detailed sprint record: `docs/SPRINT_S12_RESULTS_REVISION_CHAIN.md`
+
 ### Stage 6 — Retention + Hardening
 Raw-file lifecycle enforcement, audit exports, performance tuning for p95 targets.
 

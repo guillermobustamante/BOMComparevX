@@ -8,6 +8,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  Query,
   Req,
   UseGuards
 } from '@nestjs/common';
@@ -16,24 +17,50 @@ import type { Request } from 'express';
 import { AuditService } from '../audit/audit.service';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { SessionState } from '../auth/session-user.interface';
+import { UploadRevisionService } from './upload-revision.service';
 import { UploadHistoryService } from './upload-history.service';
 
 @Controller('history')
 export class HistoryController {
   constructor(
     private readonly uploadHistoryService: UploadHistoryService,
+    private readonly uploadRevisionService: UploadRevisionService,
     private readonly auditService: AuditService
   ) {}
 
   @Get('sessions')
   @UseGuards(SessionAuthGuard)
-  async listSessions(@Req() req: Request) {
+  async listSessions(@Req() req: Request, @Query('sessionId') sessionId?: string) {
     this.ensureFeatureEnabled();
     const session = req.session as SessionState;
     const tenantId = session.user?.tenantId || 'unknown-tenant';
     const userEmail = session.user?.email || 'unknown-user';
-    const sessions = await this.uploadHistoryService.listByUser(tenantId, userEmail);
-    return { sessions };
+    const requestedSessionId = (sessionId || '').trim() || undefined;
+    const sessions = await this.uploadHistoryService.listByUser(tenantId, userEmail, requestedSessionId);
+    const latestPair = requestedSessionId
+      ? this.uploadRevisionService.findLatestPairBySession(tenantId, requestedSessionId)
+      : null;
+    return {
+      sessions: sessions.map((entry) => {
+        const pair = this.uploadRevisionService.findPairByJobId(tenantId, entry.jobId);
+        const leftFile = pair
+          ? this.uploadRevisionService.getRevisionFileMeta(tenantId, pair.leftRevisionId)
+          : null;
+        const rightFile = pair
+          ? this.uploadRevisionService.getRevisionFileMeta(tenantId, pair.rightRevisionId)
+          : null;
+        const generatedLabel =
+          leftFile && rightFile ? `${leftFile.fileName} -> ${rightFile.fileName}` : `Comparison ${entry.historyId.slice(0, 8)}`;
+
+        return {
+          ...entry,
+          leftRevisionId: pair?.leftRevisionId || null,
+          rightRevisionId: pair?.rightRevisionId || null,
+          comparisonLabel: entry.sessionName || generatedLabel,
+          latest: !!latestPair && latestPair.jobId === entry.jobId
+        };
+      })
+    };
   }
 
   @Post('sessions/:historyId/rename')
@@ -180,4 +207,3 @@ export class HistoryController {
     }
   }
 }
-

@@ -63,10 +63,13 @@ export class UploadsController {
       isUnlimited: boolean;
     };
   }> {
-    const validationResult = this.uploadValidationService.validate(files);
     const session = req.session as SessionState;
     const userKey = session.user?.email || 'unknown-user';
     const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const sessionId = this.readSessionId(req);
+    const validationResult = sessionId
+      ? this.validateChainedFiles(tenantId, sessionId, files)
+      : this.uploadValidationService.validatePair(files);
     const policy = await this.uploadPolicyService.registerAcceptedValidation(userKey, tenantId);
     this.auditService.emit({
       eventType: 'auth.login.success',
@@ -119,6 +122,7 @@ export class UploadsController {
     const session = req.session as SessionState;
     const userKey = session.user?.email || 'unknown-user';
     const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const sessionId = this.readSessionId(req);
 
     if (idempotencyKey) {
       const existing = await this.uploadJobService.findByIdempotency(userKey, idempotencyKey);
@@ -133,11 +137,14 @@ export class UploadsController {
       }
     }
 
-    const validationResult = this.uploadValidationService.validate(files);
+    const validationResult = sessionId
+      ? this.validateChainedFiles(tenantId, sessionId, files)
+      : this.uploadValidationService.validatePair(files);
     const policy = await this.uploadPolicyService.registerAcceptedValidation(userKey, tenantId);
     const job = await this.uploadJobService.createAcceptedJob({
       tenantId,
       requestedBy: userKey,
+      sessionId: sessionId || undefined,
       idempotencyKey,
       files: validationResult.files,
       policy
@@ -173,7 +180,14 @@ export class UploadsController {
     const fileA = files.fileA?.[0];
     const fileB = files.fileB?.[0];
     const revisionPair =
-      fileA && fileB
+      sessionId && fileB
+        ? this.uploadRevisionService.storeChainedRevisionPair({
+            tenantId,
+            sessionId,
+            jobId: job.jobId,
+            fileB
+          })
+        : fileA && fileB
         ? this.uploadRevisionService.storeRevisionPair({
             tenantId,
             sessionId: job.sessionId,
@@ -191,6 +205,41 @@ export class UploadsController {
       correlationId: job.correlationId
     });
     return this.acceptedResponse(job, historyEntry.historyId, false, revisionPair);
+  }
+
+  private readSessionId(req: Request): string | null {
+    const raw = (req.body as { sessionId?: string } | undefined)?.sessionId;
+    const sessionId = typeof raw === 'string' ? raw.trim() : '';
+    return sessionId || null;
+  }
+
+  private validateChainedFiles(
+    tenantId: string,
+    sessionId: string,
+    files: {
+      fileA?: Express.Multer.File[];
+      fileB?: Express.Multer.File[];
+    }
+  ) {
+    const latestPair = this.uploadRevisionService.findLatestPairBySession(tenantId, sessionId);
+    const baseline = latestPair
+      ? this.uploadRevisionService.getRevisionFileMeta(tenantId, latestPair.rightRevisionId)
+      : null;
+
+    if (!latestPair || !baseline) {
+      throw new HttpException(
+        {
+          code: 'UPLOAD_SESSION_NOT_FOUND',
+          message: 'Could not find the latest comparison file for this session.'
+        },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    return this.uploadValidationService.validateChainedFollowUp(files, {
+      name: baseline.fileName,
+      size: baseline.fileSize
+    });
   }
 
   private acceptedResponse(

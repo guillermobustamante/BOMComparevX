@@ -1,7 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { UploadTrayIcon } from '@/components/mission-icons';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  CheckCircleIcon,
+  CloseIcon,
+  OpenIcon,
+  RunIcon,
+  UploadTrayIcon
+} from '@/components/mission-icons';
 
 interface ValidationError {
   code?: string;
@@ -38,11 +45,18 @@ interface IntakeSuccess {
   idempotentReplay: boolean;
 }
 
+interface UploadFeedbackDialog {
+  title: string;
+  eyebrow: string;
+  details: string[];
+}
+
 function bytesToMb(value: number): string {
   return `${(value / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 export function UploadValidationForm() {
+  const router = useRouter();
   const [fileA, setFileA] = useState<File | null>(null);
   const [fileB, setFileB] = useState<File | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -52,6 +66,9 @@ export function UploadValidationForm() {
   const [success, setSuccess] = useState<ValidationSuccess | null>(null);
   const [intakeSuccess, setIntakeSuccess] = useState<IntakeSuccess | null>(null);
   const [blockedUntilUtc, setBlockedUntilUtc] = useState<string | null>(null);
+  const [feedbackDialog, setFeedbackDialog] = useState<UploadFeedbackDialog | null>(null);
+  const [resultsLinkAcknowledged, setResultsLinkAcknowledged] = useState(false);
+  const [isAutoOpeningResults, setIsAutoOpeningResults] = useState(false);
 
   const isBlocked = useMemo(() => !!blockedUntilUtc, [blockedUntilUtc]);
   const canSubmit = useMemo(
@@ -63,16 +80,38 @@ export function UploadValidationForm() {
     setFileA(nextFileA);
     setFileB(nextFileB);
     setError(null);
+    setSuccess(null);
+    setIntakeSuccess(null);
+    setResultsLinkAcknowledged(false);
+    setIsAutoOpeningResults(false);
+  }
+
+  function openIssueDialog(eyebrow: string, title: string, nextError: ValidationError) {
+    const details = [nextError.message || 'Request failed.'];
+    if (nextError.code) details.unshift(`Code: ${nextError.code}`);
+    if (nextError.correlationId) details.push(`Correlation ID: ${nextError.correlationId}`);
+    if (nextError.cooldownUntilUtc) {
+      details.push(`Cooldown until: ${new Date(nextError.cooldownUntilUtc).toUTCString()}`);
+    }
+    if (typeof nextError.comparisonsUsed === 'number') {
+      details.push(`Comparisons used: ${nextError.comparisonsUsed}`);
+    }
+    if (typeof nextError.unrestrictedComparisonsRemaining === 'number') {
+      details.push(`Remaining unrestricted comparisons: ${nextError.unrestrictedComparisonsRemaining}`);
+    }
+    setFeedbackDialog({ eyebrow, title, details });
   }
 
   function applyDroppedFiles(dropped: FileList | null) {
     const droppedFiles = Array.from(dropped || []);
     if (droppedFiles.length === 0) return;
     if (droppedFiles.length > 2) {
-      setError({
+      const nextError = {
         code: 'UPLOAD_FILE_COUNT_INVALID',
         message: 'Drop one or two files only.'
-      });
+      };
+      setError(nextError);
+      openIssueDialog('Upload intake', 'Dropzone issue', nextError);
       return;
     }
 
@@ -93,18 +132,19 @@ export function UploadValidationForm() {
     applyPickedFiles(fileA, one);
   }
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function validateFiles(): Promise<boolean> {
     setError(null);
     setSuccess(null);
     setIntakeSuccess(null);
 
     if (!fileA || !fileB) {
-      setError({
+      const nextError = {
         code: 'UPLOAD_FILE_COUNT_INVALID',
         message: 'Select exactly two files before validating.'
-      });
-      return;
+      };
+      setError(nextError);
+      openIssueDialog('Compare', 'Comparison blocked', nextError);
+      return false;
     }
 
     setIsSubmitting(true);
@@ -125,7 +165,8 @@ export function UploadValidationForm() {
           setBlockedUntilUtc(parsedError.cooldownUntilUtc);
         }
         setError(parsedError);
-        return;
+        openIssueDialog('Compare', 'Validation issue', parsedError);
+        return false;
       }
 
       const parsedSuccess = payload as ValidationSuccess;
@@ -133,26 +174,32 @@ export function UploadValidationForm() {
         setBlockedUntilUtc(parsedSuccess.policy.cooldownUntilUtc);
       }
       setSuccess(parsedSuccess);
+      return true;
     } catch {
-      setError({
+      const nextError = {
         code: 'UPLOAD_VALIDATE_REQUEST_FAILED',
         message: 'Could not reach upload validation service.'
-      });
+      };
+      setError(nextError);
+      openIssueDialog('Compare', 'Validation issue', nextError);
+      return false;
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  async function onQueue() {
+  async function queueFiles(): Promise<boolean> {
     setError(null);
     setIntakeSuccess(null);
 
     if (!fileA || !fileB) {
-      setError({
+      const nextError = {
         code: 'UPLOAD_FILE_COUNT_INVALID',
         message: 'Select exactly two files before queueing.'
-      });
-      return;
+      };
+      setError(nextError);
+      openIssueDialog('Comparison', 'Comparison blocked', nextError);
+      return false;
     }
 
     setIsQueueing(true);
@@ -173,26 +220,142 @@ export function UploadValidationForm() {
           setBlockedUntilUtc(parsedError.cooldownUntilUtc);
         }
         setError(parsedError);
-        return;
+        openIssueDialog('Comparison', 'Comparison issue', parsedError);
+        return false;
       }
 
       setIntakeSuccess(payload as IntakeSuccess);
+      setResultsLinkAcknowledged(false);
+      return true;
     } catch {
-      setError({
+      const nextError = {
         code: 'UPLOAD_INTAKE_REQUEST_FAILED',
         message: 'Could not reach upload intake service.'
-      });
+      };
+      setError(nextError);
+      openIssueDialog('Comparison', 'Comparison issue', nextError);
+      return false;
     } finally {
       setIsQueueing(false);
     }
   }
 
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const validated = await validateFiles();
+    if (!validated) return;
+    await queueFiles();
+  }
+
+  const openResultsHref =
+    intakeSuccess?.leftRevisionId && intakeSuccess.rightRevisionId
+      ? `/results?sessionId=${encodeURIComponent(intakeSuccess.sessionId)}&leftRevisionId=${encodeURIComponent(
+          intakeSuccess.leftRevisionId
+        )}&rightRevisionId=${encodeURIComponent(intakeSuccess.rightRevisionId)}`
+      : null;
+  const isBusy = isSubmitting || isQueueing;
+  const isTransitioningToResults = isAutoOpeningResults && Boolean(openResultsHref);
+  const compareTooltip = isSubmitting
+    ? 'Validation is running before comparison starts'
+    : isQueueing
+      ? 'Comparison is starting'
+      : isTransitioningToResults
+        ? 'Opening results workspace'
+      : !fileA || !fileB
+        ? 'Select two files to validate and compare'
+        : isBlocked
+          ? 'Comparison is blocked during the cooldown window'
+          : 'Validate and start comparison';
+
+  useEffect(() => {
+    if (!openResultsHref || resultsLinkAcknowledged) return;
+    setIsAutoOpeningResults(true);
+    const timer = window.setTimeout(() => {
+      setResultsLinkAcknowledged(true);
+      router.push(openResultsHref);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [openResultsHref, resultsLinkAcknowledged, router]);
+
   return (
     <form onSubmit={onSubmit} className="missionComparePage" data-testid="upload-validation-form">
-      <section className="missionCompareStepStrip" aria-label="Compare workflow">
-        <span className="chip chipMissionActive">Select revisions</span>
-        <span className="chip">Validate</span>
-        <span className="chip">Compare</span>
+      <section className="missionCompareTopRail">
+        <div className="missionCompareTopActionsRow">
+          <div className="missionCompareTopActions">
+            {isBusy ? (
+              <div className="missionCompareStateBadge missionCompareStateBadgeBusy" data-testid="upload-progress-indicator">
+                <span className="missionCompareBusyTrack" aria-hidden="true">
+                  <span className="missionCompareBusyFill" />
+                </span>
+                <span>{isSubmitting ? 'Validating' : 'Starting comparison'}</span>
+              </div>
+            ) : isTransitioningToResults ? (
+              <div className="missionCompareStateBadge missionCompareStateBadgeBusy" data-testid="upload-open-results-indicator">
+                <span className="missionCompareBusyTrack" aria-hidden="true">
+                  <span className="missionCompareBusyFill" />
+                </span>
+                <span>Opening results...</span>
+              </div>
+            ) : success ? (
+              <div className="missionCompareStateBadge" data-testid="upload-validation-success-indicator">
+                <CheckCircleIcon />
+                <span>Validated</span>
+              </div>
+            ) : null}
+            <span className="missionCompareActionWrap" title={compareTooltip}>
+              <button
+                className="screenIconAction"
+                type="submit"
+                disabled={!canSubmit}
+                aria-label={compareTooltip}
+                data-testid="compare-upload-btn"
+              >
+                <RunIcon />
+              </button>
+            </span>
+            {openResultsHref ? (
+              <a
+                className={`screenIconAction ${resultsLinkAcknowledged ? '' : 'missionCompareOpenResultsPulse'}`}
+                href={openResultsHref}
+                aria-label="Open results workspace"
+                title="Open results workspace"
+                data-testid="upload-view-results-link"
+                onClick={() => setResultsLinkAcknowledged(true)}
+              >
+                <OpenIcon />
+              </a>
+            ) : null}
+          </div>
+        </div>
+
+        <section
+          className={`dropzone missionCompareDropzone ${isDragActive ? 'dropzoneActive' : ''}`}
+          data-testid="upload-dropzone"
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (!isBlocked) {
+              setIsDragActive(true);
+            }
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setIsDragActive(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragActive(false);
+            if (isBlocked) return;
+            applyDroppedFiles(e.dataTransfer.files);
+          }}
+        >
+          <div className="missionCompareDropzoneIcon" aria-hidden="true">
+            <UploadTrayIcon />
+          </div>
+          <div className="missionCompareDropzoneContent">
+            <strong>Drag and drop BOM files</strong>
+            <span>Drop one or two files here. Two dropped files map to `Revision A` then `Revision B`.</span>
+          </div>
+        </section>
       </section>
 
       <section className="missionCompareGrid">
@@ -277,117 +440,47 @@ export function UploadValidationForm() {
         </article>
       </section>
 
-      <section
-        className={`dropzone missionCompareDropzone ${isDragActive ? 'dropzoneActive' : ''}`}
-        data-testid="upload-dropzone"
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (!isBlocked) {
-            setIsDragActive(true);
-          }
-        }}
-        onDragLeave={(e) => {
-          e.preventDefault();
-          setIsDragActive(false);
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          setIsDragActive(false);
-          if (isBlocked) return;
-          applyDroppedFiles(e.dataTransfer.files);
-        }}
-      >
-        <div className="missionCompareDropzoneIcon" aria-hidden="true">
-          <UploadTrayIcon />
-        </div>
-        <div className="missionCompareDropzoneContent">
-          <strong>Drag and drop BOM files</strong>
-          <span>Drop one or two files here. Two dropped files map to `Revision A` then `Revision B`.</span>
-        </div>
-      </section>
-
-      <section className="missionCompareLaunchCard">
-        <div className="missionCompareCardHeader">
-          <div>
-            <p className="missionCompareEyebrow">Validation rail</p>
-            <h2 className="h2">Comparison launch readiness</h2>
-          </div>
-          <div className="actions missionCompareActionRow">
-            <button className="btn btnPrimary" type="submit" disabled={!canSubmit} data-testid="validate-upload-btn">
-              {isSubmitting ? 'Validating...' : 'Validate revisions'}
-            </button>
-            <button
-              className="btn"
-              type="button"
-              disabled={!canSubmit}
-              data-testid="queue-upload-btn"
-              onClick={onQueue}
-            >
-              {isQueueing ? 'Queueing...' : 'Start comparison'}
-            </button>
-          </div>
-        </div>
-
-        <p className="p">Validate exactly two revisions before queueing the comparison job. Queue intake stays disabled during cooldown windows.</p>
-
-        {isBlocked && (
-          <div className="alertWarning" data-testid="upload-policy-blocked-banner">
-            <strong>Uploads temporarily blocked</strong>
-            <div>
-              Cooldown active until {blockedUntilUtc ? new Date(blockedUntilUtc).toUTCString() : 'unknown time'}.
-            </div>
-            <a className="linkInline" href="/billing" data-testid="more-credits-link">
-              More credits
-            </a>
-          </div>
-        )}
-
-        {error && (
-          <div className="alertError" data-testid="upload-validation-error">
-            <strong>{error.code || 'VALIDATION_ERROR'}</strong>
-            <div>{error.message || 'Upload validation failed.'}</div>
-            {error.correlationId && <div>Correlation ID: {error.correlationId}</div>}
-          </div>
-        )}
-
-        {success && (
-          <div className="alertSuccess" data-testid="upload-validation-success">
-            <strong>UPLOAD_VALIDATED</strong>
-            <div>fileA: {success.files.fileA.name}</div>
-            <div>fileB: {success.files.fileB.name}</div>
-            {success.policy && (
+      {feedbackDialog && (
+        <div className="screenModalLayer" role="presentation">
+          <button
+            type="button"
+            className="screenModalBackdrop"
+            aria-label="Close upload feedback dialog"
+            onClick={() => setFeedbackDialog(null)}
+          />
+          <section
+            className="screenModalCard screenModalCardCompact panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="upload-feedback-dialog-title"
+          >
+            <div className="screenModalHeader">
               <div>
-                Policy:{' '}
-                {success.policy.isUnlimited
-                  ? 'unlimited override active'
-                  : `used ${success.policy.comparisonsUsed}, remaining ${success.policy.unrestrictedComparisonsRemaining}`}
+                <p className="missionShellEyebrow">{feedbackDialog.eyebrow}</p>
+                <h2 className="h2" id="upload-feedback-dialog-title">
+                  {feedbackDialog.title}
+                </h2>
               </div>
-            )}
-            <div>Correlation ID: {success.correlationId}</div>
-          </div>
-        )}
-
-        {intakeSuccess && (
-          <div className="alertSuccess" data-testid="upload-intake-success">
-            <strong>UPLOAD_ACCEPTED</strong>
-            <div>Status: {intakeSuccess.status}</div>
-            <div>Job ID: {intakeSuccess.jobId}</div>
-            <div>History ID: {intakeSuccess.historyId || 'n/a'}</div>
-            <div>Left Revision: {intakeSuccess.leftRevisionId || 'n/a'}</div>
-            <div>Right Revision: {intakeSuccess.rightRevisionId || 'n/a'}</div>
-            <div>Correlation ID: {intakeSuccess.correlationId}</div>
-            {intakeSuccess.leftRevisionId && intakeSuccess.rightRevisionId && (
-              <a
-                className="linkInline"
-                href={`/results?sessionId=${encodeURIComponent(intakeSuccess.sessionId)}&leftRevisionId=${encodeURIComponent(intakeSuccess.leftRevisionId)}&rightRevisionId=${encodeURIComponent(intakeSuccess.rightRevisionId)}`}
-                data-testid="upload-view-results-link"
+              <button
+                className="screenIconAction"
+                type="button"
+                aria-label="Close upload feedback dialog"
+                title="Close"
+                onClick={() => setFeedbackDialog(null)}
               >
-                Open results workspace
-              </a>
-            )}
-          </div>
-        )}
-      </section>
+                <CloseIcon />
+              </button>
+            </div>
+            <div className="missionCompareDialogDetails">
+              {feedbackDialog.details.map((detail) => (
+                <p className="p" key={detail}>
+                  {detail}
+                </p>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
     </form>
   );
 }

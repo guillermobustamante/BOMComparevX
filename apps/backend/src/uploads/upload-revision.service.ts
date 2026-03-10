@@ -11,6 +11,7 @@ interface StoredRevision {
   jobId: string;
   slot: 'fileA' | 'fileB';
   fileName: string;
+  fileSize: number;
   createdAtUtc: string;
   parserMode: ParserMode;
   sheetName: string;
@@ -113,6 +114,7 @@ export class UploadRevisionService {
       jobId: input.jobId,
       slot: 'fileA',
       fileName: input.fileA.originalname,
+      fileSize: input.fileA.size,
       createdAtUtc,
       ...this.parseRowsFromFile(input.fileA, 'A')
     };
@@ -123,6 +125,7 @@ export class UploadRevisionService {
       jobId: input.jobId,
       slot: 'fileB',
       fileName: input.fileB.originalname,
+      fileSize: input.fileB.size,
       createdAtUtc,
       ...this.parseRowsFromFile(input.fileB, 'B')
     };
@@ -135,6 +138,56 @@ export class UploadRevisionService {
       sessionId: input.sessionId,
       jobId: input.jobId,
       leftRevisionId,
+      rightRevisionId
+    };
+    this.pairsByJobId.set(input.jobId, pair);
+    this.latestPairBySession.set(this.sessionKey(input.tenantId, input.sessionId), pair);
+    return pair;
+  }
+
+  storeChainedRevisionPair(input: {
+    tenantId: string;
+    sessionId: string;
+    jobId: string;
+    fileB: Express.Multer.File;
+  }): StoredRevisionPair {
+    const latestPair = this.findLatestPairBySession(input.tenantId, input.sessionId);
+    if (!latestPair) {
+      throw new BadRequestException({
+        code: 'UPLOAD_SESSION_NOT_FOUND',
+        message: 'Could not find the latest comparison pair for this session.'
+      });
+    }
+
+    const left = this.revisionsById.get(latestPair.rightRevisionId);
+    if (!left || left.tenantId !== input.tenantId) {
+      throw new BadRequestException({
+        code: 'UPLOAD_SESSION_NOT_FOUND',
+        message: 'The latest session revision is unavailable for chained comparison.'
+      });
+    }
+
+    const rightRevisionId = randomUUID();
+    const createdAtUtc = new Date().toISOString();
+    const right: StoredRevision = {
+      revisionId: rightRevisionId,
+      tenantId: input.tenantId,
+      sessionId: input.sessionId,
+      jobId: input.jobId,
+      slot: 'fileB',
+      fileName: input.fileB.originalname,
+      fileSize: input.fileB.size,
+      createdAtUtc,
+      ...this.parseRowsFromFile(input.fileB, 'B')
+    };
+
+    this.revisionsById.set(rightRevisionId, right);
+
+    const pair: StoredRevisionPair = {
+      tenantId: input.tenantId,
+      sessionId: input.sessionId,
+      jobId: input.jobId,
+      leftRevisionId: left.revisionId,
       rightRevisionId
     };
     this.pairsByJobId.set(input.jobId, pair);
@@ -180,6 +233,25 @@ export class UploadRevisionService {
       sheetName: revision.sheetName,
       headers: [...revision.headers],
       headerFields: [...revision.headerFields]
+    };
+  }
+
+  getRevisionFileMeta(
+    tenantId: string,
+    revisionId: string
+  ): {
+    revisionId: string;
+    fileName: string;
+    fileSize: number;
+    createdAtUtc: string;
+  } | null {
+    const revision = this.revisionsById.get(revisionId);
+    if (!revision || revision.tenantId !== tenantId) return null;
+    return {
+      revisionId: revision.revisionId,
+      fileName: revision.fileName,
+      fileSize: revision.fileSize,
+      createdAtUtc: revision.createdAtUtc
     };
   }
 

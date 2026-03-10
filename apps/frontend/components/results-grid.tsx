@@ -7,11 +7,16 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CloseIcon,
+  DeleteIcon,
+  EditIcon,
   ExportIcon,
   FlatViewIcon,
+  HistoryIcon,
+  OpenIcon,
   RunIcon,
   ShareIcon,
-  TreeViewIcon
+  TreeViewIcon,
+  UploadTrayIcon
 } from '@/components/mission-icons';
 
 type ChangeType = 'added' | 'removed' | 'replaced' | 'modified' | 'moved' | 'quantity_change' | 'no_change';
@@ -82,6 +87,21 @@ interface DiffTreeNode {
   toParent?: string | null;
 }
 
+interface SessionComparisonEntry {
+  historyId: string;
+  jobId: string;
+  sessionId: string;
+  sessionName: string | null;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+  status: string;
+  initiatorEmail: string;
+  leftRevisionId: string | null;
+  rightRevisionId: string | null;
+  comparisonLabel: string;
+  latest: boolean;
+}
+
 const CHANGE_FILTERS: Array<{ value: 'all' | ChangeType; label: string }> = [
   { value: 'all', label: 'All changes' },
   { value: 'added', label: 'Added' },
@@ -141,6 +161,17 @@ export function ResultsGrid() {
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [chainUploadDialogOpen, setChainUploadDialogOpen] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [historySessions, setHistorySessions] = useState<SessionComparisonEntry[]>([]);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [historyFeedback, setHistoryFeedback] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState<Record<string, string>>({});
+  const [nextRevisionFile, setNextRevisionFile] = useState<File | null>(null);
+  const [chainUploadError, setChainUploadError] = useState<string | null>(null);
+  const [chainUploadBusy, setChainUploadBusy] = useState(false);
+  const [chainUploadDragActive, setChainUploadDragActive] = useState(false);
+  const nextRevisionInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     rowsCountRef.current = rows.length;
@@ -251,6 +282,163 @@ export function ResultsGrid() {
       await loadShareRecipients(activeComparisonId);
     } catch {
       setShareError('SHARE_REVOKE_FAILED: Revoke failed.');
+    }
+  }
+
+  async function loadSessionHistory(activeSessionId: string) {
+    setHistoryError(null);
+    try {
+      const response = await fetch(`/api/history/sessions?sessionId=${encodeURIComponent(activeSessionId)}`, {
+        method: 'GET',
+        cache: 'no-store'
+      });
+      const payload = (await response.json()) as
+        | { sessions?: SessionComparisonEntry[] }
+        | { code?: string; message?: string };
+      if (!response.ok) {
+        const err = payload as { code?: string; message?: string };
+        setHistoryError(`${err.code || 'SESSION_HISTORY_FAILED'}: ${err.message || 'Could not load comparisons.'}`);
+        setHistorySessions([]);
+        return;
+      }
+      const sessions = (payload as { sessions?: SessionComparisonEntry[] }).sessions || [];
+      setHistorySessions(sessions);
+      setRenameDraft((current) => {
+        const next = { ...current };
+        for (const entry of sessions) {
+          if (next[entry.historyId] === undefined) {
+            next[entry.historyId] = entry.sessionName || entry.comparisonLabel;
+          }
+        }
+        return next;
+      });
+    } catch {
+      setHistoryError('SESSION_HISTORY_FAILED: Could not load comparisons.');
+      setHistorySessions([]);
+    }
+  }
+
+  async function renameComparison(historyId: string) {
+    const sessionName = (renameDraft[historyId] || '').trim();
+    setHistoryError(null);
+    setHistoryFeedback(null);
+    try {
+      const response = await fetch(`/api/history/sessions/${encodeURIComponent(historyId)}/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionName })
+      });
+      const payload = (await response.json()) as { code?: string; message?: string };
+      if (!response.ok) {
+        setHistoryError(`${payload.code || 'HISTORY_RENAME_FAILED'}: ${payload.message || 'Rename failed.'}`);
+        return;
+      }
+      setHistoryFeedback('Comparison label updated.');
+      if (sessionId) {
+        await loadSessionHistory(sessionId);
+      }
+    } catch {
+      setHistoryError('HISTORY_RENAME_FAILED: Rename failed.');
+    }
+  }
+
+  async function deleteComparison(historyId: string) {
+    setHistoryError(null);
+    setHistoryFeedback(null);
+    try {
+      const response = await fetch(`/api/history/sessions/${encodeURIComponent(historyId)}/delete`, {
+        method: 'POST'
+      });
+      const payload = (await response.json()) as { code?: string; message?: string };
+      if (!response.ok) {
+        setHistoryError(`${payload.code || 'HISTORY_DELETE_FAILED'}: ${payload.message || 'Delete failed.'}`);
+        return;
+      }
+      setHistoryFeedback('Comparison deleted.');
+      if (sessionId) {
+        await loadSessionHistory(sessionId);
+      }
+    } catch {
+      setHistoryError('HISTORY_DELETE_FAILED: Delete failed.');
+    }
+  }
+
+  function applyNextRevisionFile(file: File | null) {
+    setNextRevisionFile(file);
+    setChainUploadError(null);
+  }
+
+  function applyDroppedNextRevision(files: FileList | null) {
+    const droppedFiles = Array.from(files || []);
+    if (droppedFiles.length !== 1) {
+      setChainUploadError('UPLOAD_FILE_COUNT_INVALID: Drop exactly one new file.');
+      return;
+    }
+    applyNextRevisionFile(droppedFiles[0]);
+  }
+
+  async function submitNextRevision() {
+    if (!sessionId) {
+      setChainUploadError('UPLOAD_SESSION_NOT_FOUND: Current session is unavailable.');
+      return;
+    }
+    if (!nextRevisionFile) {
+      setChainUploadError('UPLOAD_FILE_COUNT_INVALID: Select one new file.');
+      return;
+    }
+
+    setChainUploadBusy(true);
+    setChainUploadError(null);
+    try {
+      const validationForm = new FormData();
+      validationForm.append('sessionId', sessionId);
+      validationForm.append('fileB', nextRevisionFile);
+
+      const validateResponse = await fetch('/api/uploads/validate', {
+        method: 'POST',
+        body: validationForm
+      });
+      const validatePayload = (await validateResponse.json()) as { code?: string; message?: string };
+      if (!validateResponse.ok) {
+        setChainUploadError(
+          `${validatePayload.code || 'UPLOAD_VALIDATE_FAILED'}: ${validatePayload.message || 'Validation failed.'}`
+        );
+        return;
+      }
+
+      const intakeForm = new FormData();
+      intakeForm.append('sessionId', sessionId);
+      intakeForm.append('fileB', nextRevisionFile);
+      const intakeResponse = await fetch('/api/uploads/intake', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+        body: intakeForm
+      });
+      const intakePayload = (await intakeResponse.json()) as
+        | { code?: string; message?: string }
+        | { sessionId: string; leftRevisionId: string | null; rightRevisionId: string | null };
+      if (!intakeResponse.ok) {
+        const err = intakePayload as { code?: string; message?: string };
+        setChainUploadError(`${err.code || 'UPLOAD_INTAKE_FAILED'}: ${err.message || 'Comparison intake failed.'}`);
+        return;
+      }
+
+      const accepted = intakePayload as {
+        sessionId: string;
+        leftRevisionId: string | null;
+        rightRevisionId: string | null;
+      };
+      setChainUploadDialogOpen(false);
+      setNextRevisionFile(null);
+      router.push(
+        `/results?sessionId=${encodeURIComponent(accepted.sessionId)}&leftRevisionId=${encodeURIComponent(
+          accepted.leftRevisionId || ''
+        )}&rightRevisionId=${encodeURIComponent(accepted.rightRevisionId || '')}`
+      );
+    } catch {
+      setChainUploadError('UPLOAD_INTAKE_FAILED: Comparison intake failed.');
+    } finally {
+      setChainUploadBusy(false);
     }
   }
 
@@ -600,6 +788,11 @@ export function ResultsGrid() {
     void loadShareRecipients(activeComparisonId);
   }, [activeComparisonId]);
 
+  useEffect(() => {
+    if (!historyDialogOpen || !sessionId) return;
+    void loadSessionHistory(sessionId);
+  }, [historyDialogOpen, sessionId]);
+
   const visibleRows = rows;
   const visibleTreeNodes = treeNodes;
   const currentOffset = Number(currentCursor) || 0;
@@ -626,10 +819,7 @@ export function ResultsGrid() {
   return (
     <section className="panel" data-testid="results-panel">
       <div className="screenToolbar" data-testid="results-toolbar">
-        <div className="screenToolbarMeta">
-          <span className="missionShellEyebrow">Diff workspace</span>
-        </div>
-        <div className="screenToolbarActions resultsToolbarActionsDense">
+        <div className="screenToolbarActions resultsToolbarActionsDense resultsToolbarInline">
           {status && status.status === 'running' && (
             <div className="resultsProgressBadge" data-testid="results-partial-badge">
               <span className="resultsProgressLabel">Running</span>
@@ -647,11 +837,76 @@ export function ResultsGrid() {
               <div className="resultsProgressTrack" aria-hidden="true">
                 <span className="resultsProgressFill" style={{ width: '100%' }} />
               </div>
-              <span className="resultsProgressMeta">
-                Completed {status.loadedRows}/{status.totalRows}
-              </span>
+              <span className="resultsProgressMeta">{status.loadedRows}/{status.totalRows}</span>
             </div>
           )}
+          <div className="resultsInlineFilters resultsFilters resultsFiltersMain">
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search text..."
+              disabled={!resultsDynamicFiltersEnabled}
+              data-testid="results-search-input"
+            />
+            <input
+              value={partFilter}
+              onChange={(event) => setPartFilter(event.target.value)}
+              placeholder="Part number filter..."
+              disabled={!resultsDynamicFiltersEnabled}
+              data-testid="results-part-filter-input"
+            />
+            <select
+              value={changeFilter}
+              onChange={(event) => setChangeFilter(event.target.value as 'all' | ChangeType)}
+              disabled={!resultsDynamicFiltersEnabled}
+              data-testid="results-change-filter"
+            >
+              {CHANGE_FILTERS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={sortMode}
+              onChange={(event) => setSortMode(event.target.value as 'source' | 'part' | 'change')}
+              disabled={!resultsDynamicFiltersEnabled}
+              data-testid="results-sort-select"
+            >
+              <option value="source">Sort: Source Order</option>
+              <option value="part">Sort: Part Number</option>
+              <option value="change">Sort: Change Type</option>
+            </select>
+          </div>
+          <button
+            className="screenIconAction"
+            type="button"
+            onClick={() => {
+              setChainUploadError(null);
+              setChainUploadDialogOpen(true);
+            }}
+            disabled={!sessionId || chainUploadBusy}
+            aria-label="Upload next revision"
+            title={!sessionId ? 'Current session is unavailable' : chainUploadBusy ? 'Uploading next revision' : 'Upload next revision'}
+            data-testid="results-upload-next-btn"
+          >
+            <UploadTrayIcon />
+          </button>
+          <button
+            className="screenIconAction"
+            type="button"
+            onClick={() => {
+              setHistoryError(null);
+              setHistoryFeedback(null);
+              setHistoryDialogOpen(true);
+            }}
+            disabled={!sessionId}
+            aria-label="Previous comparisons"
+            title={!sessionId ? 'Current session is unavailable' : 'Previous comparisons'}
+            data-testid="results-session-history-btn"
+          >
+            <HistoryIcon />
+          </button>
           <button
             className={`screenIconAction ${viewMode === 'flat' ? 'screenIconActionActive' : ''}`}
             type="button"
@@ -727,82 +982,46 @@ export function ResultsGrid() {
         </div>
       )}
 
-      <div className="resultsFilters resultsFiltersMain">
-        <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search text..."
-          disabled={!resultsDynamicFiltersEnabled}
-          data-testid="results-search-input"
-        />
-        <input
-          value={partFilter}
-          onChange={(event) => setPartFilter(event.target.value)}
-          placeholder="Part number filter..."
-          disabled={!resultsDynamicFiltersEnabled}
-          data-testid="results-part-filter-input"
-        />
-        <select
-          value={changeFilter}
-          onChange={(event) => setChangeFilter(event.target.value as 'all' | ChangeType)}
-          disabled={!resultsDynamicFiltersEnabled}
-          data-testid="results-change-filter"
-        >
-          {CHANGE_FILTERS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={sortMode}
-          onChange={(event) => setSortMode(event.target.value as 'source' | 'part' | 'change')}
-          disabled={!resultsDynamicFiltersEnabled}
-          data-testid="results-sort-select"
-        >
-          <option value="source">Sort: Source Order</option>
-          <option value="part">Sort: Part Number</option>
-          <option value="change">Sort: Change Type</option>
-        </select>
-        <select
-          value={pageSize}
-          onChange={(event) => setPageSize(Number(event.target.value) as PageSize)}
-          data-testid="results-page-size-select"
-        >
-          {PAGE_SIZE_OPTIONS.map((size) => (
-            <option key={size} value={size}>
-              {size} rows
-            </option>
-          ))}
-        </select>
-      </div>
-
       <div className="resultsPagination" data-testid="results-pagination-controls">
-        <span className="resultsPaginationSummary">
-          Showing {pageStart}-{pageEnd} of {filteredTotalRows}
-        </span>
-        <button
-          className="screenIconAction screenIconActionCompact"
-          type="button"
-          onClick={() => void goToPreviousPage()}
-          disabled={cursorHistory.length === 0 || !jobId}
-          aria-label="Previous page"
-          title="Previous page"
-          data-testid="results-page-prev"
-        >
-          <ChevronLeftIcon />
-        </button>
-        <button
-          className="screenIconAction screenIconActionCompact"
-          type="button"
-          onClick={() => void goToNextPage()}
-          disabled={!nextCursor || !jobId}
-          aria-label="Next page"
-          title="Next page"
-          data-testid="results-page-next"
-        >
-          <ChevronRightIcon />
-        </button>
+        <div className="resultsPaginationGroup">
+          <span className="resultsPaginationSummary">
+            Showing {pageStart}-{pageEnd} of {filteredTotalRows}
+          </span>
+          <select
+            className="resultsPaginationPageSize"
+            value={pageSize}
+            onChange={(event) => setPageSize(Number(event.target.value) as PageSize)}
+            data-testid="results-page-size-select"
+          >
+            {PAGE_SIZE_OPTIONS.map((size) => (
+              <option key={size} value={size}>
+                {size} rows
+              </option>
+            ))}
+          </select>
+          <button
+            className="screenIconAction screenIconActionCompact"
+            type="button"
+            onClick={() => void goToPreviousPage()}
+            disabled={cursorHistory.length === 0 || !jobId}
+            aria-label="Previous page"
+            title="Previous page"
+            data-testid="results-page-prev"
+          >
+            <ChevronLeftIcon />
+          </button>
+          <button
+            className="screenIconAction screenIconActionCompact"
+            type="button"
+            onClick={() => void goToNextPage()}
+            disabled={!nextCursor || !jobId}
+            aria-label="Next page"
+            title="Next page"
+            data-testid="results-page-next"
+          >
+            <ChevronRightIcon />
+          </button>
+        </div>
       </div>
 
       {viewMode === 'flat' && (
@@ -929,6 +1148,254 @@ export function ResultsGrid() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {chainUploadDialogOpen && (
+        <div className="screenModalLayer" role="presentation">
+          <button
+            type="button"
+            className="screenModalBackdrop"
+            aria-label="Close upload next revision dialog"
+            onClick={() => {
+              if (chainUploadBusy) return;
+              setChainUploadDialogOpen(false);
+            }}
+          />
+          <section
+            className="screenModalCard panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="results-upload-next-title"
+            data-testid="results-upload-next-dialog"
+          >
+            <div className="screenModalHeader">
+              <div>
+                <p className="missionShellEyebrow">Upload Next Revision</p>
+                <h2 className="h2" id="results-upload-next-title">
+                  Compare latest file against a new file
+                </h2>
+              </div>
+              <button
+                className="screenIconAction"
+                type="button"
+                aria-label="Close upload next revision dialog"
+                title="Close"
+                onClick={() => {
+                  if (chainUploadBusy) return;
+                  setChainUploadDialogOpen(false);
+                }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            <p className="p">
+              Upload one new BOM file. This session will compare the latest completed file against the new upload and open the next Results workspace immediately.
+            </p>
+            <input
+              ref={nextRevisionInputRef}
+              type="file"
+              accept=".csv,.xls,.xlsx"
+              hidden
+              onChange={(event) => applyNextRevisionFile(event.target.files?.[0] || null)}
+            />
+            <div
+              className={`uploadDropzone uploadDropzoneCompact ${chainUploadDragActive ? 'uploadDropzoneActive' : ''}`}
+              onDragEnter={(event) => {
+                event.preventDefault();
+                setChainUploadDragActive(true);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setChainUploadDragActive(true);
+              }}
+              onDragLeave={(event) => {
+                event.preventDefault();
+                setChainUploadDragActive(false);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                setChainUploadDragActive(false);
+                applyDroppedNextRevision(event.dataTransfer.files);
+              }}
+            >
+              <div className="uploadDropzoneIcon">
+                <UploadTrayIcon />
+              </div>
+              <div className="uploadDropzoneText">
+                <strong>{nextRevisionFile ? nextRevisionFile.name : 'Drag and drop the next BOM revision'}</strong>
+                <span>{nextRevisionFile ? 'Ready for validation and comparison.' : 'CSV, XLS, or XLSX. One file only.'}</span>
+              </div>
+              <button
+                className="btn"
+                type="button"
+                onClick={() => nextRevisionInputRef.current?.click()}
+                disabled={chainUploadBusy}
+                data-testid="results-upload-next-select-btn"
+              >
+                Select file
+              </button>
+            </div>
+            {chainUploadError && (
+              <div className="alertError" data-testid="results-upload-next-error">
+                {chainUploadError}
+              </div>
+            )}
+            <div className="screenDialogActions">
+              <button
+                className="btn"
+                type="button"
+                onClick={() => {
+                  if (chainUploadBusy) return;
+                  setChainUploadDialogOpen(false);
+                }}
+                disabled={chainUploadBusy}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btnPrimary"
+                type="button"
+                onClick={() => void submitNextRevision()}
+                disabled={!nextRevisionFile || chainUploadBusy || !sessionId}
+                data-testid="results-upload-next-submit"
+              >
+                {chainUploadBusy ? 'Validating and opening...' : 'Validate and compare'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {historyDialogOpen && (
+        <div className="screenModalLayer" role="presentation">
+          <button
+            type="button"
+            className="screenModalBackdrop"
+            aria-label="Close previous comparisons dialog"
+            onClick={() => setHistoryDialogOpen(false)}
+          />
+          <section
+            className="screenModalCard panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="results-history-dialog-title"
+            data-testid="results-session-history-dialog"
+          >
+            <div className="screenModalHeader">
+              <div>
+                <p className="missionShellEyebrow">Previous Comparisons</p>
+                <h2 className="h2" id="results-history-dialog-title">
+                  Comparison chain for this session
+                </h2>
+              </div>
+              <button
+                className="screenIconAction"
+                type="button"
+                aria-label="Close previous comparisons dialog"
+                title="Close"
+                onClick={() => setHistoryDialogOpen(false)}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            {historyError && (
+              <div className="alertError" data-testid="results-session-history-error">
+                {historyError}
+              </div>
+            )}
+            {historyFeedback && (
+              <div className="alertSuccess" data-testid="results-session-history-feedback">
+                {historyFeedback}
+              </div>
+            )}
+            <div className="mappingTableWrap">
+              <table className="mappingTable" data-testid="results-session-history-table">
+                <thead>
+                  <tr>
+                    <th>Comparison</th>
+                    <th>Uploaded</th>
+                    <th>User</th>
+                    <th>State</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historySessions.length === 0 && (
+                    <tr>
+                      <td colSpan={5}>No previous comparisons in this session.</td>
+                    </tr>
+                  )}
+                  {historySessions.map((entry) => (
+                    <tr key={entry.historyId}>
+                      <td>
+                        <div className="resultsHistoryLabelCell">
+                          <input
+                            value={renameDraft[entry.historyId] || ''}
+                            onChange={(event) =>
+                              setRenameDraft((current) => ({
+                                ...current,
+                                [entry.historyId]: event.target.value
+                              }))
+                            }
+                            placeholder={entry.comparisonLabel}
+                            data-testid={`results-session-history-rename-${entry.historyId}`}
+                          />
+                          <small>{entry.comparisonLabel}</small>
+                        </div>
+                      </td>
+                      <td>{new Date(entry.createdAtUtc).toLocaleString()}</td>
+                      <td>{entry.initiatorEmail}</td>
+                      <td>{entry.latest ? 'Latest' : new Date(entry.createdAtUtc).toLocaleString()}</td>
+                      <td>
+                        <div className="screenRowActions">
+                          <button
+                            className="screenIconAction screenIconActionCompact"
+                            type="button"
+                            onClick={() => void renameComparison(entry.historyId)}
+                            aria-label={`Rename ${entry.comparisonLabel}`}
+                            title="Rename"
+                            data-testid={`results-session-history-save-${entry.historyId}`}
+                          >
+                            <EditIcon />
+                          </button>
+                          <button
+                            className="screenIconAction screenIconActionCompact"
+                            type="button"
+                            onClick={() => {
+                              if (!entry.leftRevisionId || !entry.rightRevisionId) return;
+                              setHistoryDialogOpen(false);
+                              router.push(
+                                `/results?sessionId=${encodeURIComponent(entry.sessionId)}&leftRevisionId=${encodeURIComponent(
+                                  entry.leftRevisionId
+                                )}&rightRevisionId=${encodeURIComponent(entry.rightRevisionId)}`
+                              );
+                            }}
+                            disabled={!entry.leftRevisionId || !entry.rightRevisionId}
+                            aria-label={`Open ${entry.comparisonLabel}`}
+                            title="Open"
+                            data-testid={`results-session-history-open-${entry.historyId}`}
+                          >
+                            <OpenIcon />
+                          </button>
+                          <button
+                            className="screenIconAction screenIconActionCompact"
+                            type="button"
+                            onClick={() => void deleteComparison(entry.historyId)}
+                            aria-label={`Delete ${entry.comparisonLabel}`}
+                            title="Delete"
+                            data-testid={`results-session-history-delete-${entry.historyId}`}
+                          >
+                            <DeleteIcon />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
       )}
 

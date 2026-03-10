@@ -60,6 +60,10 @@ export function OpenIcon() {
   return wrap(<path d="M14 5h5v5M19 5l-8 8M5 9v10h10" />);
 }
 
+export function HistoryIcon() {
+  return wrap(<path d="M12 7v5l3 2M5 4v4h4M6.5 17.5A7 7 0 1 0 5 8" />);
+}
+
 export function DeleteIcon() {
   return wrap(<path d="M5 7h14M9 7V5h6v2M9 11v6M15 11v6M7 7l1 12h8l1-12" />);
 }

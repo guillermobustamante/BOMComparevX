@@ -13,6 +13,10 @@ interface HistorySession {
   createdAtUtc: string;
   updatedAtUtc: string;
   status: string;
+  leftRevisionId?: string | null;
+  rightRevisionId?: string | null;
+  comparisonLabel?: string;
+  latest?: boolean;
 }
 
 export function HistoryPanel() {
@@ -227,7 +231,13 @@ export function HistoryPanel() {
                     </button>
                     <Link
                       className="screenIconAction screenIconActionCompact"
-                      href={`/results?comparisonId=${encodeURIComponent(session.jobId)}&sessionId=${encodeURIComponent(session.sessionId)}`}
+                      href={
+                        session.leftRevisionId && session.rightRevisionId
+                          ? `/results?sessionId=${encodeURIComponent(session.sessionId)}&leftRevisionId=${encodeURIComponent(
+                              session.leftRevisionId
+                            )}&rightRevisionId=${encodeURIComponent(session.rightRevisionId)}`
+                          : `/results?comparisonId=${encodeURIComponent(session.jobId)}&sessionId=${encodeURIComponent(session.sessionId)}`
+                      }
                       aria-label={`Open ${session.sessionName || session.historyId}`}
                       title="Open"
                       data-testid={`history-open-results-${session.historyId}`}

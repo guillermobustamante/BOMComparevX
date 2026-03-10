@@ -50,13 +50,14 @@ export class UploadJobService {
   async createAcceptedJob(input: {
     tenantId: string;
     requestedBy: string;
+    sessionId?: string;
     idempotencyKey?: string;
     files: AcceptedUploadJob['files'];
     policy: AcceptedUploadJob['policy'];
   }): Promise<AcceptedUploadJob> {
     const job: AcceptedUploadJob = {
       jobId: randomUUID(),
-      sessionId: randomUUID(),
+      sessionId: input.sessionId || randomUUID(),
       status: 'accepted',
       correlationId: randomUUID(),
       tenantId: input.tenantId,

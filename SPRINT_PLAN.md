@@ -799,6 +799,208 @@ Execution backlog:
 
 ---
 
+## Sprint S11 - Frontend Antigravity Mission Control
+
+### Sprint Metadata
+- Sprint: `S11`
+- Stage: `Frontend Antigravity Mission Control`
+- Dates: `TBD`
+- Owner: `Product + Engineering`
+- Status: `Completed`
+
+### Sprint Goal
+Implement the approved Antigravity-inspired mission-control frontend across authenticated product routes, carrying the redesign from approval artifacts into production route components without changing core backend domain scope.
+
+### Scope (Committed)
+| ID | Work Item | Traceability | Estimate | Owner | Priority | Status |
+|---|---|---|---:|---|---|---|
+| S11-01 | Replace the authenticated frontend shell with a collapsed-first mission-control shell, route-aware titles, and icon-driven left navigation | `docs/FOUNDATION_GENERATION_UI_PLAN.md`; `docs/UI_QA_FINAL_APPROVED_BASELINE.md` | 5 | FE | P0 | `Completed` |
+| S11-02 | Implement dual-theme Antigravity token system with persisted light/dark selection and shared iconography primitives | `docs/FOUNDATION_GENERATION_UI_PLAN.md`; `docs/UI_VISUAL_APPROVAL_PACK.md` | 5 | FE | P0 | `Completed` |
+| S11-03 | Rebuild `Compare BOMs` as a mission-control intake surface with drag/drop, icon-first compare action, popup issue handling, and auto-open results handoff | `FR-003`; `FR-004`; `FR-005`; Stage 2 UX surface | 5 | FE | P0 | `Completed` |
+| S11-04 | Rebuild `Mapping Check` as a dense confidence-review surface with compact toolbar and icon-first confirm control | `FR-006`; Stage 3 UI surface | 3 | FE | P0 | `Completed` |
+| S11-05 | Rebuild `Results` as the primary mission-control workspace with subtle progress, icon-first list/tree/share/export/run actions, inline filters, popup export/share flows, and compact pagination | `FR-008`; `FR-010`; `FR-012`; Stage 4/5 UI surfaces | 8 | FE | P0 | `Completed` |
+| S11-06 | Rebuild `History`, `Notifications`, and `Admin` into shell-consistent mission-control screens with compact toolbars and icon-first high-frequency actions | `FR-011`; `FR-013`; `FR-014` | 5 | FE | P0 | `Completed` |
+| S11-07 | Produce and maintain high-fidelity approval artifacts, remediation record, and final UI-QA baseline for the Antigravity frontend | `docs/UI_VISUAL_APPROVAL_PACK.md`; `docs/UI_APPROVAL_REMEDIATION_PLAN.md`; `docs/UI_QA_FINAL_APPROVED_BASELINE.md` | 5 | FE/Product/QA | P0 | `Completed` |
+| S11-08 | Execute post-implementation polish and responsive hardening across upload/results/shell based on PM review feedback | `docs/UI_APPROVAL_REMEDIATION_PLAN.md`; `docs/UI_QA_FINAL_APPROVED_BASELINE.md` | 3 | FE | P1 | `Completed` |
+
+### Non-Goals (Out of Scope)
+- Backend business-domain expansion beyond existing upload, mapping, diff, export, share, notification, and admin APIs.
+- PLM/connector work.
+- Full elimination of authenticated-route latency caused by server-side session fetch behavior.
+- Replacing the approved mission-control direction with a new visual system.
+
+### Delivery Plan
+- Week 1:
+  - Lock shell, theme, icon, and approval-reference direction (`S11-01`, `S11-02`, `S11-07`).
+  - Convert Compare BOMs and Results first, as the highest-visibility operator flows (`S11-03`, `S11-05`).
+- Week 2:
+  - Convert Mapping, History, Notifications, and Admin (`S11-04`, `S11-06`).
+  - Close polish, responsive, and PM-feedback loops (`S11-08`).
+
+### Dependencies
+- Approved foundation and visual pack:
+  - `docs/FOUNDATION_GENERATION_UI_PLAN.md`
+  - `docs/UI_VISUAL_APPROVAL_PACK.md`
+- Approved implementation QA baseline:
+  - `docs/UI_QA_FINAL_APPROVED_BASELINE.md`
+- Existing backend route contracts for uploads, mappings, diff jobs, exports, sharing, notifications, and admin.
+
+### Definition of Done (Sprint-Level)
+- Approved Antigravity mission-control shell is implemented across authenticated frontend routes.
+- Light and dark themes both work with the shared shell.
+- Compare BOMs, Mapping Check, Results, History, Notifications, and Admin all use the production mission-control UI model.
+- Approval artifacts and final UI-QA documentation remain aligned with the implemented frontend.
+- Typecheck and production build succeed for the frontend after the redesign.
+
+### QA Plan
+- Validate the production routes against the approved `/approval` baseline.
+- Validate collapsed-first rail behavior and shell parity in light and dark themes.
+- Validate Compare BOMs upload, popup issues, and automatic Results handoff.
+- Validate Results list/tree/share/export/run flows and table-first layout.
+- Validate History, Notifications, and Admin compact toolbar behavior.
+- Re-run code-aware UI-QA after major FE changes and keep the approved baseline doc current.
+
+### Risks and Mitigations
+| Risk | Impact | Mitigation | Owner | Trigger |
+|---|---|---|---|---|
+| Shell redesign breaks route behavior or auth flow | High user-visible regression | Keep backend contracts stable, validate production routes after each slice, preserve existing APIs | FE | Route regression during conversion |
+| Icon-first controls reduce clarity | Workflow errors | Keep accessible labels/tooltips and preserve text where icon-only meaning is risky | FE/Product | PM review confusion |
+| Results chrome crowds the main table | Lower review efficiency | Keep table-first layout and progressively compress support controls | FE | PM feedback on density |
+| Approval artifacts drift from production implementation | Signoff ambiguity | Keep approval docs and final QA baseline updated from real code | FE/QA | Mismatch between `/approval` and route behavior |
+| Authenticated nav feels slow under server fetches | UX friction | Track nav latency separately as carry-forward optimization work | FE/Platform | PM feedback on route delay |
+
+### Demo Plan
+- Show collapsed-first mission-control shell in light and dark themes.
+- Show Compare BOMs with drag/drop intake, combined compare action, popup issue handling, and automatic Results transition.
+- Show Results toolbar, inline filters, export/share modals, and compact pagination.
+- Show Mapping, History, Notifications, and Admin route consistency under the new shell.
+- Show the approval doc and final UI-QA baseline as the design-to-code audit trail.
+
+### Rollout Notes
+- Treat Sprint 11 as a frontend-system sprint, not a pure visual-polish sprint.
+- Keep `/approval` as the design reference while future frontend changes continue.
+- Carry forward authenticated-nav latency optimization as a separate improvement track after Sprint 11 closeout.
+- Detailed reverse-engineered story record:
+  - `docs/SPRINT_S11_FRONTEND_ANTIGRAVITY.md`
+
+---
+
+## Sprint S12 - Results Revision Chain
+
+### Sprint Metadata
+- Sprint: `S12`
+- Stage: `Results Revision Chain`
+- Dates: `TBD`
+- Owner: `Product + Engineering`
+- Status: `Completed`
+
+### Sprint Goal
+Extend the Antigravity Results workspace so users can continue a BOM session by uploading one new file, automatically compare latest-vs-new inside the same session, and review previous session comparisons from Results.
+
+### Locked UX Decisions
+- Always compare the latest file in the session against the new upload.
+- Use a modal on `/results` for chained upload.
+- Support drag/drop and `Select file` in that modal.
+- Redirect immediately into the next in-progress Results workspace after chained intake succeeds.
+- Provide a `Previous comparisons` modal on `/results`.
+- Show comparison label, upload date/time, user, latest/historical state treatment, and open action.
+- Use system-generated labels with rename support.
+- Keep previous-comparison actions non-read-only.
+- Apply exports/shares only to the currently open comparison.
+- Keep validation/comparison failures popup-based and non-navigating.
+- Treat all files in the session as the same BOM lineage.
+
+### Scope (Committed)
+| ID | Work Item | Traceability | Estimate | Owner | Priority | Status |
+|---|---|---|---:|---|---|---|
+| S12-01 | Add one-file chained upload initiation from `/results` with drag/drop modal and file-picker support | Locked UX decisions `1`, `2`, `8`; existing Stage 2 upload flow | 5 | FE | P0 | `Completed` |
+| S12-02 | Extend upload validation/intake contracts to support latest-vs-new comparison inside an existing session | Locked UX decisions `1`, `10`; existing upload/session services | 5 | FE/BE | P0 | `Completed` |
+| S12-03 | Redirect immediately into the next in-progress Results workspace after chained intake succeeds | Locked UX decision `3` | 3 | FE | P0 | `Completed` |
+| S12-04 | Add a session-scoped `Previous comparisons` modal with label, time, user, latest state treatment, and open action | Locked UX decisions `4`, `9`; existing history/session model | 5 | FE | P0 | `Completed` |
+| S12-05 | Support rename/delete actions for prior comparisons while keeping system-generated default labels | Locked UX decisions `5`, `6` | 3 | FE | P1 | `Completed` |
+| S12-06 | Refine Results toolbar density by shrinking the completion indicator and keeping the table visually dominant | PM review feedback; Results workspace polish | 2 | FE | P1 | `Completed` |
+
+### Non-Goals (Out of Scope)
+- Baseline chooser for chained uploads.
+- Branching or graph-style comparison history.
+- Cross-session lineage comparison.
+- New export/share semantics beyond current-comparison scope.
+
+### Delivery Plan
+- Week 1:
+  - Lock chained-upload UX and session-history UX.
+  - Extend upload/session contracts for single-file chained intake.
+- Week 2:
+  - Implement Results modals, redirect flow, and history actions.
+  - Close visual polish and route-consistency gaps.
+
+### Dependencies
+- Sprint 11 mission-control shell and Results workspace
+- Existing upload/session/revision services
+- Existing history rename/delete routes
+
+### Definition of Done (Sprint-Level)
+- Results supports chained one-file upload against the latest file in the session.
+- Chained upload redirects into the next in-progress Results workspace.
+- Results exposes previous comparisons for the current session.
+- Previous comparison labels can be renamed.
+- Frontend typecheck and build succeed after the change.
+
+### QA Plan
+- Validate chained upload modal drag/drop and file picker behavior.
+- Validate latest-vs-new comparison behavior inside the same session.
+- Validate redirect into the next in-progress Results workspace.
+- Validate previous-comparisons modal load, rename, open, and delete actions.
+- Validate Results toolbar density after progress-indicator change.
+
+### Risks and Mitigations
+| Risk | Impact | Mitigation | Owner | Trigger |
+|---|---|---|---|---|
+| Chained intake creates a new session instead of continuing the current one | Breaks lineage model | Force `sessionId` reuse in chained intake path and verify with session-filtered history | FE/BE | Previous comparisons modal shows split sessions |
+| Previous comparisons cannot reopen accurate revision pairs | Wrong comparison reopened | Enrich session history with stored revision-pair metadata and open by revisions | FE/BE | Opened comparison does not match expected files |
+| Results toolbar becomes overcrowded | Lower usability | Keep progress/status compact and push secondary actions into modals | FE | PM review feedback |
+
+### Rollout Notes
+- Treat Sprint 12 as a workflow extension on top of Sprint 11, not a new visual reset.
+- Detailed sprint record:
+  - `docs/SPRINT_S12_RESULTS_REVISION_CHAIN.md`
+ - Focused UI-QA record:
+   - `docs/UI_QA_S12_RESULTS_REVISION_CHAIN.md`
+ - Recommended follow-up sprint:
+   - `docs/SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md`
+
+---
+
+## Sprint S12.1 - Results Chain Hardening
+
+### Sprint Metadata
+- Sprint: `S12.1`
+- Stage: `Results Chain Hardening`
+- Dates: `TBD`
+- Owner: `Product + Engineering`
+- Status: `Backlog`
+
+### Sprint Goal
+Close the workflow-integrity gaps found during the Sprint 12 focused QA pass so session comparison history is immutable, role-consistent, and status-aware.
+
+### Scope (Committed)
+| ID | Work Item | Traceability | Estimate | Owner | Priority | Status |
+|---|---|---|---:|---|---|---|
+| S12.1-01 | Reopen previous comparisons by original comparison identity instead of silently recomputing them | `docs/UI_QA_S12_RESULTS_REVISION_CHAIN.md` finding `1` | 5 | FE/BE | P0 | `Backlog` |
+| S12.1-02 | Extend session-history visibility to authorized viewers instead of initiator-only access | `docs/UI_QA_S12_RESULTS_REVISION_CHAIN.md` finding `2` | 5 | FE/BE | P0 | `Backlog` |
+| S12.1-03 | Add real comparison lifecycle state to session-history rows and modal rendering | `docs/UI_QA_S12_RESULTS_REVISION_CHAIN.md` finding `3` | 3 | FE/BE | P1 | `Backlog` |
+
+### Non-Goals (Out of Scope)
+- New visual redesign work
+- Branching comparison graphs
+- Cross-session baseline selection
+
+### QA Driver
+- Sprint 12 focused QA record:
+  - `docs/UI_QA_S12_RESULTS_REVISION_CHAIN.md`
+
+---
+
 ## Ticket-Ready Story Template
 
 Use this template for every backlog story before sprint start.

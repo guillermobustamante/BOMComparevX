@@ -4,9 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
   const cookie = request.headers.get('cookie') || '';
+  const query = request.nextUrl.searchParams.toString();
 
   try {
-    const upstream = await fetch(`${apiBase}/api/history/sessions`, {
+    const upstream = await fetch(`${apiBase}/api/history/sessions${query ? `?${query}` : ''}`, {
       method: 'GET',
       headers: cookie ? { cookie } : undefined,
       cache: 'no-store'
@@ -33,4 +34,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
