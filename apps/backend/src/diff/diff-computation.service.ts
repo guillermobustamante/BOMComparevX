@@ -235,5 +235,6 @@ export class DiffComputationService {
 const DEFAULT_GENERIC_POLICY: ProfileFieldPolicy = {
   identity: ['internalId'],
   comparable: ['partNumber', 'revision', 'description', 'quantity', 'supplier', 'plant', 'cost', 'color', 'units'],
-  display: ['parentPath', 'position', 'assemblyPath', 'findNumber', 'hierarchyLevel']
+  display: ['parentPath', 'position', 'assemblyPath', 'findNumber', 'hierarchyLevel'],
+  businessImpact: ['supplier', 'plant', 'cost', 'quantity']
 };

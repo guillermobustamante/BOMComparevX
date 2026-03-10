@@ -15,13 +15,16 @@ import {
   CONFIDENCE_BANDS,
   CONDITIONAL_CANONICAL_FIELDS,
   DETECTION_CONFLICT_POLICY,
+  EXTENDED_CANONICAL_FIELDS,
   MAPPING_CONTRACT_VERSION,
   MAPPING_EDIT_POLICY,
+  OPTIONAL_CANONICAL_FIELDS,
   REQUIRED_CANONICAL_FIELDS,
   resolveReviewState
 } from '../src/mapping/mapping-contract';
 import { MappingDetectionService } from '../src/mapping/mapping-detection.service';
 import { MappingAuditService } from '../src/mapping/mapping-audit.service';
+import { MappingFieldPolicyService } from '../src/mapping/mapping-field-policy.service';
 import { MappingPersistenceService } from '../src/mapping/mapping-persistence.service';
 import { SemanticRegistryService } from '../src/mapping/semantic-registry.service';
 import {
@@ -38,6 +41,7 @@ import { NormalizationService } from '../src/diff/normalization.service';
 import { ClassificationService } from '../src/diff/classification.service';
 import { DiffComputationService } from '../src/diff/diff-computation.service';
 import { ProfileAdapterService } from '../src/diff/profile-adapter.service';
+import { S14_MAPPING_FIXTURES } from './fixtures/mapping-s14-fixtures';
 
 const binaryParser = (res: any, callback: (err: Error | null, body: Buffer) => void): void => {
   const data: Buffer[] = [];
@@ -56,6 +60,7 @@ describe('Stage 1 API baseline (e2e)', () => {
   let mappingDetectionService: MappingDetectionService;
   let mappingPersistenceService: MappingPersistenceService;
   let mappingAuditService: MappingAuditService;
+  let mappingFieldPolicyService: MappingFieldPolicyService;
   let normalizationService: NormalizationService;
   let matcherService: MatcherService;
   let classificationService: ClassificationService;
@@ -91,6 +96,7 @@ describe('Stage 1 API baseline (e2e)', () => {
     mappingDetectionService = moduleFixture.get(MappingDetectionService);
     mappingPersistenceService = moduleFixture.get(MappingPersistenceService);
     mappingAuditService = moduleFixture.get(MappingAuditService);
+    mappingFieldPolicyService = moduleFixture.get(MappingFieldPolicyService);
     normalizationService = moduleFixture.get(NormalizationService);
     matcherService = moduleFixture.get(MatcherService);
     classificationService = moduleFixture.get(ClassificationService);
@@ -688,6 +694,34 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(MAPPING_EDIT_POLICY).toBe('owner_only');
     expect(REQUIRED_CANONICAL_FIELDS).toEqual(['part_number', 'description', 'quantity']);
     expect(CONDITIONAL_CANONICAL_FIELDS).toEqual(['revision']);
+    expect(OPTIONAL_CANONICAL_FIELDS).toEqual(['supplier', 'cost', 'lifecycle_status']);
+    expect(EXTENDED_CANONICAL_FIELDS).toEqual(
+      expect.arrayContaining([
+        'unit_of_measure',
+        'find_number',
+        'assembly',
+        'parent_path',
+        'plant',
+        'make_buy',
+        'material',
+        'finish',
+        'weight',
+        'effectivity_from',
+        'effectivity_to',
+        'serial_range',
+        'drawing_number',
+        'manufacturer_part_number',
+        'customer_part_number',
+        'compliance_status',
+        'hazard_class',
+        'location',
+        'discipline',
+        'program',
+        'reference_designator',
+        'asset_id',
+        'ifc_class'
+      ])
+    );
     expect(CONFIDENCE_BANDS.autoMapMin).toBe(0.9);
     expect(CONFIDENCE_BANDS.reviewRequiredMin).toBe(0.7);
     expect(resolveReviewState(0.95)).toBe('AUTO');
@@ -706,6 +740,52 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(match?.language).toBe('es');
     expect(match?.domain).toBe('electronics');
     expect(match?.confidence).toBeGreaterThanOrEqual(0.9);
+  });
+
+  it('stage 3 semantic registry resolves explicit profile aliases beyond legacy domains', () => {
+    const automotive = semanticRegistryService.findExact('PPAP Status', {
+      domains: ['automotive'],
+      languages: ['en']
+    });
+    const construction = semanticRegistryService.findExact('IFC Class', {
+      domains: ['ifc_schedule'],
+      languages: ['en']
+    });
+
+    expect(automotive?.canonicalField).toBe('ppap_status');
+    expect(automotive?.domain).toBe('automotive');
+    expect(construction?.canonicalField).toBe('ifc_class');
+    expect(construction?.domain).toBe('ifc_schedule');
+  });
+
+  it('stage 3 semantic registry covers representative industry and source-system aliases', () => {
+    expect(
+      semanticRegistryService.findExact('Work Center', { domains: ['manufacturing'], languages: ['en'] })?.canonicalField
+    ).toBe('work_center');
+    expect(
+      semanticRegistryService.findExact('Drawing Number', { domains: ['aerospace'], languages: ['en'] })?.canonicalField
+    ).toBe('drawing_number');
+    expect(
+      semanticRegistryService.findExact('Manufacturer Part Number', { domains: ['electronics'], languages: ['en'] })?.canonicalField
+    ).toBe('manufacturer_part_number');
+    expect(
+      semanticRegistryService.findExact('Discipline', { domains: ['construction'], languages: ['en'] })?.canonicalField
+    ).toBe('discipline');
+    expect(
+      semanticRegistryService.findExact('Reference Designator', { domains: ['ipc_bom'], languages: ['en'] })?.canonicalField
+    ).toBe('reference_designator');
+    expect(
+      semanticRegistryService.findExact('Unit of Measure', { domains: ['erp_generic'], languages: ['en'] })?.canonicalField
+    ).toBe('unit_of_measure');
+    expect(
+      semanticRegistryService.findExact('Find No', { domains: ['sap_bom'], languages: ['en'] })?.canonicalField
+    ).toBe('find_number');
+    expect(
+      semanticRegistryService.findExact('Assembly Path', { domains: ['teamcenter_bom'], languages: ['en'] })?.canonicalField
+    ).toBe('parent_path');
+    expect(
+      semanticRegistryService.findExact('Parent Path', { domains: ['plm_generic'], languages: ['en'] })?.canonicalField
+    ).toBe('parent_path');
   });
 
   it('stage 3 pass-1 detection runs exact before fuzzy and keeps deterministic strategies', () => {
@@ -746,6 +826,70 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(unresolved?.reviewState).toBe('LOW_CONFIDENCE_WARNING');
   });
 
+  it('stage 3 pass-2 heuristics use profiles and sample-value patterns for industry fields', () => {
+    const detected = mappingDetectionService.detectColumns(
+      ['RefDes', 'Install Phase', 'UOM'],
+      {
+        profiles: ['ipc_bom', 'construction'],
+        sampleRows: [
+          { RefDes: 'R12', 'Install Phase': 'Rough-In', UOM: 'EA' },
+          { RefDes: 'C7', 'Install Phase': 'Final', UOM: 'PCS' }
+        ]
+      }
+    );
+
+    expect(detected.find((candidate) => candidate.sourceColumn === 'RefDes')).toEqual(
+      expect.objectContaining({
+        canonicalField: 'reference_designator',
+        reviewState: 'REVIEW_REQUIRED'
+      })
+    );
+    expect(detected.find((candidate) => candidate.sourceColumn === 'Install Phase')).toEqual(
+      expect.objectContaining({
+        canonicalField: 'install_phase'
+      })
+    );
+    expect(detected.find((candidate) => candidate.sourceColumn === 'UOM')).toEqual(
+      expect.objectContaining({
+        canonicalField: 'unit_of_measure'
+      })
+    );
+  });
+
+  it('stage 3 negative rules suppress false quantity and construction lifecycle mappings', () => {
+    const quantityLike = mappingDetectionService.detectColumns(
+      ['Line Qty'],
+      {
+        sampleRows: [
+          { 'Line Qty': 10 },
+          { 'Line Qty': 20 },
+          { 'Line Qty': 30 }
+        ]
+      }
+    )[0];
+
+    const constructionStatus = mappingDetectionService.detectColumns(
+      ['Status'],
+      {
+        profiles: ['construction'],
+        sampleRows: [
+          { Status: 'Open' },
+          { Status: 'Closed' },
+          { Status: 'For Review' }
+        ]
+      }
+    )[0];
+
+    expect(quantityLike.canonicalField).not.toBe('quantity');
+    expect(quantityLike.evidence?.negativeSignals).toEqual(
+      expect.arrayContaining(['negative_rule_line_number_vs_quantity', 'negative_rule_sequential_numeric_values'])
+    );
+    expect(constructionStatus.canonicalField).toBeNull();
+    expect(constructionStatus.evidence?.negativeSignals).toEqual(
+      expect.arrayContaining(['negative_rule_construction_workflow_status'])
+    );
+  });
+
   it('GET /api/mappings/preview/:revisionId requires authentication', async () => {
     const response = await request(app.getHttpServer()).get('/api/mappings/preview/rev-s3-preview').expect(401);
     expect(response.body.code).toBe('AUTH_REQUIRED');
@@ -778,6 +922,8 @@ describe('Stage 1 API baseline (e2e)', () => {
       'HEURISTIC',
       'HEURISTIC'
     ]);
+    expect(response.body.columns[0].evidence.reasons).toEqual(expect.arrayContaining(['exact_alias']));
+    expect(response.body.columns[2].evidence.reasons).toEqual(expect.arrayContaining(['regex-quantity']));
 
     const requiredStatuses = response.body.requiredFieldsStatus.reduce(
       (acc: Record<string, { mapped: boolean; warning: boolean }>, status: { field: string; mapped: boolean; warning: boolean }) => {
@@ -789,6 +935,145 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(requiredStatuses.part_number?.mapped).toBe(true);
     expect(requiredStatuses.description?.mapped).toBe(true);
     expect(requiredStatuses.quantity?.mapped).toBe(true);
+  });
+
+  it('GET /api/mappings/preview/:revisionId accepts profile hints and returns profile-weighted evidence', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'mapping.profile@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const response = await agent
+      .get('/api/mappings/preview/rev-s3-preview?profile=manufacturing')
+      .expect(200);
+
+    expect(response.body.columns[0].evidence.profile).toBe('manufacturing');
+    expect(response.body.columns[0].fieldClass).toBe('identity');
+    expect(response.body.columns[0].evidence.reasons).toEqual(
+      expect.arrayContaining(['industry_template'])
+    );
+  });
+
+  it('mapping preview reuses tenant-confirmed aliases without leaking to other tenants', async () => {
+    const tenantA = request.agent(app.getHttpServer());
+    const tenantB = request.agent(app.getHttpServer());
+
+    await tenantA
+      .post('/api/auth/test/login')
+      .send({ email: 'mapping.learn.a@example.com', tenantId: 'tenant-learn-a', provider: 'google' })
+      .expect(201);
+    await tenantB
+      .post('/api/auth/test/login')
+      .send({ email: 'mapping.learn.b@example.com', tenantId: 'tenant-learn-b', provider: 'google' })
+      .expect(201);
+
+    for (const revisionId of ['rev-s14-tenant-learning-1', 'rev-s14-tenant-learning-2', 'rev-s14-tenant-learning-3']) {
+      await tenantA
+        .post('/api/mappings/confirm')
+        .send({
+          contractVersion: 'v1',
+          revisionId,
+          explicitWarningAcknowledged: true,
+          mappings: [
+            {
+              sourceColumn: 'MFG Plant Code',
+              canonicalField: 'plant',
+              reviewState: 'REVIEW_REQUIRED'
+            }
+          ]
+        })
+        .expect(201);
+    }
+
+    const learned = await tenantA.get('/api/mappings/preview/rev-s14-tenant-learning-preview').expect(200);
+    const learnedColumn = learned.body.columns.find(
+      (column: { sourceColumn: string }) => column.sourceColumn === 'MFG Plant Code'
+    );
+    expect(learnedColumn).toEqual(
+      expect.objectContaining({
+        canonicalField: 'plant',
+        strategy: 'TENANT_PACK',
+        reviewState: 'AUTO'
+      })
+    );
+    expect(learnedColumn.evidence.reasons).toEqual(expect.arrayContaining(['tenant_confirmation']));
+
+    const isolated = await tenantB.get('/api/mappings/preview/rev-s14-tenant-learning-preview').expect(200);
+    const isolatedColumn = isolated.body.columns.find(
+      (column: { sourceColumn: string }) => column.sourceColumn === 'MFG Plant Code'
+    );
+    expect(isolatedColumn.strategy).not.toBe('TENANT_PACK');
+  });
+
+  it('stage 14 field policy classifies canonical fields conservatively by profile', () => {
+    expect(mappingFieldPolicyService.classifyField('part_number', ['manufacturing'])).toBe('identity');
+    expect(mappingFieldPolicyService.classifyField('plant', ['manufacturing'])).toBe('business_impact');
+    expect(mappingFieldPolicyService.classifyField('assembly', ['manufacturing'])).toBe('display');
+    expect(mappingFieldPolicyService.classifyField('manufacturer_part_number', ['ipc_bom'])).toBe('identity');
+    expect(mappingFieldPolicyService.classifyField('reference_designator', ['electronics'])).toBe('identity');
+    expect(mappingFieldPolicyService.classifyField('drawing_number', ['aerospace'])).toBe('identity');
+    expect(mappingFieldPolicyService.classifyField('effectivity', ['aerospace'])).toBe('business_impact');
+    expect(mappingFieldPolicyService.classifyField('description', ['construction'])).toBe('comparable');
+  });
+
+  it('stage 14 diff profile policies include business-impact fields without changing existing identity rules', () => {
+    const sap = profileAdapterService.adaptRows({
+      rows: [
+        {
+          rowId: 'r1',
+          partNumber: 'PN-1',
+          description: 'Bracket',
+          quantity: 1,
+          supplier: 'SUP-1',
+          plant: 'PL01'
+        }
+      ],
+      context: { headers: ['Component Number', 'Path Predecessor', 'Plant'], fileName: 'sap_export.xlsx' }
+    });
+
+    expect(sap.profileName).toBe('sap');
+    expect(sap.fieldPolicy.identity).toEqual(expect.arrayContaining(['stableOccurrenceKey', 'snapshotRowKey']));
+    expect(sap.fieldPolicy.comparable).toEqual(expect.arrayContaining(['plant', 'supplier', 'cost']));
+    expect(sap.fieldPolicy.businessImpact).toEqual(expect.arrayContaining(['plant', 'supplier', 'cost', 'quantity']));
+    expect(sap.fieldPolicy.identity).not.toEqual(expect.arrayContaining(['plant']));
+  });
+
+  it.each(S14_MAPPING_FIXTURES)(
+    'stage 14 industry mapping fixture $name maps expected headers deterministically',
+    (fixture) => {
+      const detected = mappingDetectionService.detectColumns(fixture.headers, {
+        profiles: fixture.profiles as any,
+        sampleRows: fixture.sampleRows
+      });
+
+      const simplified = fixture.expected.map((expected) => ({
+        sourceColumn: expected.sourceColumn,
+        canonicalField: detected.find((candidate) => candidate.sourceColumn === expected.sourceColumn)?.canonicalField ?? null
+      }));
+
+      expect(simplified).toEqual(fixture.expected);
+
+      for (const expected of fixture.expected) {
+        const candidate = detected.find((row) => row.sourceColumn === expected.sourceColumn);
+        expect(candidate?.evidence?.reasons?.length || 0).toBeGreaterThan(0);
+      }
+    }
+  );
+
+  it('stage 14 regression matrix remains deterministic across repeated mapping runs', () => {
+    for (const fixture of S14_MAPPING_FIXTURES) {
+      const first = mappingDetectionService.detectColumns(fixture.headers, {
+        profiles: fixture.profiles as any,
+        sampleRows: fixture.sampleRows
+      });
+      const second = mappingDetectionService.detectColumns(fixture.headers, {
+        profiles: fixture.profiles as any,
+        sampleRows: fixture.sampleRows
+      });
+
+      expect(first).toEqual(second);
+    }
   });
 
   it('POST /api/mappings/confirm requires authentication', async () => {

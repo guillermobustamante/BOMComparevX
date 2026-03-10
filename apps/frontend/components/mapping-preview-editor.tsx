@@ -8,9 +8,14 @@ type MappingReviewState = 'AUTO' | 'REVIEW_REQUIRED' | 'LOW_CONFIDENCE_WARNING';
 interface PreviewColumn {
   sourceColumn: string;
   canonicalField: string | null;
-  strategy: 'REGISTRY_EXACT' | 'REGISTRY_FUZZY' | 'HEURISTIC' | 'MANUAL';
+  strategy: 'REGISTRY_EXACT' | 'REGISTRY_FUZZY' | 'HEURISTIC' | 'MANUAL' | 'TENANT_PACK';
   confidence: number;
   reviewState: MappingReviewState;
+  fieldClass?: 'identity' | 'comparable' | 'display' | 'business_impact' | null;
+  evidence?: {
+    reasons?: string[];
+    negativeSignals?: string[];
+  };
 }
 
 interface PreviewPayload {
@@ -29,7 +34,68 @@ const editableCanonicalOptions = [
   'revision',
   'supplier',
   'cost',
-  'lifecycle_status'
+  'lifecycle_status',
+  'unit_of_measure',
+  'find_number',
+  'assembly',
+  'parent_path',
+  'plant',
+  'make_buy',
+  'material',
+  'finish',
+  'weight',
+  'effectivity',
+  'effectivity_from',
+  'effectivity_to',
+  'serial_range',
+  'drawing_number',
+  'manufacturer_part_number',
+  'customer_part_number',
+  'compliance_status',
+  'hazard_class',
+  'location',
+  'discipline',
+  'work_center',
+  'procurement_type',
+  'lead_time',
+  'material_group',
+  'routing_ref',
+  'alternate_part',
+  'program',
+  'vehicle_line',
+  'option_code',
+  'engineering_level',
+  'change_notice',
+  'supplier_code',
+  'ppap_status',
+  'tooling_status',
+  'service_part_flag',
+  'dash_number',
+  'tail_number',
+  'lot',
+  'configuration_state',
+  'criticality',
+  'airworthiness_class',
+  'approved_supplier',
+  'reference_designator',
+  'footprint',
+  'package',
+  'manufacturer',
+  'avl',
+  'rohs',
+  'reach',
+  'lifecycle_risk',
+  'substitute_part',
+  'asset_id',
+  'system',
+  'spec_section',
+  'level',
+  'zone',
+  'room',
+  'ifc_class',
+  'cobie_attribute',
+  'install_phase',
+  'revision_package'
 ];
 
 export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
@@ -207,6 +273,15 @@ export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
                 </td>
                 <td>
                   <span className="chip">{column.strategy}</span>
+                  {column.fieldClass ? (
+                    <div className="missionSubtle">{column.fieldClass}</div>
+                  ) : null}
+                  {column.evidence?.reasons?.length ? (
+                    <div className="missionSubtle">{column.evidence.reasons.join(', ')}</div>
+                  ) : null}
+                  {column.evidence?.negativeSignals?.length ? (
+                    <div className="missionSubtle">{column.evidence.negativeSignals.join(', ')}</div>
+                  ) : null}
                 </td>
                 <td>{column.confidence.toFixed(2)}</td>
                 <td>

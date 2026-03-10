@@ -2,12 +2,13 @@ import { DiffComparableRow } from './diff-contract';
 
 export type ProfileAdapterName = 'sap' | 'generic';
 
-export type ProfileFieldClass = 'identity' | 'comparable' | 'display';
+export type ProfileFieldClass = 'identity' | 'comparable' | 'display' | 'business_impact';
 
 export interface ProfileFieldPolicy {
   identity: Array<keyof DiffComparableRow>;
   comparable: Array<keyof DiffComparableRow>;
   display: Array<keyof DiffComparableRow>;
+  businessImpact: Array<keyof DiffComparableRow>;
 }
 
 export interface ProfileAdapterContext {

@@ -8,9 +8,14 @@ export async function GET(
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
   const cookie = request.headers.get('cookie') || '';
   const revisionId = params.revisionId;
+  const profile = request.nextUrl.searchParams.get('profile');
+  const upstreamUrl = new URL(`${apiBase}/api/mappings/preview/${encodeURIComponent(revisionId)}`);
+  if (profile) {
+    upstreamUrl.searchParams.set('profile', profile);
+  }
 
   try {
-    const upstream = await fetch(`${apiBase}/api/mappings/preview/${encodeURIComponent(revisionId)}`, {
+    const upstream = await fetch(upstreamUrl.toString(), {
       method: 'GET',
       headers: cookie ? { cookie } : undefined,
       cache: 'no-store'

@@ -109,6 +109,25 @@ Evidence:
 Follow-up:
 - tracked in `Sprint 12.1`
 
+### ISSUE-005 - Mapping explainability review UI is intentionally minimal
+- Status: `Open`
+- Priority: `P2`
+- Area: `Mapping / UX`
+- First observed: `2026-03-10`
+
+Problem:
+- Mapping explainability is now generated backend-first and only lightly surfaced in the current mapping preview.
+- Reviewers can see basic reasons and negative signals, but there is no richer UI for score breakdowns, tooltips, grouped evidence, or admin explainability diagnostics.
+
+Desired outcome:
+- Add a richer explainability review UI for mapping suggestions after the current S14 backend-first rollout stabilizes.
+
+Locked decision:
+- Park richer explainability UI as future work while keeping the current backend-first/light-UI approach.
+
+Follow-up:
+- track as future backlog work after S14 mapping-intelligence stabilization
+
 ## 3. Linked follow-up records
 - Sprint 12 QA: [UI_QA_S12_RESULTS_REVISION_CHAIN.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\UI_QA_S12_RESULTS_REVISION_CHAIN.md:1)
 - Sprint 12.1 backlog: [SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md:1)

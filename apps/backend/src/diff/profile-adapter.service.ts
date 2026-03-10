@@ -147,11 +147,13 @@ export class ProfileAdapterService {
 const SAP_FIELD_POLICY: ProfileFieldPolicy = {
   identity: ['stableOccurrenceKey', 'snapshotRowKey'],
   comparable: ['partNumber', 'revision', 'description', 'quantity', 'supplier', 'plant', 'cost', 'color', 'units'],
-  display: ['assemblyPath', 'findNumber', 'profileName', 'profileConfidence']
+  display: ['assemblyPath', 'findNumber', 'profileName', 'profileConfidence'],
+  businessImpact: ['supplier', 'plant', 'cost', 'quantity']
 };
 
 const GENERIC_FIELD_POLICY: ProfileFieldPolicy = {
   identity: ['stableOccurrenceKey', 'snapshotRowKey'],
   comparable: ['partNumber', 'revision', 'description', 'quantity', 'supplier', 'plant', 'cost', 'color', 'units'],
-  display: ['assemblyPath', 'findNumber', 'profileName', 'profileConfidence']
+  display: ['assemblyPath', 'findNumber', 'profileName', 'profileConfidence'],
+  businessImpact: ['supplier', 'plant', 'cost', 'quantity']
 };

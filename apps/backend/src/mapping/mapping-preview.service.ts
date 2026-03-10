@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { DatabaseService } from '../database/database.service';
-import { REQUIRED_CANONICAL_FIELDS, MappingPreviewContract, isRequiredFieldMapped, MAPPING_CONTRACT_VERSION } from './mapping-contract';
+import { MappingProfile, REQUIRED_CANONICAL_FIELDS, MappingPreviewContract, isRequiredFieldMapped, MAPPING_CONTRACT_VERSION } from './mapping-contract';
+import { MappingAliasLearningService } from './mapping-alias-learning.service';
 import { MappingAuditService } from './mapping-audit.service';
 import { MappingDetectionService } from './mapping-detection.service';
+import { MappingFieldPolicyService } from './mapping-field-policy.service';
 
 interface RevisionSeed {
   headers: string[];
@@ -14,15 +16,28 @@ interface RevisionSeed {
 export class MappingPreviewService {
   constructor(
     private readonly databaseService: DatabaseService,
+    private readonly mappingAliasLearningService: MappingAliasLearningService,
     private readonly mappingDetectionService: MappingDetectionService,
+    private readonly mappingFieldPolicyService: MappingFieldPolicyService,
     private readonly mappingAuditService: MappingAuditService
   ) {}
 
-  async getPreview(revisionId: string, tenantId: string): Promise<MappingPreviewContract> {
+  async getPreview(
+    revisionId: string,
+    tenantId: string,
+    context?: { profiles?: MappingProfile[] }
+  ): Promise<MappingPreviewContract> {
     const seed = await this.resolveSeed(revisionId, tenantId);
+    const tenantAliases = await this.mappingAliasLearningService.getTenantAliases(tenantId);
     const columns = this.mappingDetectionService.detectColumns(seed.headers, {
-      sampleRows: seed.sampleRows
-    });
+      sampleRows: seed.sampleRows,
+      profiles: context?.profiles,
+      tenantAliases
+    }).map((column) => ({
+      ...column,
+      fieldClass:
+        this.mappingFieldPolicyService.classifyField(column.canonicalField, context?.profiles || []) || undefined
+    }));
 
     const requiredFieldsStatus = REQUIRED_CANONICAL_FIELDS.map((field) => ({
       field,
@@ -85,6 +100,15 @@ export class MappingPreviewService {
 
   private defaultSeed(revisionId: string, tenantId: string): RevisionSeed {
     const key = `${tenantId}:${revisionId}`.toLowerCase();
+    if (key.includes('tenant-learning')) {
+      return {
+        headers: ['MFG Plant Code', 'Part Number', 'Description', 'Quantity'],
+        sampleRows: [
+          { 'MFG Plant Code': 'PL01', 'Part Number': 'PN-3001', Description: 'Bracket', Quantity: 3 },
+          { 'MFG Plant Code': 'PL02', 'Part Number': 'PN-3002', Description: 'Clamp', Quantity: 4 }
+        ]
+      };
+    }
     if (key.includes('preview')) {
       return {
         headers: ['Part Number', 'Descriptin', 'Needed Count', 'Mystery Header'],

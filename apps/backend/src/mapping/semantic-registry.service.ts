@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { CanonicalField } from './mapping-contract';
+import { CanonicalField, MappingProfile } from './mapping-contract';
 
 export interface RegistryAliasEntry {
   canonicalField: CanonicalField;
   alias: string;
   language: 'en' | 'es' | 'de' | 'fr' | 'ja' | 'zh';
-  domain: 'electronics' | 'mechanical' | 'aerospace' | 'manufacturing';
+  domain: MappingProfile;
   weight: number;
 }
 
@@ -26,6 +26,7 @@ interface RegistrySearchOptions {
 
 const ALIAS_REGISTRY: RegistryAliasEntry[] = [
   { canonicalField: 'part_number', alias: 'part number', language: 'en', domain: 'electronics', weight: 1.0 },
+  { canonicalField: 'part_number', alias: 'part number', language: 'en', domain: 'manufacturing', weight: 0.99 },
   { canonicalField: 'part_number', alias: 'part no', language: 'en', domain: 'manufacturing', weight: 0.98 },
   { canonicalField: 'part_number', alias: 'item number', language: 'en', domain: 'mechanical', weight: 0.95 },
   { canonicalField: 'part_number', alias: 'número de parte', language: 'es', domain: 'electronics', weight: 1.0 },
@@ -54,7 +55,71 @@ const ALIAS_REGISTRY: RegistryAliasEntry[] = [
   { canonicalField: 'cost', alias: 'unit cost', language: 'en', domain: 'manufacturing', weight: 0.92 },
   { canonicalField: 'cost', alias: 'price', language: 'en', domain: 'electronics', weight: 0.9 },
   { canonicalField: 'lifecycle_status', alias: 'lifecycle status', language: 'en', domain: 'manufacturing', weight: 0.91 },
-  { canonicalField: 'lifecycle_status', alias: 'status', language: 'en', domain: 'aerospace', weight: 0.88 }
+  { canonicalField: 'lifecycle_status', alias: 'status', language: 'en', domain: 'aerospace', weight: 0.88 },
+  { canonicalField: 'unit_of_measure', alias: 'uom', language: 'en', domain: 'manufacturing', weight: 0.98 },
+  { canonicalField: 'unit_of_measure', alias: 'unit of measure', language: 'en', domain: 'erp_generic', weight: 0.97 },
+  { canonicalField: 'unit_of_measure', alias: 'unit', language: 'en', domain: 'manufacturing', weight: 0.9 },
+  { canonicalField: 'find_number', alias: 'find number', language: 'en', domain: 'manufacturing', weight: 0.97 },
+  { canonicalField: 'find_number', alias: 'find no', language: 'en', domain: 'sap_bom', weight: 0.96 },
+  { canonicalField: 'assembly', alias: 'assembly', language: 'en', domain: 'mechanical', weight: 0.95 },
+  { canonicalField: 'assembly', alias: 'assy', language: 'en', domain: 'manufacturing', weight: 0.94 },
+  { canonicalField: 'parent_path', alias: 'parent path', language: 'en', domain: 'plm_generic', weight: 0.96 },
+  { canonicalField: 'parent_path', alias: 'assembly path', language: 'en', domain: 'teamcenter_bom', weight: 0.95 },
+  { canonicalField: 'plant', alias: 'plant', language: 'en', domain: 'manufacturing', weight: 0.98 },
+  { canonicalField: 'work_center', alias: 'work center', language: 'en', domain: 'manufacturing', weight: 0.96 },
+  { canonicalField: 'make_buy', alias: 'make buy', language: 'en', domain: 'manufacturing', weight: 0.95 },
+  { canonicalField: 'procurement_type', alias: 'procurement type', language: 'en', domain: 'sap_bom', weight: 0.96 },
+  { canonicalField: 'lead_time', alias: 'lead time', language: 'en', domain: 'erp_generic', weight: 0.95 },
+  { canonicalField: 'material', alias: 'material', language: 'en', domain: 'manufacturing', weight: 0.9 },
+  { canonicalField: 'material_group', alias: 'material group', language: 'en', domain: 'sap_bom', weight: 0.96 },
+  { canonicalField: 'routing_ref', alias: 'routing ref', language: 'en', domain: 'manufacturing', weight: 0.95 },
+  { canonicalField: 'alternate_part', alias: 'alternate part', language: 'en', domain: 'manufacturing', weight: 0.95 },
+  { canonicalField: 'effectivity', alias: 'effectivity', language: 'en', domain: 'aerospace', weight: 0.98 },
+  { canonicalField: 'effectivity_from', alias: 'effectivity from', language: 'en', domain: 'aerospace', weight: 0.97 },
+  { canonicalField: 'effectivity_to', alias: 'effectivity to', language: 'en', domain: 'aerospace', weight: 0.97 },
+  { canonicalField: 'serial_range', alias: 'serial range', language: 'en', domain: 'aerospace', weight: 0.97 },
+  { canonicalField: 'drawing_number', alias: 'drawing number', language: 'en', domain: 'aerospace', weight: 0.98 },
+  { canonicalField: 'dash_number', alias: 'dash number', language: 'en', domain: 'aerospace', weight: 0.96 },
+  { canonicalField: 'tail_number', alias: 'tail number', language: 'en', domain: 'aerospace', weight: 0.96 },
+  { canonicalField: 'configuration_state', alias: 'configuration state', language: 'en', domain: 'aerospace', weight: 0.95 },
+  { canonicalField: 'criticality', alias: 'criticality', language: 'en', domain: 'aerospace', weight: 0.95 },
+  { canonicalField: 'airworthiness_class', alias: 'airworthiness class', language: 'en', domain: 'aerospace', weight: 0.95 },
+  { canonicalField: 'approved_supplier', alias: 'approved supplier', language: 'en', domain: 'aerospace', weight: 0.95 },
+  { canonicalField: 'program', alias: 'program', language: 'en', domain: 'automotive', weight: 0.96 },
+  { canonicalField: 'vehicle_line', alias: 'vehicle line', language: 'en', domain: 'automotive', weight: 0.96 },
+  { canonicalField: 'option_code', alias: 'option code', language: 'en', domain: 'automotive', weight: 0.95 },
+  { canonicalField: 'engineering_level', alias: 'engineering level', language: 'en', domain: 'automotive', weight: 0.95 },
+  { canonicalField: 'change_notice', alias: 'change notice', language: 'en', domain: 'automotive', weight: 0.95 },
+  { canonicalField: 'supplier_code', alias: 'supplier code', language: 'en', domain: 'automotive', weight: 0.95 },
+  { canonicalField: 'ppap_status', alias: 'ppap status', language: 'en', domain: 'automotive', weight: 0.97 },
+  { canonicalField: 'tooling_status', alias: 'tooling status', language: 'en', domain: 'automotive', weight: 0.95 },
+  { canonicalField: 'service_part_flag', alias: 'service part flag', language: 'en', domain: 'automotive', weight: 0.95 },
+  { canonicalField: 'reference_designator', alias: 'reference designator', language: 'en', domain: 'ipc_bom', weight: 0.98 },
+  { canonicalField: 'reference_designator', alias: 'refdes', language: 'en', domain: 'electronics', weight: 0.97 },
+  { canonicalField: 'footprint', alias: 'footprint', language: 'en', domain: 'electronics', weight: 0.96 },
+  { canonicalField: 'package', alias: 'package', language: 'en', domain: 'electronics', weight: 0.95 },
+  { canonicalField: 'manufacturer', alias: 'manufacturer', language: 'en', domain: 'electronics', weight: 0.95 },
+  { canonicalField: 'manufacturer_part_number', alias: 'manufacturer part number', language: 'en', domain: 'electronics', weight: 0.98 },
+  { canonicalField: 'manufacturer_part_number', alias: 'mfr part number', language: 'en', domain: 'ipc_bom', weight: 0.97 },
+  { canonicalField: 'customer_part_number', alias: 'customer part number', language: 'en', domain: 'manufacturing', weight: 0.95 },
+  { canonicalField: 'avl', alias: 'avl', language: 'en', domain: 'electronics', weight: 0.96 },
+  { canonicalField: 'compliance_status', alias: 'compliance status', language: 'en', domain: 'electronics', weight: 0.95 },
+  { canonicalField: 'rohs', alias: 'rohs', language: 'en', domain: 'electronics', weight: 0.98 },
+  { canonicalField: 'reach', alias: 'reach', language: 'en', domain: 'electronics', weight: 0.98 },
+  { canonicalField: 'lifecycle_risk', alias: 'lifecycle risk', language: 'en', domain: 'electronics', weight: 0.95 },
+  { canonicalField: 'substitute_part', alias: 'substitute part', language: 'en', domain: 'electronics', weight: 0.95 },
+  { canonicalField: 'asset_id', alias: 'asset id', language: 'en', domain: 'construction', weight: 0.97 },
+  { canonicalField: 'system', alias: 'system', language: 'en', domain: 'construction', weight: 0.94 },
+  { canonicalField: 'discipline', alias: 'discipline', language: 'en', domain: 'construction', weight: 0.97 },
+  { canonicalField: 'spec_section', alias: 'spec section', language: 'en', domain: 'construction', weight: 0.96 },
+  { canonicalField: 'location', alias: 'location', language: 'en', domain: 'construction', weight: 0.95 },
+  { canonicalField: 'level', alias: 'level', language: 'en', domain: 'construction', weight: 0.95 },
+  { canonicalField: 'zone', alias: 'zone', language: 'en', domain: 'construction', weight: 0.95 },
+  { canonicalField: 'room', alias: 'room', language: 'en', domain: 'construction', weight: 0.95 },
+  { canonicalField: 'ifc_class', alias: 'ifc class', language: 'en', domain: 'ifc_schedule', weight: 0.98 },
+  { canonicalField: 'cobie_attribute', alias: 'cobie attribute', language: 'en', domain: 'construction', weight: 0.97 },
+  { canonicalField: 'install_phase', alias: 'install phase', language: 'en', domain: 'construction', weight: 0.95 },
+  { canonicalField: 'revision_package', alias: 'revision package', language: 'en', domain: 'construction', weight: 0.95 }
 ];
 
 @Injectable()

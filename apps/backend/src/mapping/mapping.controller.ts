@@ -3,7 +3,8 @@ import { randomUUID } from 'node:crypto';
 import type { Request } from 'express';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { SessionState } from '../auth/session-user.interface';
-import { MappingConfirmationContract, MappingPreviewContract, MappingSnapshotContract } from './mapping-contract';
+import { MappingAliasLearningService } from './mapping-alias-learning.service';
+import { MappingConfirmationContract, MappingPreviewContract, MappingProfile, MappingSnapshotContract } from './mapping-contract';
 import { MappingAuditService } from './mapping-audit.service';
 import { MappingPersistenceService } from './mapping-persistence.service';
 import { MappingPreviewService } from './mapping-preview.service';
@@ -13,7 +14,8 @@ export class MappingController {
   constructor(
     private readonly mappingPreviewService: MappingPreviewService,
     private readonly mappingPersistenceService: MappingPersistenceService,
-    private readonly mappingAuditService: MappingAuditService
+    private readonly mappingAuditService: MappingAuditService,
+    private readonly mappingAliasLearningService: MappingAliasLearningService
   ) {}
 
   @Get('preview/:revisionId')
@@ -24,7 +26,11 @@ export class MappingController {
   ): Promise<MappingPreviewContract> {
     const session = req.session as SessionState;
     const tenantId = session.user?.tenantId || 'unknown-tenant';
-    return this.mappingPreviewService.getPreview(revisionId, tenantId);
+    const rawProfile = req.query.profile;
+    const profiles = this.normalizeProfiles(rawProfile);
+    return this.mappingPreviewService.getPreview(revisionId, tenantId, {
+      profiles
+    });
   }
 
   @Post('confirm')
@@ -61,6 +67,13 @@ export class MappingController {
         actor
       }
     });
+    await this.mappingAliasLearningService.recordConfirmation(
+      tenantId,
+      payload.mappings.map((mapping) => ({
+        sourceColumn: mapping.sourceColumn,
+        canonicalField: mapping.canonicalField === '__unmapped__' ? null : mapping.canonicalField
+      }))
+    );
 
     return {
       mappingId: confirmed.mappingId,
@@ -79,5 +92,14 @@ export class MappingController {
     const session = req.session as SessionState;
     const tenantId = session.user?.tenantId || 'unknown-tenant';
     return this.mappingPersistenceService.getRevisionMapping(tenantId, revisionId);
+  }
+
+  private normalizeProfiles(raw: unknown): MappingProfile[] {
+    if (!raw) return [];
+    const values = Array.isArray(raw) ? raw : [raw];
+    return values
+      .flatMap((value) => String(value).split(','))
+      .map((value) => value.trim())
+      .filter((value): value is MappingProfile => value.length > 0) as MappingProfile[];
   }
 }
