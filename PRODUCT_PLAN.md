@@ -333,6 +333,21 @@ Execution record:
 - sprint planning record: `SPRINT_PLAN.md` Sprint `S12`
 - detailed sprint record: `docs/SPRINT_S12_RESULTS_REVISION_CHAIN.md`
 
+### Sprint 13 — Template-Preserving Excel Export (Completed)
+Execution sprint for restoring Excel export fidelity by reusing the latest uploaded workbook as the export template instead of rebuilding a generic workbook.
+
+Delivered scope:
+- persist workbook template context from uploaded revisions
+- preserve workbook sheets/tabs during export
+- keep the latest uploaded BOM rows intact while appending comparison metadata
+- keep BOM Compare metadata both inline and on a dedicated metadata sheet
+- preserve drawing/media parts for image-based uploaded workbooks
+- validate workbook preservation behavior with automated tests before release
+
+Execution record:
+- sprint planning record: `SPRINT_PLAN.md` Sprint `S13`
+- detailed sprint record: `docs/SPRINT_S13_TEMPLATE_PRESERVING_EXCEL_EXPORT.md`
+
 ### Stage 6 — Retention + Hardening
 Raw-file lifecycle enforcement, audit exports, performance tuning for p95 targets.
 

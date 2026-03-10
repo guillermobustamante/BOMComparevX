@@ -1189,9 +1189,6 @@ export function ResultsGrid() {
                 <CloseIcon />
               </button>
             </div>
-            <p className="p">
-              Upload one new BOM file. This session will compare the latest completed file against the new upload and open the next Results workspace immediately.
-            </p>
             <input
               ref={nextRevisionInputRef}
               type="file"
@@ -1224,7 +1221,6 @@ export function ResultsGrid() {
               </div>
               <div className="uploadDropzoneText">
                 <strong>{nextRevisionFile ? nextRevisionFile.name : 'Drag and drop the next BOM revision'}</strong>
-                <span>{nextRevisionFile ? 'Ready for validation and comparison.' : 'CSV, XLS, or XLSX. One file only.'}</span>
               </div>
               <button
                 className="btn"
@@ -1286,7 +1282,7 @@ export function ResultsGrid() {
               <div>
                 <p className="missionShellEyebrow">Previous Comparisons</p>
                 <h2 className="h2" id="results-history-dialog-title">
-                  Comparison chain for this session
+                  Previous comparisons
                 </h2>
               </div>
               <button
@@ -1341,7 +1337,6 @@ export function ResultsGrid() {
                             placeholder={entry.comparisonLabel}
                             data-testid={`results-session-history-rename-${entry.historyId}`}
                           />
-                          <small>{entry.comparisonLabel}</small>
                         </div>
                       </td>
                       <td>{new Date(entry.createdAtUtc).toLocaleString()}</td>

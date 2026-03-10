@@ -17,6 +17,10 @@ interface StoredRevision {
   sheetName: string;
   headers: string[];
   headerFields: Array<keyof DiffComparableRow | null>;
+  headerRowIndex: number;
+  dataStartRowIndex: number;
+  dataEndRowIndex: number;
+  workbookBuffer: Buffer | null;
   rows: DiffComparableRow[];
 }
 
@@ -224,6 +228,10 @@ export class UploadRevisionService {
     sheetName: string;
     headers: string[];
     headerFields: Array<keyof DiffComparableRow | null>;
+    headerRowIndex: number;
+    dataStartRowIndex: number;
+    dataEndRowIndex: number;
+    workbookBuffer: Buffer | null;
   } | null {
     const revision = this.revisionsById.get(revisionId);
     if (!revision || revision.tenantId !== tenantId) return null;
@@ -232,7 +240,11 @@ export class UploadRevisionService {
       parserMode: revision.parserMode,
       sheetName: revision.sheetName,
       headers: [...revision.headers],
-      headerFields: [...revision.headerFields]
+      headerFields: [...revision.headerFields],
+      headerRowIndex: revision.headerRowIndex,
+      dataStartRowIndex: revision.dataStartRowIndex,
+      dataEndRowIndex: revision.dataEndRowIndex,
+      workbookBuffer: revision.workbookBuffer ? Buffer.from(revision.workbookBuffer) : null
     };
   }
 
@@ -267,6 +279,10 @@ export class UploadRevisionService {
     sheetName: string;
     headers: string[];
     headerFields: Array<keyof DiffComparableRow | null>;
+    headerRowIndex: number;
+    dataStartRowIndex: number;
+    dataEndRowIndex: number;
+    workbookBuffer: Buffer | null;
     rows: DiffComparableRow[];
   } {
     const correlationId = randomUUID();
@@ -431,6 +447,11 @@ export class UploadRevisionService {
       sheetName: parsed.sheetName,
       headers: [...headerRow.values],
       headerFields,
+      headerRowIndex: headerRow.sourceRowIndex,
+      dataStartRowIndex: headerRow.sourceRowIndex + 1,
+      dataEndRowIndex:
+        parsed.rows.reduce((max, row) => Math.max(max, row.sourceRowIndex), headerRow.sourceRowIndex),
+      workbookBuffer: parserMode === 'xlsx' ? Buffer.from(file.buffer) : null,
       rows: enrichedRows
     };
   }

@@ -470,7 +470,6 @@ a {
 
 .resultsHistoryLabelCell {
   display: grid;
-  gap: 6px;
 }
 
 .resultsHistoryLabelCell input {
@@ -482,14 +481,55 @@ a {
   padding: 0 12px;
 }
 
-.resultsHistoryLabelCell small {
-  color: var(--mission-muted);
-}
-
 .uploadDropzoneCompact {
   margin-top: 12px;
   min-height: 0;
-  padding: 18px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--mission-line);
+  border-radius: 16px;
+  background: var(--mission-panel);
+}
+
+.uploadDropzoneCompact .uploadDropzoneIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--mission-line);
+  border-radius: 12px;
+  background: var(--mission-accent-soft);
+  color: var(--mission-ink);
+}
+
+.uploadDropzoneCompact .uploadDropzoneIcon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.uploadDropzoneCompact .uploadDropzoneText {
+  min-width: 0;
+}
+
+.uploadDropzoneCompact .uploadDropzoneText strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.uploadDropzoneCompact.uploadDropzoneActive {
+  border-color: var(--mission-accent);
+  background: var(--mission-accent-soft);
 }
 
 .resultsPagination {

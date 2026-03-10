@@ -6,6 +6,7 @@ import * as session from 'express-session';
 import * as passport from 'passport';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { strFromU8, unzipSync } from 'fflate';
 import * as XLSX from 'xlsx';
 import { AppModule } from '../src/app.module';
 import { UploadHistoryService } from '../src/uploads/upload-history.service';
@@ -1477,6 +1478,147 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(firstRow).toEqual(
       expect.arrayContaining(['Change Type', 'Changed Fields', 'Classification Reason'])
     );
+  });
+
+  it('excel export preserves workbook template structure and table metadata for uploaded xlsx', async () => {
+    const templateV1 = readFileSync(
+      resolve(process.cwd(), '..', '..', 'docs', 'BOM Examples', 'Example 1 ver 1.xlsx')
+    );
+    const templateV2 = readFileSync(
+      resolve(process.cwd(), '..', '..', 'docs', 'BOM Examples', 'Example 1 ver 2.xlsx')
+    );
+
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'export.excel.preserve@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const intake = await agent
+      .post('/api/uploads/intake')
+      .attach('fileA', templateV1, {
+        filename: 'example1-ver1.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      .attach('fileB', templateV2, {
+        filename: 'example1-ver2.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      .expect(202);
+
+    const started = await agent
+      .post('/api/diff-jobs')
+      .send({
+        sessionId: intake.body.sessionId,
+        leftRevisionId: intake.body.leftRevisionId,
+        rightRevisionId: intake.body.rightRevisionId
+      })
+      .expect(201);
+
+    const exported = await agent
+      .get(`/api/exports/excel/${started.body.jobId}`)
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(200);
+
+    const templateWorkbook = XLSX.read(templateV2, {
+      type: 'buffer',
+      cellStyles: true,
+      bookFiles: true,
+      cellNF: true,
+      cellText: true
+    });
+    const exportedWorkbook = XLSX.read(exported.body, {
+      type: 'buffer',
+      cellStyles: true,
+      bookFiles: true,
+      cellNF: true,
+      cellText: true
+    });
+
+    expect(exportedWorkbook.SheetNames).toEqual(
+      expect.arrayContaining(templateWorkbook.SheetNames)
+    );
+    expect(exportedWorkbook.SheetNames).toContain('Comparison Metadata');
+
+    const templateSheet = templateWorkbook.Sheets[templateWorkbook.SheetNames[0]];
+    const resultSheet = exportedWorkbook.Sheets[templateWorkbook.SheetNames[0]];
+    expect(resultSheet['!cols']?.[0]?.wpx).toBe(templateSheet['!cols']?.[0]?.wpx);
+    expect(resultSheet['!cols']?.[1]?.wpx).toBe(templateSheet['!cols']?.[1]?.wpx);
+    expect((resultSheet['A2']?.v as string | number) || '').toBe((templateSheet['A2']?.v as string | number) || '');
+    expect((resultSheet['C2']?.v as string) || '').toBe((templateSheet['C2']?.v as string) || '');
+    expect((resultSheet['S1']?.v as string) || '').toBe('Change Type');
+    expect((resultSheet['T1']?.v as string) || '').toBe('Changed Fields');
+    expect((resultSheet['U1']?.v as string) || '').toBe('Classification Reason');
+    const metadataSheet = exportedWorkbook.Sheets['Comparison Metadata'];
+    expect(metadataSheet['!cols']?.[0]?.hidden).toBe(true);
+
+    const exportedTableXml = String(
+      (exportedWorkbook as XLSX.WorkBook & { files?: Record<string, { content: string | Buffer }> }).files?.['xl/tables/table1.xml']
+        ?.content || ''
+    );
+    expect(exportedTableXml).toContain('<table');
+    expect(exportedTableXml).toContain('ref="A1:U');
+  });
+
+  it('excel export preserves drawing and media parts for image-based uploaded xlsx', async () => {
+    const templateV1 = readFileSync(
+      resolve(process.cwd(), '..', '..', 'docs', 'BOM Examples', 'Example 6 ver 1 MEVS.xlsx')
+    );
+    const templateV2 = readFileSync(
+      resolve(process.cwd(), '..', '..', 'docs', 'BOM Examples', 'Example 6 ver 2 MEVS.xlsx')
+    );
+
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'export.excel.media@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const intake = await agent
+      .post('/api/uploads/intake')
+      .attach('fileA', templateV1, {
+        filename: 'example6-ver1.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      .attach('fileB', templateV2, {
+        filename: 'example6-ver2.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      .expect(202);
+
+    const started = await agent
+      .post('/api/diff-jobs')
+      .send({
+        sessionId: intake.body.sessionId,
+        leftRevisionId: intake.body.leftRevisionId,
+        rightRevisionId: intake.body.rightRevisionId
+      })
+      .expect(201);
+
+    const exported = await agent
+      .get(`/api/exports/excel/${started.body.jobId}`)
+      .buffer(true)
+      .parse(binaryParser)
+      .expect(200);
+
+    const templateZip = unzipSync(new Uint8Array(templateV2));
+    const exportedZip = unzipSync(new Uint8Array(exported.body));
+    expect(exportedZip['xl/drawings/drawing1.xml']).toBeDefined();
+    expect(exportedZip['xl/drawings/_rels/drawing1.xml.rels']).toBeDefined();
+    expect(exportedZip['xl/media/image1.png']).toBeDefined();
+    expect(strFromU8(exportedZip['xl/worksheets/_rels/sheet1.xml.rels'])).toContain('relationships/drawing');
+    const exportedSheetXml = strFromU8(exportedZip['xl/worksheets/sheet1.xml']);
+    expect(exportedSheetXml).toContain('<drawing r:id=');
+    expect(exportedSheetXml).not.toMatch(/<col\b[^>]*\bmin="[^"]*"[^>]*\bmin="[^"]*"/);
+    expect(exportedSheetXml).not.toMatch(/<col\b[^>]*\bmax="[^"]*"[^>]*\bmax="[^"]*"/);
+
+    const templateHeaderRow = strFromU8(templateZip['xl/worksheets/sheet1.xml']).match(/<row r="1"[\s\S]*?<\/row>/)?.[0] || '';
+    const exportedHeaderRow = exportedSheetXml.match(/<row r="1"[\s\S]*?<\/row>/)?.[0] || '';
+    expect(exportedHeaderRow).toContain('<c r="A1" s="1"');
+    expect(exportedHeaderRow).toContain('<c r="D1" s="15"');
+    expect(exportedHeaderRow).toContain('<c r="AF1"');
+    expect(templateHeaderRow).toContain('<c r="A1" s="1"');
   });
 
   it('excel export denies same-tenant non-owner access', async () => {

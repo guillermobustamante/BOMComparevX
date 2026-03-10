@@ -1001,6 +1001,52 @@ Close the workflow-integrity gaps found during the Sprint 12 focused QA pass so 
 
 ---
 
+## Sprint S13 - Template-Preserving Excel Export
+
+### Sprint Metadata
+- Sprint: `S13`
+- Stage: `Template-Preserving Excel Export`
+- Dates: `TBD`
+- Owner: `Product + Engineering`
+- Status: `Completed`
+
+### Sprint Goal
+Implement Excel export so the downloaded workbook preserves the latest uploaded workbook presentation while replacing the BOM row region with current comparison data.
+
+### Scope (Committed)
+| ID | Work Item | Traceability | Estimate | Owner | Priority | Status |
+|---|---|---|---:|---|---|---|
+| S13-01 | Persist workbook template context for export | `docs/ISSUE_TRACKER.md` `ISSUE-001` | 3 | BE | P0 | `Completed` |
+| S13-02 | Replace generated-sheet Excel export with template-preserving workbook mutation | `docs/ISSUE_TRACKER.md` `ISSUE-001` | 5 | BE | P0 | `Completed` |
+| S13-03 | Preserve and resize the BOM table while appending inline metadata and separate metadata sheet | `docs/ISSUE_TRACKER.md` `ISSUE-001` | 5 | BE | P0 | `Completed` |
+| S13-04 | Add automated tests for workbook preservation behavior before release | `docs/ISSUE_TRACKER.md` `ISSUE-001` | 3 | BE/QA | P0 | `Completed` |
+
+### Locked Decisions
+- Use the latest uploaded workbook as the export template baseline.
+- Preserve all workbook sheets/tabs.
+- Preserve and resize BOM tables.
+- Preserve drawing/media-backed image columns.
+- Add metadata both inline and on a separate sheet.
+- Preserve workbook presentation artifacts where library support permits.
+- Patch OOXML parts directly for uploaded `.xlsx` exports instead of rebuilding the workbook through `xlsx.write(...)`.
+
+### QA Plan
+- Validate preserved sheet names.
+- Validate preserved column widths on the main BOM sheet.
+- Validate table XML presence and resized row ref.
+- Validate drawing/media preservation on image-based workbooks.
+- Validate inline metadata columns and separate metadata sheet.
+- Run backend automated tests before release.
+
+### Execution record
+- Detailed sprint record:
+  - `docs/SPRINT_S13_TEMPLATE_PRESERVING_EXCEL_EXPORT.md`
+- Verification:
+  - `npm --prefix apps/backend run typecheck`
+  - `npm --prefix apps/backend run test:e2e`
+
+---
+
 ## Ticket-Ready Story Template
 
 Use this template for every backlog story before sprint start.
