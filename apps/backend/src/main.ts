@@ -8,6 +8,7 @@ import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
 import * as passport from 'passport';
 import { AppModule } from './app.module';
+import { SqlSessionStore } from './auth/sql-session.store';
 import { AuthConfigService } from './config/auth-config.service';
 import { DatabaseService } from './database/database.service';
 
@@ -59,10 +60,13 @@ async function bootstrap() {
   await preloadOAuthSecretsFromKeyVault();
 
   const app = await NestFactory.create(AppModule);
+  const databaseService = app.get(DatabaseService);
+  await databaseService.connectIfEnabled();
 
   app.use(cookieParser());
   app.use(
     session({
+      ...(databaseService.enabled ? { store: new SqlSessionStore(databaseService) } : {}),
       secret: process.env.SESSION_SECRET || 'dev-session-secret',
       resave: false,
       saveUninitialized: false,
@@ -78,8 +82,6 @@ async function bootstrap() {
 
   const authConfig = app.get(AuthConfigService);
   await authConfig.initialize();
-  const databaseService = app.get(DatabaseService);
-  await databaseService.connectIfEnabled();
 
   app.setGlobalPrefix('api');
   const port = Number(process.env.PORT || 4000);

@@ -29,6 +29,20 @@ model JobRun {
   @@map("jobRuns")
 }
 
+model AppSession {
+  sessionId     String   @id
+  tenantId      String?
+  userEmail     String?
+  dataJson      String   @db.NVarChar(Max)
+  expiresAtUtc  DateTime?
+  createdAtUtc  DateTime
+  updatedAtUtc  DateTime
+
+  @@index([tenantId, userEmail, updatedAtUtc], map: "ix_appSessions_tenant_user_updatedAt")
+  @@index([expiresAtUtc], map: "ix_appSessions_expiresAtUtc")
+  @@map("appSessions")
+}
+
 model HistoryEntry {
   historyId       String   @id
   jobId           String   @unique
@@ -105,6 +119,45 @@ model BomColumnMapping {
 
   @@index([tenantId, bomRevisionId, createdAtUtc], map: "ix_bomColumnMappings_tenant_revision_createdAt")
   @@map("bomColumnMappings")
+}
+
+model UploadedRevision {
+  revisionId         String   @id
+  tenantId           String
+  sessionId          String
+  jobId              String
+  slot               String
+  fileName           String
+  fileSize           Int
+  createdAtUtc       DateTime
+  parserMode         String
+  sheetName          String
+  headersJson        String   @db.NVarChar(Max)
+  headerFieldsJson   String   @db.NVarChar(Max)
+  headerRowIndex     Int
+  dataStartRowIndex  Int
+  dataEndRowIndex    Int
+  workbookBuffer     Bytes?
+  rowsJson           String   @db.NVarChar(Max)
+
+  @@unique([tenantId, jobId, slot], map: "uq_uploadedRevisions_tenant_job_slot")
+  @@index([tenantId, sessionId, createdAtUtc], map: "ix_uploadedRevisions_tenant_session_createdAt")
+  @@index([tenantId, revisionId, createdAtUtc], map: "ix_uploadedRevisions_tenant_revision_createdAt")
+  @@map("uploadedRevisions")
+}
+
+model UploadedRevisionPair {
+  pairId           String   @id
+  tenantId         String
+  sessionId        String
+  jobId            String   @unique
+  leftRevisionId   String
+  rightRevisionId  String
+  createdAtUtc     DateTime
+
+  @@index([tenantId, sessionId, createdAtUtc], map: "ix_uploadedRevisionPairs_tenant_session_createdAt")
+  @@index([tenantId, jobId], map: "ix_uploadedRevisionPairs_tenant_job")
+  @@map("uploadedRevisionPairs")
 }
 
 model ColumnDetectionAudit {
@@ -192,6 +245,21 @@ model AdminRoleClaim {
   @@unique([tenantId, userEmail, role], map: "uq_adminRoleClaims_tenant_user_role")
   @@index([tenantId, role, isActive], map: "ix_adminRoleClaims_tenant_role_active")
   @@map("adminRoleClaims")
+}
+
+model TenantAliasDecision {
+  decisionId              String   @id
+  tenantId                String
+  normalizedSourceColumn  String
+  canonicalField          String
+  isEnabled               Boolean
+  createdAtUtc            DateTime
+  updatedAtUtc            DateTime
+  updatedBy               String?
+
+  @@unique([tenantId, normalizedSourceColumn, canonicalField], map: "uq_tenantAliasDecisions_tenant_header_field")
+  @@index([tenantId, updatedAtUtc], map: "ix_tenantAliasDecisions_tenant_updatedAt")
+  @@map("tenantAliasDecisions")
 }
 
 model UploadPolicyOverride {

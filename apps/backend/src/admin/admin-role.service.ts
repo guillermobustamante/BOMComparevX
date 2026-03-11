@@ -41,6 +41,42 @@ export class AdminRoleService {
     return mapped.isActive;
   }
 
+  async countActiveAdmins(tenantId: string): Promise<number> {
+    if (!this.databaseService.enabled) {
+      return [...this.claimsByKey.values()].filter((claim) => claim.tenantId === tenantId && claim.isActive).length;
+    }
+
+    return this.databaseService.client.adminRoleClaim.count({
+      where: {
+        tenantId,
+        role: 'admin',
+        isActive: true
+      }
+    });
+  }
+
+  async listActiveAdmins(tenantId: string): Promise<RoleClaim[]> {
+    if (!this.databaseService.enabled) {
+      return [...this.claimsByKey.values()]
+        .filter((claim) => claim.tenantId === tenantId && claim.isActive)
+        .sort((a, b) => a.userEmail.localeCompare(b.userEmail));
+    }
+
+    const rows = await this.databaseService.client.adminRoleClaim.findMany({
+      where: {
+        tenantId,
+        role: 'admin',
+        isActive: true
+      },
+      orderBy: { userEmail: 'asc' }
+    });
+    const claims = rows.map((row) => this.fromRow(row));
+    for (const claim of claims) {
+      this.claimsByKey.set(this.claimKey(claim.tenantId, claim.userEmail, claim.role), claim);
+    }
+    return claims;
+  }
+
   async grantAdminRole(input: {
     tenantId: string;
     userEmail: string;
@@ -84,6 +120,52 @@ export class AdminRoleService {
           createdAtUtc: new Date(now),
           updatedAtUtc: new Date(now),
           createdBy: next.createdBy
+        }
+      });
+    }
+  }
+
+  async revokeAdminRole(input: {
+    tenantId: string;
+    userEmail: string;
+    actorEmail?: string;
+  }): Promise<void> {
+    const normalized = this.normalizeEmail(input.userEmail);
+    const now = new Date().toISOString();
+    const key = this.claimKey(input.tenantId, normalized, 'admin');
+    const existing = this.claimsByKey.get(key);
+    if (existing) {
+      this.claimsByKey.set(key, {
+        ...existing,
+        isActive: false,
+        updatedAtUtc: now,
+        createdBy: input.actorEmail ? this.normalizeEmail(input.actorEmail) : existing.createdBy
+      });
+    }
+
+    if (this.databaseService.enabled) {
+      await this.databaseService.client.adminRoleClaim.upsert({
+        where: {
+          tenantId_userEmail_role: {
+            tenantId: input.tenantId,
+            userEmail: normalized,
+            role: 'admin'
+          }
+        },
+        update: {
+          isActive: false,
+          updatedAtUtc: new Date(now),
+          createdBy: input.actorEmail ? this.normalizeEmail(input.actorEmail) : null
+        },
+        create: {
+          claimId: randomUUID(),
+          tenantId: input.tenantId,
+          userEmail: normalized,
+          role: 'admin',
+          isActive: false,
+          createdAtUtc: new Date(now),
+          updatedAtUtc: new Date(now),
+          createdBy: input.actorEmail ? this.normalizeEmail(input.actorEmail) : null
         }
       });
     }

@@ -110,6 +110,58 @@ export class MappingPersistenceService {
     return snapshot;
   }
 
+  async listSnapshots(input: {
+    tenantId: string;
+    limit?: number;
+  }): Promise<
+    Array<{
+      mappingId: string;
+      revisionId: string;
+      confirmedAtUtc: string;
+      createdBy: string;
+      sourceColumnCount: number;
+      mappedColumnCount: number;
+      averageConfidence: number | null;
+    }>
+  > {
+    const limit = Math.max(1, Math.min(100, Math.trunc(input.limit || 25)));
+
+    if (this.databaseService.enabled) {
+      const rows = await this.databaseService.client.bomColumnMapping.findMany({
+        where: { tenantId: input.tenantId },
+        orderBy: { createdAtUtc: 'desc' },
+        take: limit
+      });
+      return rows.map((row) => {
+        const originalColumns = this.parseJson<string[]>(row.originalColumnsJson, []);
+        const mappings = this.parseJson<MappingSnapshotContract['mappings']>(row.canonicalMappingJson, []);
+        return {
+          mappingId: row.mappingId,
+          revisionId: row.bomRevisionId,
+          confirmedAtUtc: row.createdAtUtc.toISOString(),
+          createdBy: row.createdBy || 'unknown',
+          sourceColumnCount: originalColumns.length,
+          mappedColumnCount: mappings.filter((mapping) => Boolean(mapping.canonicalField)).length,
+          averageConfidence: row.detectionConfidence ?? this.averageConfidence(mappings)
+        };
+      });
+    }
+
+    return [...this.inMemorySnapshots.values()]
+      .filter((snapshot) => snapshot.tenantId === input.tenantId)
+      .sort((a, b) => b.confirmedAtUtc.localeCompare(a.confirmedAtUtc))
+      .slice(0, limit)
+      .map((snapshot) => ({
+        mappingId: snapshot.mappingId,
+        revisionId: snapshot.revisionId,
+        confirmedAtUtc: snapshot.confirmedAtUtc,
+        createdBy: snapshot.createdBy,
+        sourceColumnCount: snapshot.originalColumns.length,
+        mappedColumnCount: snapshot.mappings.filter((mapping) => Boolean(mapping.canonicalField)).length,
+        averageConfidence: this.averageConfidence(snapshot.mappings)
+      }));
+  }
+
   private async findSnapshot(tenantId: string, revisionId: string): Promise<MappingSnapshotContract | null> {
     const key = this.snapshotKey(tenantId, revisionId);
     const inMemory = this.inMemorySnapshots.get(key);

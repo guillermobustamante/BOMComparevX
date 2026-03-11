@@ -101,25 +101,25 @@ export class DiffJobService {
       input.leftRevisionId && input.rightRevisionId
         ? { leftRevisionId: input.leftRevisionId, rightRevisionId: input.rightRevisionId }
         : input.sessionId
-          ? this.uploadRevisionService.findLatestPairBySession(input.tenantId, input.sessionId)
+          ? await this.uploadRevisionService.findLatestPairBySession(input.tenantId, input.sessionId)
           : null;
 
     const revisionRows =
       revisionPair && revisionPair.leftRevisionId && revisionPair.rightRevisionId
         ? {
             sourceRows:
-              this.uploadRevisionService.getRevisionRows(input.tenantId, revisionPair.leftRevisionId) || [],
+              (await this.uploadRevisionService.getRevisionRows(input.tenantId, revisionPair.leftRevisionId)) || [],
             targetRows:
-              this.uploadRevisionService.getRevisionRows(input.tenantId, revisionPair.rightRevisionId) || []
+              (await this.uploadRevisionService.getRevisionRows(input.tenantId, revisionPair.rightRevisionId)) || []
           }
         : null;
     const revisionTemplates =
       revisionPair && revisionPair.leftRevisionId && revisionPair.rightRevisionId
         ? {
             sourceTemplate:
-              this.uploadRevisionService.getRevisionTemplate(input.tenantId, revisionPair.leftRevisionId) || null,
+              (await this.uploadRevisionService.getRevisionTemplate(input.tenantId, revisionPair.leftRevisionId)) || null,
             targetTemplate:
-              this.uploadRevisionService.getRevisionTemplate(input.tenantId, revisionPair.rightRevisionId) || null
+              (await this.uploadRevisionService.getRevisionTemplate(input.tenantId, revisionPair.rightRevisionId)) || null
           }
         : null;
 

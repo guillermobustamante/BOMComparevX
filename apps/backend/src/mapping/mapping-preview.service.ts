@@ -100,6 +100,46 @@ export class MappingPreviewService {
 
   private defaultSeed(revisionId: string, tenantId: string): RevisionSeed {
     const key = `${tenantId}:${revisionId}`.toLowerCase();
+    if (key.includes('manufacturing')) {
+      return {
+        headers: ['Plant', 'Work Center', 'UOM', 'Procurement Type', 'Lead Time', 'Material Group'],
+        sampleRows: [
+          { Plant: 'PL01', 'Work Center': 'WC-10', UOM: 'EA', 'Procurement Type': 'E', 'Lead Time': 7, 'Material Group': 'FAST' }
+        ]
+      };
+    }
+    if (key.includes('automotive')) {
+      return {
+        headers: ['Program', 'Vehicle Line', 'Option Code', 'Engineering Level', 'PPAP Status'],
+        sampleRows: [
+          { Program: 'M1', 'Vehicle Line': 'SUV', 'Option Code': 'A12', 'Engineering Level': 'EL2', 'PPAP Status': 'Approved' }
+        ]
+      };
+    }
+    if (key.includes('aerospace')) {
+      return {
+        headers: ['Drawing Number', 'Dash Number', 'Serial Range', 'Airworthiness Class'],
+        sampleRows: [
+          { 'Drawing Number': 'DWG-100', 'Dash Number': '001', 'Serial Range': 'SN100-SN200', 'Airworthiness Class': 'Primary' }
+        ]
+      };
+    }
+    if (key.includes('electronics')) {
+      return {
+        headers: ['RefDes', 'Footprint', 'Manufacturer Part Number', 'RoHS', 'AVL'],
+        sampleRows: [
+          { RefDes: 'R12', Footprint: '0402', 'Manufacturer Part Number': 'RC0402-10K', RoHS: 'Compliant', AVL: 'AVL-1' }
+        ]
+      };
+    }
+    if (key.includes('construction')) {
+      return {
+        headers: ['Asset ID', 'Discipline', 'Location', 'IFC Class', 'Status'],
+        sampleRows: [
+          { 'Asset ID': 'A-100', Discipline: 'MEP', Location: 'Level 2', 'IFC Class': 'IfcFlowTerminal', Status: 'For Review' }
+        ]
+      };
+    }
     if (key.includes('tenant-learning')) {
       return {
         headers: ['MFG Plant Code', 'Part Number', 'Description', 'Quantity'],

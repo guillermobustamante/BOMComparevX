@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { DatabaseService } from '../database/database.service';
 
 export interface LearnedMappingAlias {
@@ -7,16 +8,36 @@ export interface LearnedMappingAlias {
   confirmations: number;
 }
 
+export interface ReviewedMappingAlias extends LearnedMappingAlias {
+  isEnabled: boolean;
+  confidenceBand: 'emerging' | 'trusted' | 'established';
+}
+
 @Injectable()
 export class MappingAliasLearningService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   private readonly inMemory = new Map<string, Map<string, Map<string, number>>>();
   private readonly loadedTenants = new Set<string>();
+  private readonly decisionsByTenant = new Map<string, Map<string, boolean>>();
 
   async getTenantAliases(tenantId: string): Promise<LearnedMappingAlias[]> {
     await this.ensureTenantLoaded(tenantId);
-    return this.toAliases(this.inMemory.get(tenantId));
+    const decisions = this.decisionsByTenant.get(tenantId) || new Map<string, boolean>();
+    return this.toAliases(this.inMemory.get(tenantId)).filter(
+      (alias) => decisions.get(this.decisionKey(alias.normalizedSourceColumn, alias.canonicalField)) !== false
+    );
+  }
+
+  async getTenantAliasesForReview(tenantId: string): Promise<ReviewedMappingAlias[]> {
+    await this.ensureTenantLoaded(tenantId);
+    const decisions = this.decisionsByTenant.get(tenantId) || new Map<string, boolean>();
+    return this.toAliases(this.inMemory.get(tenantId)).map((alias) => ({
+      ...alias,
+      isEnabled: decisions.get(this.decisionKey(alias.normalizedSourceColumn, alias.canonicalField)) !== false,
+      confidenceBand:
+        alias.confirmations >= 10 ? 'established' : alias.confirmations >= 3 ? 'trusted' : 'emerging'
+    }));
   }
 
   async recordConfirmation(
@@ -34,6 +55,48 @@ export class MappingAliasLearningService {
     }
   }
 
+  async setAliasEnabled(input: {
+    tenantId: string;
+    normalizedSourceColumn: string;
+    canonicalField: string;
+    isEnabled: boolean;
+    actorEmail?: string;
+  }): Promise<void> {
+    await this.ensureTenantLoaded(input.tenantId);
+    const normalizedSourceColumn = this.normalizeHeader(input.normalizedSourceColumn);
+    const canonicalField = input.canonicalField.trim();
+    const decisions = this.ensureDecisionBucket(input.tenantId);
+    decisions.set(this.decisionKey(normalizedSourceColumn, canonicalField), input.isEnabled);
+
+    if (!this.databaseService.enabled) return;
+
+    const now = new Date();
+    await this.databaseService.client.tenantAliasDecision.upsert({
+      where: {
+        tenantId_normalizedSourceColumn_canonicalField: {
+          tenantId: input.tenantId,
+          normalizedSourceColumn,
+          canonicalField
+        }
+      },
+      update: {
+        isEnabled: input.isEnabled,
+        updatedAtUtc: now,
+        updatedBy: input.actorEmail ? input.actorEmail.trim().toLowerCase() : null
+      },
+      create: {
+        decisionId: randomUUID(),
+        tenantId: input.tenantId,
+        normalizedSourceColumn,
+        canonicalField,
+        isEnabled: input.isEnabled,
+        createdAtUtc: now,
+        updatedAtUtc: now,
+        updatedBy: input.actorEmail ? input.actorEmail.trim().toLowerCase() : null
+      }
+    });
+  }
+
   private async ensureTenantLoaded(tenantId: string): Promise<void> {
     if (this.loadedTenants.has(tenantId)) return;
     this.loadedTenants.add(tenantId);
@@ -47,6 +110,9 @@ export class MappingAliasLearningService {
       where: { tenantId },
       orderBy: { createdAtUtc: 'asc' }
     });
+    const decisions = await this.databaseService.client.tenantAliasDecision.findMany({
+      where: { tenantId }
+    });
 
     const bucket = this.ensureTenantBucket(tenantId);
     for (const row of rows) {
@@ -59,6 +125,14 @@ export class MappingAliasLearningService {
         bucket.set(normalized, perHeader);
       }
     }
+
+    const decisionBucket = this.ensureDecisionBucket(tenantId);
+    for (const decision of decisions) {
+      decisionBucket.set(
+        this.decisionKey(decision.normalizedSourceColumn, decision.canonicalField),
+        decision.isEnabled
+      );
+    }
   }
 
   private ensureTenantBucket(tenantId: string): Map<string, Map<string, number>> {
@@ -66,6 +140,14 @@ export class MappingAliasLearningService {
     if (existing) return existing;
     const next = new Map<string, Map<string, number>>();
     this.inMemory.set(tenantId, next);
+    return next;
+  }
+
+  private ensureDecisionBucket(tenantId: string): Map<string, boolean> {
+    const existing = this.decisionsByTenant.get(tenantId);
+    if (existing) return existing;
+    const next = new Map<string, boolean>();
+    this.decisionsByTenant.set(tenantId, next);
     return next;
   }
 
@@ -110,5 +192,9 @@ export class MappingAliasLearningService {
       .toLowerCase()
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  private decisionKey(normalizedSourceColumn: string, canonicalField: string): string {
+    return `${normalizedSourceColumn}::${canonicalField}`;
   }
 }

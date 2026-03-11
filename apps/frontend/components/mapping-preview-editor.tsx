@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ConfirmIcon } from '@/components/mission-icons';
 
 type MappingReviewState = 'AUTO' | 'REVIEW_REQUIRED' | 'LOW_CONFIDENCE_WARNING';
@@ -99,6 +100,8 @@ const editableCanonicalOptions = [
 ];
 
 export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
+  const searchParams = useSearchParams();
+  const profile = searchParams.get('profile') || '';
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<PreviewPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +109,7 @@ export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
   const [confirmSuccess, setConfirmSuccess] = useState<string | null>(null);
   const [ackWarnings, setAckWarnings] = useState(false);
   const [editedMap, setEditedMap] = useState<Record<string, string>>({});
+  const [selectedColumn, setSelectedColumn] = useState<PreviewColumn | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -113,7 +117,10 @@ export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/mappings/preview/${encodeURIComponent(revisionId)}`, {
+        const previewUrl = `/api/mappings/preview/${encodeURIComponent(revisionId)}${
+          profile ? `?profile=${encodeURIComponent(profile)}` : ''
+        }`;
+        const response = await fetch(previewUrl, {
           method: 'GET',
           cache: 'no-store'
         });
@@ -129,6 +136,7 @@ export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
         if (!mounted) return;
         const parsed = payload as PreviewPayload;
         setPreview(parsed);
+        setSelectedColumn(parsed.columns[0] || null);
         setEditedMap(
           Object.fromEntries(
             parsed.columns.map((column) => [column.sourceColumn, column.canonicalField || ''])
@@ -144,7 +152,7 @@ export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
     return () => {
       mounted = false;
     };
-  }, [revisionId]);
+  }, [revisionId, profile]);
 
   const lowConfidenceRows = useMemo(() => {
     if (!preview) return [];
@@ -246,6 +254,7 @@ export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
               <th>Strategy</th>
               <th>Confidence</th>
               <th>Review State</th>
+              <th>Explain</th>
             </tr>
           </thead>
           <tbody>
@@ -297,11 +306,83 @@ export function MappingPreviewEditor({ revisionId }: { revisionId: string }) {
                     {column.reviewState}
                   </span>
                 </td>
+                <td>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => setSelectedColumn(column)}
+                    data-testid={`mapping-explain-${testIdSafe(column.sourceColumn)}`}
+                  >
+                    Explain
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {selectedColumn ? (
+        <div className="panel" data-testid="mapping-explainability-panel">
+          <strong>Explainability Diagnostics</strong>
+          <p className="p">
+            Review how the system scored <code>{selectedColumn.sourceColumn}</code> before you accept or override it.
+          </p>
+          <div className="mappingTableWrap">
+            <table className="mappingTable">
+              <tbody>
+                <tr>
+                  <th>Suggested field</th>
+                  <td>{selectedColumn.canonicalField || 'unmapped'}</td>
+                </tr>
+                <tr>
+                  <th>Strategy</th>
+                  <td>{selectedColumn.strategy}</td>
+                </tr>
+                <tr>
+                  <th>Confidence</th>
+                  <td>{selectedColumn.confidence.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <th>Review state</th>
+                  <td>{selectedColumn.reviewState}</td>
+                </tr>
+                <tr>
+                  <th>Field class</th>
+                  <td>{selectedColumn.fieldClass || '-'}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="screenStack">
+            <div>
+              <strong>Positive evidence</strong>
+              {selectedColumn.evidence?.reasons?.length ? (
+                <ul>
+                  {selectedColumn.evidence.reasons.map((reason) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="missionSubtle">No positive evidence captured.</p>
+              )}
+            </div>
+            <div>
+              <strong>Suppression / negative signals</strong>
+              {selectedColumn.evidence?.negativeSignals?.length ? (
+                <ul>
+                  {selectedColumn.evidence.negativeSignals.map((signal) => (
+                    <li key={signal}>{signal}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="missionSubtle">No suppressing signals captured.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mappingSampleRows" data-testid="mapping-sample-rows">
         <strong>Sample Rows</strong>

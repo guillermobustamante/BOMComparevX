@@ -8,7 +8,7 @@ type ThemeMode = 'light' | 'dark';
 
 const navItems = [
   { href: '/upload', label: 'Compare BOMs', shortLabel: 'Compare', subtitle: 'Revision intake', icon: <CompareIcon /> },
-  { href: '/mappings/rev-s3-preview', label: 'Mapping Check', shortLabel: 'Mapping', subtitle: 'Confidence review', icon: <MappingIcon /> },
+  { href: '/mappings', label: 'Mapping Check', shortLabel: 'Mapping', subtitle: 'Governance and review', icon: <MappingIcon /> },
   { href: '/results', label: 'Results', shortLabel: 'Results', subtitle: 'Diff workspace', icon: <ResultsIcon /> },
   { href: '/history', label: 'History', shortLabel: 'History', subtitle: 'Session archive', icon: <HistoryIcon /> },
   { href: '/notifications', label: 'Notifications', shortLabel: 'Notices', subtitle: 'Event log', icon: <NotificationsIcon /> },

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 import * as XLSX from 'xlsx';
+import { DatabaseService } from '../database/database.service';
 import { DiffComparableRow } from '../diff/diff-contract';
 
 interface StoredRevision {
@@ -92,19 +93,21 @@ const MAX_PARSED_ROWS = 100_000;
 
 @Injectable()
 export class UploadRevisionService {
+  constructor(private readonly databaseService: DatabaseService) {}
+
   private readonly logger = new Logger(UploadRevisionService.name);
   private readonly revisionsById = new Map<string, StoredRevision>();
   private readonly pairsByJobId = new Map<string, StoredRevisionPair>();
   private readonly latestPairBySession = new Map<string, StoredRevisionPair>();
 
-  storeRevisionPair(input: {
+  async storeRevisionPair(input: {
     tenantId: string;
     sessionId: string;
     jobId: string;
     fileA: Express.Multer.File;
     fileB: Express.Multer.File;
-  }): StoredRevisionPair {
-    const existing = this.pairsByJobId.get(input.jobId);
+  }): Promise<StoredRevisionPair> {
+    const existing = await this.findPairByJobId(input.tenantId, input.jobId);
     if (existing) return existing;
 
     const leftRevisionId = randomUUID();
@@ -134,8 +137,8 @@ export class UploadRevisionService {
       ...this.parseRowsFromFile(input.fileB, 'B')
     };
 
-    this.revisionsById.set(leftRevisionId, left);
-    this.revisionsById.set(rightRevisionId, right);
+    this.rememberRevision(left);
+    this.rememberRevision(right);
 
     const pair: StoredRevisionPair = {
       tenantId: input.tenantId,
@@ -144,18 +147,20 @@ export class UploadRevisionService {
       leftRevisionId,
       rightRevisionId
     };
-    this.pairsByJobId.set(input.jobId, pair);
-    this.latestPairBySession.set(this.sessionKey(input.tenantId, input.sessionId), pair);
+    this.rememberPair(pair);
+    await this.persistRevision(left);
+    await this.persistRevision(right);
+    await this.persistPair(pair);
     return pair;
   }
 
-  storeChainedRevisionPair(input: {
+  async storeChainedRevisionPair(input: {
     tenantId: string;
     sessionId: string;
     jobId: string;
     fileB: Express.Multer.File;
-  }): StoredRevisionPair {
-    const latestPair = this.findLatestPairBySession(input.tenantId, input.sessionId);
+  }): Promise<StoredRevisionPair> {
+    const latestPair = await this.findLatestPairBySession(input.tenantId, input.sessionId);
     if (!latestPair) {
       throw new BadRequestException({
         code: 'UPLOAD_SESSION_NOT_FOUND',
@@ -163,7 +168,7 @@ export class UploadRevisionService {
       });
     }
 
-    const left = this.revisionsById.get(latestPair.rightRevisionId);
+    const left = await this.findRevision(input.tenantId, latestPair.rightRevisionId);
     if (!left || left.tenantId !== input.tenantId) {
       throw new BadRequestException({
         code: 'UPLOAD_SESSION_NOT_FOUND',
@@ -185,7 +190,7 @@ export class UploadRevisionService {
       ...this.parseRowsFromFile(input.fileB, 'B')
     };
 
-    this.revisionsById.set(rightRevisionId, right);
+    this.rememberRevision(right);
 
     const pair: StoredRevisionPair = {
       tenantId: input.tenantId,
@@ -194,35 +199,51 @@ export class UploadRevisionService {
       leftRevisionId: left.revisionId,
       rightRevisionId
     };
-    this.pairsByJobId.set(input.jobId, pair);
-    this.latestPairBySession.set(this.sessionKey(input.tenantId, input.sessionId), pair);
+    this.rememberPair(pair);
+    await this.persistRevision(right);
+    await this.persistPair(pair);
     return pair;
   }
 
-  findPairByJobId(tenantId: string, jobId: string): StoredRevisionPair | null {
+  async findPairByJobId(tenantId: string, jobId: string): Promise<StoredRevisionPair | null> {
     const pair = this.pairsByJobId.get(jobId);
-    if (!pair) return null;
-    if (pair.tenantId !== tenantId) return null;
-    return pair;
+    if (pair && pair.tenantId === tenantId) return pair;
+
+    if (!this.databaseService.enabled) return null;
+    const row = await this.databaseService.client.uploadedRevisionPair.findFirst({
+      where: { tenantId, jobId }
+    });
+    if (!row) return null;
+    const mapped = this.mapPairRow(row);
+    this.rememberPair(mapped);
+    return mapped;
   }
 
-  findLatestPairBySession(tenantId: string, sessionId: string): StoredRevisionPair | null {
+  async findLatestPairBySession(tenantId: string, sessionId: string): Promise<StoredRevisionPair | null> {
     const pair = this.latestPairBySession.get(this.sessionKey(tenantId, sessionId));
-    if (!pair) return null;
-    if (pair.tenantId !== tenantId) return null;
-    return pair;
+    if (pair && pair.tenantId === tenantId) return pair;
+
+    if (!this.databaseService.enabled) return null;
+    const row = await this.databaseService.client.uploadedRevisionPair.findFirst({
+      where: { tenantId, sessionId },
+      orderBy: { createdAtUtc: 'desc' }
+    });
+    if (!row) return null;
+    const mapped = this.mapPairRow(row);
+    this.rememberPair(mapped);
+    return mapped;
   }
 
-  getRevisionRows(tenantId: string, revisionId: string): DiffComparableRow[] | null {
-    const revision = this.revisionsById.get(revisionId);
+  async getRevisionRows(tenantId: string, revisionId: string): Promise<DiffComparableRow[] | null> {
+    const revision = await this.findRevision(tenantId, revisionId);
     if (!revision || revision.tenantId !== tenantId) return null;
     return revision.rows;
   }
 
-  getRevisionTemplate(
+  async getRevisionTemplate(
     tenantId: string,
     revisionId: string
-  ): {
+  ): Promise<{
     fileName: string;
     parserMode: ParserMode;
     sheetName: string;
@@ -232,8 +253,8 @@ export class UploadRevisionService {
     dataStartRowIndex: number;
     dataEndRowIndex: number;
     workbookBuffer: Buffer | null;
-  } | null {
-    const revision = this.revisionsById.get(revisionId);
+  } | null> {
+    const revision = await this.findRevision(tenantId, revisionId);
     if (!revision || revision.tenantId !== tenantId) return null;
     return {
       fileName: revision.fileName,
@@ -248,16 +269,16 @@ export class UploadRevisionService {
     };
   }
 
-  getRevisionFileMeta(
+  async getRevisionFileMeta(
     tenantId: string,
     revisionId: string
-  ): {
+  ): Promise<{
     revisionId: string;
     fileName: string;
     fileSize: number;
     createdAtUtc: string;
-  } | null {
-    const revision = this.revisionsById.get(revisionId);
+  } | null> {
+    const revision = await this.findRevision(tenantId, revisionId);
     if (!revision || revision.tenantId !== tenantId) return null;
     return {
       revisionId: revision.revisionId,
@@ -265,6 +286,146 @@ export class UploadRevisionService {
       fileSize: revision.fileSize,
       createdAtUtc: revision.createdAtUtc
     };
+  }
+
+  private async findRevision(tenantId: string, revisionId: string): Promise<StoredRevision | null> {
+    const cached = this.revisionsById.get(revisionId);
+    if (cached && cached.tenantId === tenantId) return cached;
+
+    if (!this.databaseService.enabled) return null;
+    const row = await this.databaseService.client.uploadedRevision.findFirst({
+      where: { tenantId, revisionId }
+    });
+    if (!row) return null;
+    const mapped = this.mapRevisionRow(row);
+    this.rememberRevision(mapped);
+    return mapped;
+  }
+
+  private async persistRevision(revision: StoredRevision): Promise<void> {
+    if (!this.databaseService.enabled) return;
+    await this.databaseService.client.uploadedRevision.upsert({
+      where: { revisionId: revision.revisionId },
+      update: {
+        rowsJson: JSON.stringify(revision.rows),
+        workbookBuffer: revision.workbookBuffer ? Buffer.from(revision.workbookBuffer) : null,
+        headersJson: JSON.stringify(revision.headers),
+        headerFieldsJson: JSON.stringify(revision.headerFields)
+      },
+      create: {
+        revisionId: revision.revisionId,
+        tenantId: revision.tenantId,
+        sessionId: revision.sessionId,
+        jobId: revision.jobId,
+        slot: revision.slot,
+        fileName: revision.fileName,
+        fileSize: revision.fileSize,
+        createdAtUtc: new Date(revision.createdAtUtc),
+        parserMode: revision.parserMode,
+        sheetName: revision.sheetName,
+        headersJson: JSON.stringify(revision.headers),
+        headerFieldsJson: JSON.stringify(revision.headerFields),
+        headerRowIndex: revision.headerRowIndex,
+        dataStartRowIndex: revision.dataStartRowIndex,
+        dataEndRowIndex: revision.dataEndRowIndex,
+        workbookBuffer: revision.workbookBuffer ? Buffer.from(revision.workbookBuffer) : null,
+        rowsJson: JSON.stringify(revision.rows)
+      }
+    });
+  }
+
+  private async persistPair(pair: StoredRevisionPair): Promise<void> {
+    if (!this.databaseService.enabled) return;
+    await this.databaseService.client.uploadedRevisionPair.upsert({
+      where: { jobId: pair.jobId },
+      update: {
+        sessionId: pair.sessionId,
+        leftRevisionId: pair.leftRevisionId,
+        rightRevisionId: pair.rightRevisionId
+      },
+      create: {
+        pairId: randomUUID(),
+        tenantId: pair.tenantId,
+        sessionId: pair.sessionId,
+        jobId: pair.jobId,
+        leftRevisionId: pair.leftRevisionId,
+        rightRevisionId: pair.rightRevisionId,
+        createdAtUtc: new Date()
+      }
+    });
+  }
+
+  private rememberRevision(revision: StoredRevision): void {
+    this.revisionsById.set(revision.revisionId, revision);
+  }
+
+  private rememberPair(pair: StoredRevisionPair): void {
+    this.pairsByJobId.set(pair.jobId, pair);
+    this.latestPairBySession.set(this.sessionKey(pair.tenantId, pair.sessionId), pair);
+  }
+
+  private mapPairRow(row: {
+    tenantId: string;
+    sessionId: string;
+    jobId: string;
+    leftRevisionId: string;
+    rightRevisionId: string;
+  }): StoredRevisionPair {
+    return {
+      tenantId: row.tenantId,
+      sessionId: row.sessionId,
+      jobId: row.jobId,
+      leftRevisionId: row.leftRevisionId,
+      rightRevisionId: row.rightRevisionId
+    };
+  }
+
+  private mapRevisionRow(row: {
+    revisionId: string;
+    tenantId: string;
+    sessionId: string;
+    jobId: string;
+    slot: string;
+    fileName: string;
+    fileSize: number;
+    createdAtUtc: Date;
+    parserMode: string;
+    sheetName: string;
+    headersJson: string;
+    headerFieldsJson: string;
+    headerRowIndex: number;
+    dataStartRowIndex: number;
+    dataEndRowIndex: number;
+    workbookBuffer: Uint8Array | null;
+    rowsJson: string;
+  }): StoredRevision {
+    return {
+      revisionId: row.revisionId,
+      tenantId: row.tenantId,
+      sessionId: row.sessionId,
+      jobId: row.jobId,
+      slot: row.slot === 'fileA' ? 'fileA' : 'fileB',
+      fileName: row.fileName,
+      fileSize: row.fileSize,
+      createdAtUtc: row.createdAtUtc.toISOString(),
+      parserMode: row.parserMode === 'csv' ? 'csv' : 'xlsx',
+      sheetName: row.sheetName,
+      headers: this.parseJson<string[]>(row.headersJson, []),
+      headerFields: this.parseJson<Array<keyof DiffComparableRow | null>>(row.headerFieldsJson, []),
+      headerRowIndex: row.headerRowIndex,
+      dataStartRowIndex: row.dataStartRowIndex,
+      dataEndRowIndex: row.dataEndRowIndex,
+      workbookBuffer: row.workbookBuffer ? Buffer.from(row.workbookBuffer) : null,
+      rows: this.parseJson<DiffComparableRow[]>(row.rowsJson, [])
+    };
+  }
+
+  private parseJson<T>(value: string, fallback: T): T {
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return fallback;
+    }
   }
 
   private sessionKey(tenantId: string, sessionId: string): string {

@@ -68,7 +68,7 @@ export class UploadsController {
     const tenantId = session.user?.tenantId || 'unknown-tenant';
     const sessionId = this.readSessionId(req);
     const validationResult = sessionId
-      ? this.validateChainedFiles(tenantId, sessionId, files)
+      ? await this.validateChainedFilesAsync(tenantId, sessionId, files)
       : this.uploadValidationService.validatePair(files);
     const policy = await this.uploadPolicyService.registerAcceptedValidation(userKey, tenantId);
     this.auditService.emit({
@@ -132,13 +132,13 @@ export class UploadsController {
           existing,
           existingHistory?.historyId || null,
           true,
-          this.uploadRevisionService.findPairByJobId(tenantId, existing.jobId)
+          await this.uploadRevisionService.findPairByJobId(tenantId, existing.jobId)
         );
       }
     }
 
     const validationResult = sessionId
-      ? this.validateChainedFiles(tenantId, sessionId, files)
+      ? await this.validateChainedFilesAsync(tenantId, sessionId, files)
       : this.uploadValidationService.validatePair(files);
     const policy = await this.uploadPolicyService.registerAcceptedValidation(userKey, tenantId);
     const job = await this.uploadJobService.createAcceptedJob({
@@ -181,14 +181,14 @@ export class UploadsController {
     const fileB = files.fileB?.[0];
     const revisionPair =
       sessionId && fileB
-        ? this.uploadRevisionService.storeChainedRevisionPair({
+        ? await this.uploadRevisionService.storeChainedRevisionPair({
             tenantId,
             sessionId,
             jobId: job.jobId,
             fileB
           })
         : fileA && fileB
-        ? this.uploadRevisionService.storeRevisionPair({
+        ? await this.uploadRevisionService.storeRevisionPair({
             tenantId,
             sessionId: job.sessionId,
             jobId: job.jobId,
@@ -213,7 +213,7 @@ export class UploadsController {
     return sessionId || null;
   }
 
-  private validateChainedFiles(
+  private async validateChainedFilesAsync(
     tenantId: string,
     sessionId: string,
     files: {
@@ -221,9 +221,9 @@ export class UploadsController {
       fileB?: Express.Multer.File[];
     }
   ) {
-    const latestPair = this.uploadRevisionService.findLatestPairBySession(tenantId, sessionId);
+    const latestPair = await this.uploadRevisionService.findLatestPairBySession(tenantId, sessionId);
     const baseline = latestPair
-      ? this.uploadRevisionService.getRevisionFileMeta(tenantId, latestPair.rightRevisionId)
+      ? await this.uploadRevisionService.getRevisionFileMeta(tenantId, latestPair.rightRevisionId)
       : null;
 
     if (!latestPair || !baseline) {

@@ -20,6 +20,7 @@ import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { SessionState } from '../auth/session-user.interface';
 import { RetentionService } from '../retention/retention.service';
 import { UploadPolicyService } from '../uploads/upload-policy.service';
+import { MappingAliasLearningService } from '../mapping/mapping-alias-learning.service';
 import { AdminRoleService } from './admin-role.service';
 
 @Controller('admin')
@@ -29,12 +30,13 @@ export class AdminController {
     private readonly uploadPolicyService: UploadPolicyService,
     private readonly auditService: AuditService,
     private readonly retentionService: RetentionService,
-    private readonly auditGovernanceService: AuditGovernanceService
+    private readonly auditGovernanceService: AuditGovernanceService,
+    private readonly mappingAliasLearningService: MappingAliasLearningService
   ) {}
 
   @Get('me')
   @UseGuards(SessionAuthGuard)
-  async me(@Req() req: Request): Promise<{ isAdmin: boolean }> {
+  async me(@Req() req: Request): Promise<{ isAdmin: boolean; canBootstrapAdmin: boolean }> {
     this.ensureFeatureEnabled(
       'admin_policy_ui_stage5_v1',
       'ADMIN_STAGE5_DISABLED',
@@ -44,7 +46,98 @@ export class AdminController {
     const tenantId = session.user?.tenantId || 'unknown-tenant';
     const actorEmail = session.user?.email || 'unknown-user';
     const isAdmin = await this.adminRoleService.hasAdminRole(tenantId, actorEmail);
-    return { isAdmin };
+    const activeAdmins = await this.adminRoleService.countActiveAdmins(tenantId);
+    return {
+      isAdmin,
+      canBootstrapAdmin: !isAdmin && activeAdmins === 0
+    };
+  }
+
+  @Get('roles')
+  @UseGuards(SessionAuthGuard)
+  async roles(@Req() req: Request): Promise<{ roles: Array<{ email: string; role: 'admin'; isActive: true }> }> {
+    this.ensureFeatureEnabled(
+      'admin_policy_ui_stage5_v1',
+      'ADMIN_STAGE5_DISABLED',
+      'Stage 5 admin policy controls are currently disabled by feature flag.'
+    );
+    const session = req.session as SessionState;
+    const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const actorEmail = session.user?.email || 'unknown-user';
+    await this.ensureAdmin(tenantId, actorEmail);
+    const roles = await this.adminRoleService.listActiveAdmins(tenantId);
+    return {
+      roles: roles.map((role) => ({
+        email: role.userEmail,
+        role: 'admin' as const,
+        isActive: true as const
+      }))
+    };
+  }
+
+  @Post('roles/grant')
+  @UseGuards(SessionAuthGuard)
+  async grantRole(
+    @Req() req: Request,
+    @Body() body: { userEmail?: string }
+  ): Promise<{ ok: true; userEmail: string; role: 'admin' }> {
+    this.ensureFeatureEnabled(
+      'admin_policy_ui_stage5_v1',
+      'ADMIN_STAGE5_DISABLED',
+      'Stage 5 admin policy controls are currently disabled by feature flag.'
+    );
+    const session = req.session as SessionState;
+    const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const actorEmail = session.user?.email || 'unknown-user';
+    const userEmail = (body.userEmail || actorEmail).trim().toLowerCase();
+    await this.ensureAdminOrBootstrap(tenantId, actorEmail, userEmail);
+    await this.adminRoleService.grantAdminRole({
+      tenantId,
+      userEmail,
+      actorEmail
+    });
+    this.auditService.emit({
+      eventType: 'admin.role.grant',
+      outcome: 'success',
+      actorEmail,
+      tenantId,
+      reason: `granted=${userEmail}`,
+      correlationId: randomUUID()
+    });
+    return { ok: true, userEmail, role: 'admin' };
+  }
+
+  @Post('roles/revoke')
+  @UseGuards(SessionAuthGuard)
+  async revokeRole(
+    @Req() req: Request,
+    @Body() body: { userEmail?: string }
+  ): Promise<{ ok: true; userEmail: string; role: 'admin' }> {
+    this.ensureFeatureEnabled(
+      'admin_policy_ui_stage5_v1',
+      'ADMIN_STAGE5_DISABLED',
+      'Stage 5 admin policy controls are currently disabled by feature flag.'
+    );
+    const session = req.session as SessionState;
+    const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const actorEmail = session.user?.email || 'unknown-user';
+    const userEmail = (body.userEmail || '').trim().toLowerCase();
+    await this.ensureAdmin(tenantId, actorEmail);
+    await this.preventRevokingLastAdmin(tenantId, userEmail);
+    await this.adminRoleService.revokeAdminRole({
+      tenantId,
+      userEmail,
+      actorEmail
+    });
+    this.auditService.emit({
+      eventType: 'admin.role.revoke',
+      outcome: 'success',
+      actorEmail,
+      tenantId,
+      reason: `revoked=${userEmail}`,
+      correlationId: randomUUID()
+    });
+    return { ok: true, userEmail, role: 'admin' };
   }
 
   @Get('users')
@@ -357,6 +450,72 @@ export class AdminController {
     return { runs };
   }
 
+  @Get('mapping-governance/aliases')
+  @UseGuards(SessionAuthGuard)
+  async listTenantAliases(
+    @Req() req: Request,
+    @Query('query') query?: string
+  ): Promise<{
+    aliases: Array<{
+      normalizedSourceColumn: string;
+      canonicalField: string;
+      confirmations: number;
+      isEnabled: boolean;
+      confidenceBand: 'emerging' | 'trusted' | 'established';
+    }>;
+  }> {
+    this.ensureFeatureEnabled(
+      'admin_policy_ui_stage5_v1',
+      'ADMIN_STAGE5_DISABLED',
+      'Stage 5 admin policy controls are currently disabled by feature flag.'
+    );
+    const session = req.session as SessionState;
+    const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const actorEmail = session.user?.email || 'unknown-user';
+    await this.ensureAdmin(tenantId, actorEmail);
+
+    const normalizedQuery = (query || '').trim().toLowerCase();
+    const aliases = await this.mappingAliasLearningService.getTenantAliasesForReview(tenantId);
+    return {
+      aliases: aliases.filter((alias) =>
+        !normalizedQuery ||
+        alias.normalizedSourceColumn.includes(normalizedQuery) ||
+        alias.canonicalField.includes(normalizedQuery)
+      )
+    };
+  }
+
+  @Post('mapping-governance/aliases/state')
+  @UseGuards(SessionAuthGuard)
+  async setTenantAliasState(
+    @Req() req: Request,
+    @Body()
+    body: {
+      normalizedSourceColumn?: string;
+      canonicalField?: string;
+      isEnabled?: boolean;
+    }
+  ): Promise<{ ok: true }> {
+    this.ensureFeatureEnabled(
+      'admin_policy_ui_stage5_v1',
+      'ADMIN_STAGE5_DISABLED',
+      'Stage 5 admin policy controls are currently disabled by feature flag.'
+    );
+    const session = req.session as SessionState;
+    const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const actorEmail = session.user?.email || 'unknown-user';
+    await this.ensureAdmin(tenantId, actorEmail);
+
+    await this.mappingAliasLearningService.setAliasEnabled({
+      tenantId,
+      normalizedSourceColumn: body.normalizedSourceColumn || '',
+      canonicalField: body.canonicalField || '',
+      isEnabled: Boolean(body.isEnabled),
+      actorEmail
+    });
+    return { ok: true };
+  }
+
   @Post('test/grant-role')
   @UseGuards(SessionAuthGuard)
   async testGrantRole(
@@ -388,12 +547,43 @@ export class AdminController {
     };
   }
 
+  private async ensureAdminOrBootstrap(
+    tenantId: string,
+    actorEmail: string,
+    targetEmail: string
+  ): Promise<void> {
+    if (await this.adminRoleService.hasAdminRole(tenantId, actorEmail)) {
+      return;
+    }
+    const activeAdmins = await this.adminRoleService.countActiveAdmins(tenantId);
+    if (activeAdmins === 0 && actorEmail.trim().toLowerCase() === targetEmail.trim().toLowerCase()) {
+      return;
+    }
+    throw new ForbiddenException({
+      code: 'ADMIN_REQUIRED',
+      message: 'Admin role is required for this action.',
+      correlationId: randomUUID()
+    });
+  }
+
   private async ensureAdmin(tenantId: string, actorEmail: string): Promise<void> {
     const isAdmin = await this.adminRoleService.hasAdminRole(tenantId, actorEmail);
     if (isAdmin) return;
     throw new ForbiddenException({
       code: 'ADMIN_REQUIRED',
       message: 'Admin role is required for this action.',
+      correlationId: randomUUID()
+    });
+  }
+
+  private async preventRevokingLastAdmin(tenantId: string, userEmail: string): Promise<void> {
+    const isTargetAdmin = await this.adminRoleService.hasAdminRole(tenantId, userEmail);
+    if (!isTargetAdmin) return;
+    const activeAdmins = await this.adminRoleService.countActiveAdmins(tenantId);
+    if (activeAdmins > 1) return;
+    throw new ForbiddenException({
+      code: 'ADMIN_LAST_ROLE_REVOKE_BLOCKED',
+      message: 'At least one active admin must remain assigned to the tenant.',
       correlationId: randomUUID()
     });
   }

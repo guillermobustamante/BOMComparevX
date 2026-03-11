@@ -10,6 +10,7 @@ export type AuditEventType =
   | 'admin.policy.reset'
   | 'admin.policy.override'
   | 'admin.role.grant'
+  | 'admin.role.revoke'
   | 'history.rename'
   | 'history.tag'
   | 'history.delete'

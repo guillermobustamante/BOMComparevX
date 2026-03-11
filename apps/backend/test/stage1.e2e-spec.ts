@@ -2111,6 +2111,142 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(users.body.users.some((row: { email: string }) => row.email === 'policy.target@example.com')).toBe(true);
   });
 
+  it('admin UI bootstrap, grant, revoke, and last-admin protection behave deterministically', async () => {
+    const bootstrap = request.agent(app.getHttpServer());
+    await bootstrap
+      .post('/api/auth/test/login')
+      .send({ email: 'bootstrap.admin@example.com', tenantId: 'tenant-bootstrap', provider: 'google' })
+      .expect(201);
+
+    const before = await bootstrap.get('/api/admin/me').expect(200);
+    expect(before.body.isAdmin).toBe(false);
+    expect(before.body.canBootstrapAdmin).toBe(true);
+
+    await bootstrap.post('/api/admin/roles/grant').send({}).expect(201);
+
+    const after = await bootstrap.get('/api/admin/me').expect(200);
+    expect(after.body.isAdmin).toBe(true);
+    expect(after.body.canBootstrapAdmin).toBe(false);
+
+    const otherUser = request.agent(app.getHttpServer());
+    await otherUser
+      .post('/api/auth/test/login')
+      .send({ email: 'second.admin@example.com', tenantId: 'tenant-bootstrap', provider: 'google' })
+      .expect(201);
+
+    await bootstrap
+      .post('/api/admin/roles/grant')
+      .send({ userEmail: 'second.admin@example.com' })
+      .expect(201);
+
+    const listed = await bootstrap.get('/api/admin/roles').expect(200);
+    expect((listed.body.roles as Array<{ email: string }>).length).toBe(2);
+
+    await bootstrap
+      .post('/api/admin/roles/revoke')
+      .send({ userEmail: 'second.admin@example.com' })
+      .expect(201);
+
+    const blocked = await bootstrap
+      .post('/api/admin/roles/revoke')
+      .send({ userEmail: 'bootstrap.admin@example.com' })
+      .expect(403);
+    expect(blocked.body.code).toBe('ADMIN_LAST_ROLE_REVOKE_BLOCKED');
+  });
+
+  it('mapping snapshot listing returns recently confirmed revisions for snapshot review UI', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'mapping.snapshots@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    await agent
+      .post('/api/mappings/confirm')
+      .send({
+        contractVersion: 'v1',
+        revisionId: 'rev-s15-snapshot-review',
+        explicitWarningAcknowledged: true,
+        mappings: [
+          {
+            sourceColumn: 'Part Number',
+            canonicalField: 'part_number',
+            originalCanonicalField: 'part_number',
+            reviewState: 'AUTO',
+            strategy: 'REGISTRY_EXACT',
+            confidence: 1
+          },
+          {
+            sourceColumn: 'Description',
+            canonicalField: 'description',
+            originalCanonicalField: 'description',
+            reviewState: 'AUTO',
+            strategy: 'REGISTRY_EXACT',
+            confidence: 1
+          }
+        ]
+      })
+      .expect(201);
+
+    const snapshots = await agent.get('/api/mappings').expect(200);
+    expect(
+      (snapshots.body.snapshots as Array<{ revisionId: string }>).some(
+        (snapshot) => snapshot.revisionId === 'rev-s15-snapshot-review'
+      )
+    ).toBe(true);
+  });
+
+  it('tenant alias governance can disable a learned alias and remove tenant-pack promotion from preview', async () => {
+    const admin = request.agent(app.getHttpServer());
+    await admin
+      .post('/api/auth/test/login')
+      .send({ email: 'alias.admin@example.com', tenantId: 'tenant-alias-governance', provider: 'google' })
+      .expect(201);
+
+    for (const revisionId of ['rev-s14-tenant-learning-1', 'rev-s14-tenant-learning-2', 'rev-s14-tenant-learning-3']) {
+      await admin
+        .post('/api/mappings/confirm')
+        .send({
+          contractVersion: 'v1',
+          revisionId,
+          explicitWarningAcknowledged: true,
+          mappings: [
+            {
+              sourceColumn: 'MFG Plant Code',
+              canonicalField: 'plant',
+              reviewState: 'AUTO',
+              strategy: 'MANUAL',
+              confidence: 1
+            }
+          ]
+        })
+        .expect(201);
+    }
+
+    await admin.post('/api/admin/roles/grant').send({}).expect(201);
+
+    const aliases = await admin.get('/api/admin/mapping-governance/aliases?query=mfg plant').expect(200);
+    expect(aliases.body.aliases.some((alias: { normalizedSourceColumn: string; isEnabled: boolean }) =>
+      alias.normalizedSourceColumn === 'mfg plant code' && alias.isEnabled
+    )).toBe(true);
+
+    await admin
+      .post('/api/admin/mapping-governance/aliases/state')
+      .send({
+        normalizedSourceColumn: 'MFG Plant Code',
+        canonicalField: 'plant',
+        isEnabled: false
+      })
+      .expect(201);
+
+    const preview = await admin.get('/api/mappings/preview/rev-s14-tenant-learning-preview').expect(200);
+    const plantColumn = (preview.body.columns as Array<{ sourceColumn: string; strategy: string }>).find(
+      (column) => column.sourceColumn === 'MFG Plant Code'
+    );
+    expect(plantColumn).toBeDefined();
+    expect(plantColumn?.strategy).not.toBe('TENANT_PACK');
+  });
+
   it('admin audit export and archive endpoints enforce tenant scope and append-only evidence metadata', async () => {
     const tenantAAdmin = request.agent(app.getHttpServer());
     await tenantAAdmin

@@ -18,6 +18,31 @@ export class MappingController {
     private readonly mappingAliasLearningService: MappingAliasLearningService
   ) {}
 
+  @Get()
+  @UseGuards(SessionAuthGuard)
+  async listSnapshots(
+    @Req() req: Request
+  ): Promise<{
+    snapshots: Array<{
+      mappingId: string;
+      revisionId: string;
+      confirmedAtUtc: string;
+      createdBy: string;
+      sourceColumnCount: number;
+      mappedColumnCount: number;
+      averageConfidence: number | null;
+    }>;
+  }> {
+    const session = req.session as SessionState;
+    const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const limit = Number(req.query.limit || 25);
+    const snapshots = await this.mappingPersistenceService.listSnapshots({
+      tenantId,
+      limit
+    });
+    return { snapshots };
+  }
+
   @Get('preview/:revisionId')
   @UseGuards(SessionAuthGuard)
   async preview(

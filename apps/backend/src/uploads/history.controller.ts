@@ -38,16 +38,16 @@ export class HistoryController {
     const requestedSessionId = (sessionId || '').trim() || undefined;
     const sessions = await this.uploadHistoryService.listByUser(tenantId, userEmail, requestedSessionId);
     const latestPair = requestedSessionId
-      ? this.uploadRevisionService.findLatestPairBySession(tenantId, requestedSessionId)
+      ? await this.uploadRevisionService.findLatestPairBySession(tenantId, requestedSessionId)
       : null;
     return {
-      sessions: sessions.map((entry) => {
-        const pair = this.uploadRevisionService.findPairByJobId(tenantId, entry.jobId);
+      sessions: await Promise.all(sessions.map(async (entry) => {
+        const pair = await this.uploadRevisionService.findPairByJobId(tenantId, entry.jobId);
         const leftFile = pair
-          ? this.uploadRevisionService.getRevisionFileMeta(tenantId, pair.leftRevisionId)
+          ? await this.uploadRevisionService.getRevisionFileMeta(tenantId, pair.leftRevisionId)
           : null;
         const rightFile = pair
-          ? this.uploadRevisionService.getRevisionFileMeta(tenantId, pair.rightRevisionId)
+          ? await this.uploadRevisionService.getRevisionFileMeta(tenantId, pair.rightRevisionId)
           : null;
         const generatedLabel =
           leftFile && rightFile ? `${leftFile.fileName} -> ${rightFile.fileName}` : `Comparison ${entry.historyId.slice(0, 8)}`;
@@ -59,7 +59,7 @@ export class HistoryController {
           comparisonLabel: entry.sessionName || generatedLabel,
           latest: !!latestPair && latestPair.jobId === entry.jobId
         };
-      })
+      }))
     };
   }
 

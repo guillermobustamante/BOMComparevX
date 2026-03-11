@@ -106,7 +106,7 @@ export class ExportsService {
 
     const template =
       exportRows.rightRevisionId
-        ? this.uploadRevisionService.getRevisionTemplate(input.tenantId, exportRows.rightRevisionId)
+        ? await this.uploadRevisionService.getRevisionTemplate(input.tenantId, exportRows.rightRevisionId)
         : null;
 
     if (template?.parserMode === 'xlsx' && template.workbookBuffer) {
@@ -175,7 +175,7 @@ export class ExportsService {
   private async buildTemplatePreservingExcel(
     input: BuildCsvInput,
     exportRows: Awaited<ReturnType<DiffJobService['getRowsForExport']>>,
-    template: NonNullable<ReturnType<UploadRevisionService['getRevisionTemplate']>>
+    template: NonNullable<Awaited<ReturnType<UploadRevisionService['getRevisionTemplate']>>>
   ): Promise<ExcelExportPayload> {
     const workbook = XLSX.read(template.workbookBuffer, {
       type: 'buffer',
@@ -469,7 +469,7 @@ export class ExportsService {
     targetSheetName: string,
     metadataSheetName: string,
     exportRows: Awaited<ReturnType<DiffJobService['getRowsForExport']>>,
-    template: NonNullable<ReturnType<UploadRevisionService['getRevisionTemplate']>>
+    template: NonNullable<Awaited<ReturnType<UploadRevisionService['getRevisionTemplate']>>>
   ): Buffer {
     const zip = unzipSync(new Uint8Array(templateBuffer));
     let workbookXml = strFromU8(zip['xl/workbook.xml']);
@@ -589,7 +589,7 @@ export class ExportsService {
 
   private buildInlineMetadataByTemplateRow(
     exportRows: Awaited<ReturnType<DiffJobService['getRowsForExport']>>,
-    template: NonNullable<ReturnType<UploadRevisionService['getRevisionTemplate']>>
+    template: NonNullable<Awaited<ReturnType<UploadRevisionService['getRevisionTemplate']>>>
   ): Map<number, PersistedDiffRow> {
     const rowMap = new Map<number, PersistedDiffRow>();
     for (const row of exportRows.rows) {
@@ -603,7 +603,7 @@ export class ExportsService {
 
   private patchWorksheetXml(
     sheetXml: string,
-    template: NonNullable<ReturnType<UploadRevisionService['getRevisionTemplate']>>,
+    template: NonNullable<Awaited<ReturnType<UploadRevisionService['getRevisionTemplate']>>>,
     rowMetadataMap: Map<number, PersistedDiffRow>,
     oldLastCol: string,
     newLastCol: string
@@ -702,7 +702,7 @@ export class ExportsService {
 
   private patchTableXml(
     tableXml: string,
-    template: NonNullable<ReturnType<UploadRevisionService['getRevisionTemplate']>>,
+    template: NonNullable<Awaited<ReturnType<UploadRevisionService['getRevisionTemplate']>>>,
     tableHeaders: string[],
     newLastCol: string
   ): string {
