@@ -128,6 +128,39 @@ Locked decision:
 Follow-up:
 - track as future backlog work after S14 mapping-intelligence stabilization
 
+### ISSUE-006 - Results page progress indicator only appears after BOM processing completes
+- Status: `Resolved`
+- Priority: `P1`
+- Area: `Results / Diff Processing / UX`
+- First observed: `2026-03-11`
+
+Problem:
+- After uploading two BOM files and opening the results page, the user was redirected correctly but did not see live processing progress.
+- The results progress badge only became visible after diff computation had already finished, so the user had no true in-flight indication that the BOMs were still being processed.
+
+Evidence:
+- Diff jobs were often started inline and only returned a job id after compute completed, preventing the results screen from polling live status early enough: [diff-job.service.ts](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\src\diff\diff-job.service.ts:152)
+- Diff progress while running was time-based placeholder logic instead of real compute progress: [diff-job.service.ts](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\src\diff\diff-job.service.ts:649)
+- The results page cleared the just-started running status when `comparisonId` was pushed into the URL, creating a visible progress gap: [results-grid.tsx](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\frontend\components\results-grid.tsx:680)
+
+Desired outcome:
+- The results page should show a true running progress state while BOM diff computation is actively executing.
+- Progress should reflect actual matching/classifying/finalizing work rather than a timer-based placeholder.
+- The running badge should remain visible during the initial navigation and URL handoff into the results workspace.
+
+Resolution:
+- Implemented on `2026-03-11`.
+- Added live runtime progress tracking to diff jobs and changed non-test diff startup to return immediately so the results page can poll while processing is still in progress.
+- Added async progressive compute paths for matching, classification, and finalization that periodically yield to the event loop and report real phase progress from the backend.
+- Preserved synchronous compute APIs for existing tests and test-mode execution so the established backend test contract remains stable.
+- Updated the results page to retain the current running status when the `comparisonId` query parameter is written, avoiding the temporary badge reset during navigation.
+- Verified with:
+  - `npm --prefix apps/frontend run ci`
+  - `npm --prefix apps/backend run typecheck`
+  - `npm --prefix apps/backend run build`
+  - `npm --prefix apps/backend run test`
+- Note: full backend `ci` remains blocked by a Windows Prisma file-lock issue during `prisma generate`, which is separate from this fix.
+
 ## 3. Linked follow-up records
 - Sprint 12 QA: [UI_QA_S12_RESULTS_REVISION_CHAIN.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\UI_QA_S12_RESULTS_REVISION_CHAIN.md:1)
 - Sprint 12.1 backlog: [SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md:1)

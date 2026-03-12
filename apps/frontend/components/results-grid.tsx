@@ -680,6 +680,9 @@ export function ResultsGrid() {
 
   useEffect(() => {
     if (comparisonIdParam) {
+      if (comparisonIdParam === jobId) {
+        return;
+      }
       setJobId((current) => (current === comparisonIdParam ? current : comparisonIdParam));
       setRows([]);
       setTreeNodes([]);

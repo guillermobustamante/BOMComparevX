@@ -9,6 +9,8 @@ import {
 import { DiffFeatureFlagService } from './feature-flag.service';
 import { NormalizationService } from './normalization.service';
 
+const MATCH_PROGRESS_BATCH_SIZE = 25;
+
 export interface MatchResult {
   matches: MatchDecision[];
   unmatchedSourceIds: string[];
@@ -25,7 +27,6 @@ export class MatcherService {
   match(sourceRows: DiffComparableRow[], targetRows: DiffComparableRow[]): MatchResult {
     const source = sourceRows.map((row) => this.normalizationService.normalizeRow(row).row);
     const target = targetRows.map((row) => this.normalizationService.normalizeRow(row).row);
-    const targetById = new Map(target.map((row) => [row.rowId, row]));
     const targetIndex = new Map(target.map((row, idx) => [row.rowId, idx]));
 
     const unlockedTargets = new Set(target.map((row) => row.rowId));
@@ -48,7 +49,46 @@ export class MatcherService {
     return {
       matches,
       unmatchedSourceIds: unmatchedSources,
-      unmatchedTargetIds,
+      unmatchedTargetIds
+    };
+  }
+
+  async matchAsync(
+    sourceRows: DiffComparableRow[],
+    targetRows: DiffComparableRow[],
+    onProgress?: (completed: number, total: number) => Promise<void> | void
+  ): Promise<MatchResult> {
+    const source = sourceRows.map((row) => this.normalizationService.normalizeRow(row).row);
+    const target = targetRows.map((row) => this.normalizationService.normalizeRow(row).row);
+    const targetIndex = new Map(target.map((row, idx) => [row.rowId, idx]));
+
+    const unlockedTargets = new Set(target.map((row) => row.rowId));
+    const matches: MatchDecision[] = [];
+    const unmatchedSources: string[] = [];
+
+    for (let index = 0; index < source.length; index += 1) {
+      const sourceRow = source[index];
+      const decision = this.matchSingleRow(sourceRow, target, unlockedTargets, targetIndex);
+      matches.push(decision);
+      if (decision.targetRowId) {
+        unlockedTargets.delete(decision.targetRowId);
+      } else {
+        unmatchedSources.push(sourceRow.rowId);
+      }
+
+      if ((index + 1) % MATCH_PROGRESS_BATCH_SIZE === 0 || index === source.length - 1) {
+        await onProgress?.(index + 1, Math.max(1, source.length));
+        await this.yieldToEventLoop();
+      }
+    }
+
+    const unmatchedTargetIds = [...unlockedTargets].sort(
+      (a, b) => (targetIndex.get(a) || 0) - (targetIndex.get(b) || 0)
+    );
+    return {
+      matches,
+      unmatchedSourceIds: unmatchedSources,
+      unmatchedTargetIds
     };
   }
 
@@ -191,6 +231,10 @@ export class MatcherService {
             ? 'scored_candidate_selected_graph_context'
             : 'scored_candidate_selected'
     };
+  }
+
+  private async yieldToEventLoop(): Promise<void> {
+    await new Promise<void>((resolve) => setImmediate(resolve));
   }
 
   private attributeConcordance(source: DiffComparableRow, target: DiffComparableRow): number {

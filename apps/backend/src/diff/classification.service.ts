@@ -9,6 +9,8 @@ import { DiffFeatureFlagService } from './feature-flag.service';
 import { NormalizationService } from './normalization.service';
 import { ProfileFieldPolicy } from './profile-adapter.contract';
 
+const CLASSIFICATION_PROGRESS_BATCH_SIZE = 25;
+
 export interface ClassificationInput {
   sourceRows: DiffComparableRow[];
   targetRows: DiffComparableRow[];
@@ -130,6 +132,136 @@ export class ClassificationService {
     };
   }
 
+  async classifyAsync(input: ClassificationInput): Promise<ClassifiedDiffRow[]> {
+    return (await this.classifyWithStatsAsync(input)).rows;
+  }
+
+  async classifyWithStatsAsync(
+    input: ClassificationInput,
+    onProgress?: (completed: number, total: number) => Promise<void> | void
+  ): Promise<ClassificationResult> {
+    const sourceMap = new Map(
+      input.sourceRows.map((row) => [row.rowId, this.normalizationService.normalizeRow(row).row])
+    );
+    const targetMap = new Map(
+      input.targetRows.map((row) => [row.rowId, this.normalizationService.normalizeRow(row).row])
+    );
+
+    const rows: ClassifiedDiffRow[] = [];
+    const comparableFields = this.resolveComparableFields(input.sourceFieldPolicy, input.targetFieldPolicy);
+    const removed = input.unmatchedSourceIds
+      .map((id) => sourceMap.get(id))
+      .filter((row): row is DiffComparableRow => !!row);
+    const added = input.unmatchedTargetIds
+      .map((id) => targetMap.get(id))
+      .filter((row): row is DiffComparableRow => !!row);
+    const totalProgressUnits = input.matches.length + removed.length * 2 + added.length;
+    let completedProgressUnits = 0;
+    const reportProgress = async (): Promise<void> => {
+      if (!onProgress) return;
+      if (
+        completedProgressUnits > 0 &&
+        completedProgressUnits < totalProgressUnits &&
+        completedProgressUnits % CLASSIFICATION_PROGRESS_BATCH_SIZE !== 0
+      ) {
+        return;
+      }
+      await onProgress(completedProgressUnits, totalProgressUnits);
+      await this.yieldToEventLoop();
+    };
+
+    for (const match of input.matches) {
+      if (match.reviewRequired || !match.targetRowId) {
+        completedProgressUnits += 1;
+        await reportProgress();
+        continue;
+      }
+      const source = sourceMap.get(match.sourceRowId);
+      const target = targetMap.get(match.targetRowId);
+      if (!source || !target) {
+        completedProgressUnits += 1;
+        await reportProgress();
+        continue;
+      }
+
+      const cells = this.buildCellDiffs(source, target, comparableFields);
+      const resolution = this.resolveMatchedChangeType(source, target, cells.length, match);
+      rows.push({
+        sourceRowId: source.rowId,
+        targetRowId: target.rowId,
+        changeType: resolution.changeType,
+        matchedBy: match.strategy,
+        reasonCode: `matched_${resolution.changeType}`,
+        cells,
+        fromParent: resolution.fromParent,
+        toParent: resolution.toParent
+      });
+      completedProgressUnits += 1;
+      await reportProgress();
+    }
+
+    const replacementResult = await this.pairReplacementsAsync(removed, added, async () => {
+      completedProgressUnits += 1;
+      await reportProgress();
+    });
+    const replacedPairs = replacementResult.pairs;
+    const replacedSource = new Set(replacedPairs.map((pair) => pair.source.rowId));
+    const replacedTarget = new Set(replacedPairs.map((pair) => pair.target.rowId));
+
+    for (const pair of replacedPairs) {
+      rows.push({
+        sourceRowId: pair.source.rowId,
+        targetRowId: pair.target.rowId,
+        changeType: 'replaced',
+        reasonCode: 'unmatched_pair_replacement',
+        cells: this.buildCellDiffs(pair.source, pair.target, comparableFields)
+      });
+    }
+
+    for (const row of removed) {
+      if (!replacedSource.has(row.rowId)) {
+        rows.push({
+          sourceRowId: row.rowId,
+          targetRowId: null,
+          changeType: 'removed',
+          reasonCode: 'unmatched_source_row',
+          cells: []
+        });
+      }
+      completedProgressUnits += 1;
+      await reportProgress();
+    }
+
+    for (const row of added) {
+      if (!replacedTarget.has(row.rowId)) {
+        rows.push({
+          sourceRowId: null,
+          targetRowId: row.rowId,
+          changeType: 'added',
+          reasonCode: 'unmatched_target_row',
+          cells: []
+        });
+      }
+      completedProgressUnits += 1;
+      await reportProgress();
+    }
+
+    const sortedRows = rows.sort((a, b) => {
+      const aKey = `${a.sourceRowId || '~'}::${a.targetRowId || '~'}::${a.changeType}`;
+      const bKey = `${b.sourceRowId || '~'}::${b.targetRowId || '~'}::${b.changeType}`;
+      return aKey.localeCompare(bKey);
+    });
+
+    if (totalProgressUnits === 0) {
+      await onProgress?.(0, 0);
+    }
+
+    return {
+      rows: sortedRows,
+      stats: replacementResult.stats
+    };
+  }
+
   private resolveMatchedChangeType(
     source: DiffComparableRow,
     target: DiffComparableRow,
@@ -240,6 +372,81 @@ export class ClassificationService {
         ambiguityContexts
       }
     };
+  }
+
+  private async pairReplacementsAsync(
+    removed: DiffComparableRow[],
+    added: DiffComparableRow[],
+    onProgress?: () => Promise<void> | void
+  ): Promise<{
+    pairs: Array<{ source: DiffComparableRow; target: DiffComparableRow }>;
+    stats: ClassificationStats;
+  }> {
+    const strictAmbiguity = this.featureFlags.isAmbiguityStrictEnabled();
+    const usedAdded = new Set<string>();
+    const pairs: Array<{ source: DiffComparableRow; target: DiffComparableRow }> = [];
+    const replacementThreshold = strictAmbiguity ? 0.9 : 0.8;
+    const addedContextCounts = this.contextCounts(added);
+    const removedContextCounts = this.contextCounts(removed);
+    let replacementCandidates = 0;
+    let replacementSuppressed = 0;
+
+    for (const source of removed) {
+      const sourceContextKey = this.replacementContextKey(source);
+      const sourceContextAmbiguous =
+        !!sourceContextKey && (removedContextCounts.get(sourceContextKey) || 0) > 1;
+
+      let candidatePool = added.filter((target) => !usedAdded.has(target.rowId));
+      replacementCandidates += candidatePool.length;
+
+      if (strictAmbiguity && sourceContextAmbiguous) {
+        replacementSuppressed += candidatePool.length;
+        await onProgress?.();
+        continue;
+      }
+
+      if (strictAmbiguity) {
+        const before = candidatePool.length;
+        candidatePool = candidatePool.filter((target) => {
+          const contextKey = this.replacementContextKey(target);
+          if (!contextKey) return false;
+          return (addedContextCounts.get(contextKey) || 0) <= 1;
+        });
+        replacementSuppressed += before - candidatePool.length;
+      }
+
+      const candidate = candidatePool
+        .map((target) => ({
+          target,
+          similarity: this.replacementSimilarity(source, target)
+        }))
+        .filter((candidate) => {
+          if (!strictAmbiguity) return candidate.similarity.score >= replacementThreshold;
+          return candidate.similarity.contextAligned && candidate.similarity.score >= replacementThreshold;
+        })
+        .sort(
+          (a, b) => b.similarity.score - a.similarity.score || a.target.rowId.localeCompare(b.target.rowId)
+        )[0];
+
+      await onProgress?.();
+      if (!candidate) continue;
+      usedAdded.add(candidate.target.rowId);
+      pairs.push({ source, target: candidate.target });
+    }
+
+    const ambiguityContexts = this.countAmbiguityContexts(addedContextCounts) + this.countAmbiguityContexts(removedContextCounts);
+    return {
+      pairs,
+      stats: {
+        replacementCandidates,
+        replacementSuppressed,
+        ambiguityContexts
+      }
+    };
+  }
+
+  private async yieldToEventLoop(): Promise<void> {
+    await new Promise<void>((resolve) => setImmediate(resolve));
   }
 
   private replacementSimilarity(

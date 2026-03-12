@@ -58,6 +58,12 @@ interface DiffJobRecord {
   completionNotificationEmitted: boolean;
   snapshotSource: 'live' | 'persisted';
   executionState: 'queued' | 'running' | 'completed' | 'failed';
+  runtimeProgress: {
+    phase: 'matching' | 'classifying' | 'finalizing' | 'completed';
+    percentComplete: number;
+    loadedRows: number;
+    totalRows: number;
+  };
   estimatedTotalRows: number;
   failure?: {
     code: string;
@@ -166,6 +172,12 @@ export class DiffJobService {
       completionNotificationEmitted: false,
       snapshotSource: 'live',
       executionState: 'queued',
+      runtimeProgress: {
+        phase: 'matching',
+        percentComplete: 0,
+        loadedRows: 0,
+        totalRows: Math.max(sourceRows.length, targetRows.length)
+      },
       estimatedTotalRows: Math.max(sourceRows.length, targetRows.length),
       failure: undefined
     };
@@ -215,12 +227,12 @@ export class DiffJobService {
       revisionPair
     };
 
-    if (record.estimatedTotalRows >= this.getAsyncStartThreshold()) {
+    if (process.env.NODE_ENV === 'test') {
+      await this.runJob(record, runInput);
+    } else {
       setImmediate(() => {
         void this.runJob(record, runInput);
       });
-    } else {
-      await this.runJob(record, runInput);
     }
 
     return this.getStatus(jobId, input.tenantId);
@@ -449,6 +461,12 @@ export class DiffJobService {
     }
   ): Promise<void> {
     record.executionState = 'running';
+    record.runtimeProgress = {
+      phase: 'matching',
+      percentComplete: 1,
+      loadedRows: 0,
+      totalRows: Math.max(record.estimatedTotalRows, input.sourceRows.length, input.targetRows.length)
+    };
     const computeStartedAtMs = Date.now();
     const graphMatcherEnabled = this.diffFeatureFlagService.isMatcherGraphEnabled();
     let snapshotCount = 0;
@@ -470,11 +488,18 @@ export class DiffJobService {
         snapshotCount += 1;
       }
 
-      const computed = this.diffComputationService.compute({
+      const computed = await this.diffComputationService.computeAsync({
         sourceRows: input.sourceRows,
         targetRows: input.targetRows,
         sourceContext: input.sourceContext,
-        targetContext: input.targetContext
+        targetContext: input.targetContext,
+        onProgress: async (progress) => {
+          record.runtimeProgress = {
+            ...progress,
+            loadedRows: 0,
+            totalRows: Math.max(record.estimatedTotalRows, input.sourceRows.length, input.targetRows.length)
+          };
+        }
       });
 
       record.computeDurationMs = Date.now() - computeStartedAtMs;
@@ -483,6 +508,12 @@ export class DiffJobService {
       record.counters = computed.counters;
       record.diagnostics = computed.diagnostics;
       record.executionState = 'completed';
+      record.runtimeProgress = {
+        phase: 'completed',
+        percentComplete: 100,
+        loadedRows: computed.rows.length,
+        totalRows: computed.rows.length
+      };
       record.failure = undefined;
 
       this.emitMetricEvent(record, 'stage4.diff.compute', {
@@ -533,6 +564,12 @@ export class DiffJobService {
       }
     } catch (error) {
       record.executionState = 'failed';
+      record.runtimeProgress = {
+        phase: 'completed',
+        percentComplete: 100,
+        loadedRows: 0,
+        totalRows: Math.max(record.estimatedTotalRows, record.rows.length)
+      };
       record.failure = {
         code: 'DIFF_JOB_COMPUTE_FAILED',
         message: 'Diff computation failed.'
@@ -584,15 +621,6 @@ export class DiffJobService {
       quantity_change: 0,
       no_change: 0
     };
-  }
-
-  private getAsyncStartThreshold(): number {
-    const raw = process.env.DIFF_ASYNC_START_ROW_THRESHOLD;
-    const parsed = Number(raw);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      return 5000;
-    }
-    return Math.floor(parsed);
   }
 
   private async requireTenantJob(jobId: string, tenantId: string): Promise<DiffJobRecord> {
@@ -653,17 +681,11 @@ export class DiffJobService {
       };
     }
 
-    const elapsedMs = Date.now() - job.startedAtMs;
-    const isQueued = job.executionState === 'queued';
-    const percentComplete = isQueued
-      ? Math.min(15, 5 + Math.floor(elapsedMs / 500))
-      : Math.min(95, 15 + Math.floor(elapsedMs / 1000) * 2);
-
     return {
-      loadedRows: 0,
-      totalRows: Math.max(job.estimatedTotalRows, 0),
-      percentComplete,
-      phase: isQueued ? 'matching' : percentComplete >= 66 ? 'finalizing' : percentComplete >= 33 ? 'classifying' : 'matching',
+      loadedRows: job.runtimeProgress.loadedRows,
+      totalRows: Math.max(job.runtimeProgress.totalRows, job.estimatedTotalRows, 0),
+      percentComplete: job.runtimeProgress.percentComplete,
+      phase: job.runtimeProgress.phase,
       status: 'running'
     };
   }
@@ -705,6 +727,12 @@ export class DiffJobService {
       completionNotificationEmitted: true,
       snapshotSource: 'persisted',
       executionState: 'completed',
+      runtimeProgress: {
+        phase: 'completed',
+        percentComplete: 100,
+        loadedRows: rows.length,
+        totalRows: rows.length
+      },
       estimatedTotalRows: rows.length,
       failure: undefined
     };
