@@ -22,6 +22,30 @@ import {
 type ChangeType = 'added' | 'removed' | 'replaced' | 'modified' | 'moved' | 'quantity_change' | 'no_change';
 type PageSize = 50 | 100 | 200;
 type ResultsViewMode = 'flat' | 'tree';
+type ImpactCriticality = 'High' | 'Medium' | 'Low';
+
+interface DiffImpactCategory {
+  industry: string;
+  category: string;
+  changeDescription: string;
+  impactClass: string;
+  impactCriticality: ImpactCriticality;
+  internalApprovingRoles: string[];
+  externalApprovingRoles: string[];
+  controlPath: string;
+  complianceTrigger: string;
+  matchedProperties: string[];
+}
+
+interface DiffImpactClassification {
+  industry: string;
+  categories: DiffImpactCategory[];
+  highestImpactClass: string | null;
+  impactCriticality: ImpactCriticality | null;
+  internalApprovingRoles: string[];
+  externalApprovingRoles: string[];
+  complianceTriggers: string[];
+}
 
 interface DiffRow {
   rowId: string;
@@ -47,6 +71,7 @@ interface DiffRow {
     reviewRequired?: boolean;
     changedFields: string[];
   };
+  impactClassification?: DiffImpactClassification | null;
 }
 
 interface DiffStatus {
@@ -163,6 +188,7 @@ export function ResultsGrid() {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [chainUploadDialogOpen, setChainUploadDialogOpen] = useState(false);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [impactDialogRow, setImpactDialogRow] = useState<DiffRow | null>(null);
   const [historySessions, setHistorySessions] = useState<SessionComparisonEntry[]>([]);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historyFeedback, setHistoryFeedback] = useState<string | null>(null);
@@ -172,6 +198,22 @@ export function ResultsGrid() {
   const [chainUploadBusy, setChainUploadBusy] = useState(false);
   const [chainUploadDragActive, setChainUploadDragActive] = useState(false);
   const nextRevisionInputRef = useRef<HTMLInputElement | null>(null);
+
+  function impactCriticalityClass(value: ImpactCriticality | null | undefined): string {
+    if (!value) return 'impactBadgeNone';
+    return `impactBadge${value}`;
+  }
+
+  function summarizeImpact(row: DiffRow): string {
+    const categories = row.impactClassification?.categories || [];
+    if (!categories.length) {
+      return 'Unclassified';
+    }
+    if (categories.length === 1) {
+      return categories[0].category;
+    }
+    return `${categories[0].category} +${categories.length - 1}`;
+  }
 
   useEffect(() => {
     rowsCountRef.current = rows.length;
@@ -1036,8 +1078,10 @@ export function ResultsGrid() {
                 <th>Part Number</th>
                 <th>Revision</th>
                 <th>Description</th>
+                <th>Impact</th>
                 <th>Rationale</th>
                 <th>Changed Fields</th>
+                <th>Classification</th>
               </tr>
             </thead>
             <tbody>
@@ -1049,6 +1093,17 @@ export function ResultsGrid() {
                   <td>{row.keyFields.partNumber || '-'}</td>
                   <td>{row.keyFields.revision || '-'}</td>
                   <td>{row.keyFields.description || '-'}</td>
+                  <td>
+                    <div className="resultsImpactCell">
+                      <span
+                        className={`chip ${impactCriticalityClass(row.impactClassification?.impactCriticality)}`}
+                        data-testid={`results-impact-${row.rowId}`}
+                      >
+                        {row.impactClassification?.impactCriticality || 'None'}
+                      </span>
+                      <span className="resultsImpactLabel">{summarizeImpact(row)}</span>
+                    </div>
+                  </td>
                   <td>{row.rationale.classificationReason}</td>
                   <td>
                     <div className="cellChips">
@@ -1060,11 +1115,22 @@ export function ResultsGrid() {
                       ))}
                     </div>
                   </td>
+                  <td>
+                    <button
+                      className="btn"
+                      type="button"
+                      onClick={() => setImpactDialogRow(row)}
+                      disabled={!row.impactClassification?.categories.length}
+                      data-testid={`results-impact-detail-${row.rowId}`}
+                    >
+                      {row.impactClassification?.categories.length ? 'View Impact' : 'No Impact'}
+                    </button>
+                  </td>
                 </tr>
               ))}
               {visibleRows.length === 0 && (
                 <tr>
-                  <td colSpan={6}>No rows for the current page/filter.</td>
+                  <td colSpan={8}>No rows for the current page/filter.</td>
                 </tr>
               )}
             </tbody>
@@ -1492,6 +1558,129 @@ export function ResultsGrid() {
                 </div>
               </>
             )}
+          </section>
+        </div>
+      )}
+
+      {impactDialogRow && (
+        <div className="screenModalLayer" role="presentation">
+          <button
+            type="button"
+            className="screenModalBackdrop"
+            aria-label="Close change impact dialog"
+            onClick={() => setImpactDialogRow(null)}
+          />
+          <section
+            className="screenModalCard panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="results-impact-dialog-title"
+            data-testid="results-impact-dialog"
+          >
+            <div className="screenModalHeader">
+              <div>
+                <p className="missionShellEyebrow">Change Impact Classification</p>
+                <h2 className="h2" id="results-impact-dialog-title">
+                  {impactDialogRow.keyFields.partNumber || impactDialogRow.rowId}
+                </h2>
+                <p className="p">
+                  {impactDialogRow.keyFields.description || 'No description'}
+                </p>
+              </div>
+              <button
+                className="screenIconAction"
+                type="button"
+                aria-label="Close change impact dialog"
+                title="Close"
+                onClick={() => setImpactDialogRow(null)}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+
+            <div className="impactDialogHero">
+              <div className="impactDialogHeroBlock">
+                <span className="impactDialogLabel">Impact criticality</span>
+                <span className={`chip ${impactCriticalityClass(impactDialogRow.impactClassification?.impactCriticality)}`}>
+                  {impactDialogRow.impactClassification?.impactCriticality || 'None'}
+                </span>
+              </div>
+              <div className="impactDialogHeroBlock">
+                <span className="impactDialogLabel">Impact class</span>
+                <strong>{impactDialogRow.impactClassification?.highestImpactClass || '-'}</strong>
+              </div>
+              <div className="impactDialogHeroBlock">
+                <span className="impactDialogLabel">Industry</span>
+                <strong>{impactDialogRow.impactClassification?.industry || '-'}</strong>
+              </div>
+            </div>
+
+            <div className="impactDialogSection">
+              <span className="impactDialogLabel">Changed properties</span>
+              <div className="cellChips">
+                {impactDialogRow.rationale.changedFields.map((field) => (
+                  <span className="chip" key={`${impactDialogRow.rowId}-${field}`}>
+                    {field}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="impactDialogGrid">
+              {(impactDialogRow.impactClassification?.categories || []).map((category) => (
+                <article className="impactDialogCard" key={`${impactDialogRow.rowId}-${category.category}`}>
+                  <div className="impactDialogCardHeader">
+                    <div>
+                      <strong>{category.category}</strong>
+                      <p className="p">{category.changeDescription}</p>
+                    </div>
+                    <span className={`chip ${impactCriticalityClass(category.impactCriticality)}`}>
+                      {category.impactCriticality}
+                    </span>
+                  </div>
+                  <div className="impactDialogSection">
+                    <span className="impactDialogLabel">Matched properties</span>
+                    <div className="cellChips">
+                      {category.matchedProperties.map((value) => (
+                        <span className="chip" key={`${category.category}-${value}`}>
+                          {value}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="impactDialogDetailList">
+                    <div>
+                      <span className="impactDialogLabel">Internal reviewers</span>
+                      <div className="cellChips">
+                        {category.internalApprovingRoles.length ? category.internalApprovingRoles.map((role) => (
+                          <span className="chip" key={`${category.category}-internal-${role}`}>
+                            {role}
+                          </span>
+                        )) : <span className="chip">None</span>}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="impactDialogLabel">External reviewers</span>
+                      <div className="cellChips">
+                        {category.externalApprovingRoles.length ? category.externalApprovingRoles.map((role) => (
+                          <span className="chip" key={`${category.category}-external-${role}`}>
+                            {role}
+                          </span>
+                        )) : <span className="chip">None</span>}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="impactDialogLabel">Compliance trigger</span>
+                      <strong>{category.complianceTrigger || '-'}</strong>
+                    </div>
+                    <div>
+                      <span className="impactDialogLabel">Control path</span>
+                      <strong>{category.controlPath || '-'}</strong>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
           </section>
         </div>
       )}

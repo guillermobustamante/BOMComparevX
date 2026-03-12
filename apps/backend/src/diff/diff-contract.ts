@@ -35,10 +35,36 @@ export const CHANGE_TAXONOMY = [
 ] as const;
 
 export type ChangeType = (typeof CHANGE_TAXONOMY)[number];
+export type DiffPropertyValue = string | number | boolean | null;
+
+export interface DiffImpactCategory {
+  industry: string;
+  category: string;
+  changeDescription: string;
+  impactClass: string;
+  impactCriticality: 'High' | 'Medium' | 'Low';
+  internalApprovingRoles: string[];
+  externalApprovingRoles: string[];
+  controlPath: string;
+  complianceTrigger: string;
+  matchedProperties: string[];
+}
+
+export interface DiffImpactClassification {
+  industry: string;
+  categories: DiffImpactCategory[];
+  highestImpactClass: string | null;
+  impactCriticality: 'High' | 'Medium' | 'Low' | null;
+  internalApprovingRoles: string[];
+  externalApprovingRoles: string[];
+  complianceTriggers: string[];
+}
 
 export interface DiffComparableRow {
   rowId: string;
   internalId?: string | null;
+  occurrenceInternalId?: string | null;
+  objectInternalId?: string | null;
   stableOccurrenceKey?: string | null;
   snapshotRowKey?: string | null;
   profileName?: string | null;
@@ -58,6 +84,7 @@ export interface DiffComparableRow {
   assemblyPath?: string | null;
   findNumber?: string | null;
   hierarchyLevel?: number | null;
+  properties?: Record<string, DiffPropertyValue>;
 }
 
 export interface MatchDecision {
@@ -114,6 +141,7 @@ export interface PersistedDiffRow extends ClassifiedDiffRow {
     fromParent?: string | null;
     toParent?: string | null;
   };
+  impactClassification?: DiffImpactClassification | null;
 }
 
 export interface DiffJobCounters {

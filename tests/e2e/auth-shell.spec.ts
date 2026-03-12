@@ -808,3 +808,47 @@ test('admin page supports user search and upload policy override/reset for admin
 
   await context.close();
 });
+
+test('admin taxonomy editor supports automotive category styling and tag insertion', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const adminEmail = uniqueEmail('playwright.admin.taxonomy');
+  const tenantId = `tenant-taxonomy-${Date.now()}`;
+
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email: adminEmail,
+      displayName: 'Admin Taxonomy User',
+      tenantId,
+      provider: 'google'
+    }
+  });
+  await request.post(`${e2eApiBaseUrl}/api/admin/test/grant-role`, {
+    data: { userEmail: adminEmail }
+  });
+
+  const adminStorageState = await request.storageState();
+  const context = await browser.newContext({ baseURL, storageState: adminStorageState });
+  const page = await context.newPage();
+
+  await page.goto('/admin');
+  await expect(page.getByTestId('taxonomy-editor')).toBeVisible({ timeout: 20000 });
+  await page.getByTestId('taxonomy-working-industry-select').selectOption('Automotive');
+  await expect(page.getByTestId('taxonomy-category-title-0')).toHaveValue('Product design or form-fit-function change');
+  await expect(page.getByTestId('taxonomy-criticality-badge-0')).toContainText('High Impact');
+  await expect(page.getByTestId('taxonomy-panel-content-0')).toBeHidden();
+
+  await page.getByTestId('taxonomy-toggle-0').click();
+  await expect(page.getByTestId('taxonomy-panel-content-0')).toBeVisible();
+  await page.getByTestId('taxonomy-impact-criticality-0').selectOption('Low');
+  await expect(page.getByTestId('taxonomy-criticality-badge-0')).toContainText('Low Impact');
+
+  await page.getByTestId('taxonomy-add-triggerProperties-0').click();
+  await page.getByTestId('taxonomy-popover-input-triggerProperties-0').fill('Playwright Trigger Property');
+  await page.getByTestId('taxonomy-popover-submit-triggerProperties-0').click();
+  await expect(page.locator('.taxonomyCard').first()).toContainText('Playwright Trigger Property');
+
+  await context.close();
+});

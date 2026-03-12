@@ -12,6 +12,8 @@ export const REQUIRED_CANONICAL_FIELDS = ['part_number', 'description', 'quantit
 export const CONDITIONAL_CANONICAL_FIELDS = ['revision'] as const;
 export const OPTIONAL_CANONICAL_FIELDS = ['supplier', 'cost', 'lifecycle_status'] as const;
 export const EXTENDED_CANONICAL_FIELDS = [
+  'occurrence_id',
+  'object_id',
   'unit_of_measure',
   'find_number',
   'assembly',

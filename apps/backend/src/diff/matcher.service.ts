@@ -274,7 +274,7 @@ export class MatcherService {
   }
 
   private identityToken(row: DiffComparableRow): string | null {
-    return row.stableOccurrenceKey || row.internalId || null;
+    return row.stableOccurrenceKey || row.occurrenceInternalId || row.internalId || null;
   }
 
   private graphContextBonus(source: DiffComparableRow, target: DiffComparableRow): number {

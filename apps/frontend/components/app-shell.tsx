@@ -20,7 +20,7 @@ const titleMap: Record<string, { title: string; eyebrow: string }> = {
   '/results': { title: 'Results', eyebrow: 'Mission Control' },
   '/history': { title: 'History', eyebrow: 'Mission Control' },
   '/notifications': { title: 'Notifications', eyebrow: 'Mission Control' },
-  '/admin': { title: 'Admin', eyebrow: 'Mission Control' }
+  '/admin': { title: 'Governance Command Center', eyebrow: 'Mission Control' }
 };
 
 export function AppShell(props: {

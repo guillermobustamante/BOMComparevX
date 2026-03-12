@@ -492,6 +492,24 @@ export class ClassificationService {
     target: DiffComparableRow,
     comparableFields: Array<keyof DiffComparableRow>
   ) {
+    if (source.properties || target.properties) {
+      const propertyNames = Array.from(
+        new Set([
+          ...Object.keys(source.properties || {}),
+          ...Object.keys(target.properties || {})
+        ])
+      ).sort((a, b) => a.localeCompare(b));
+
+      return propertyNames
+        .filter((propertyName) => (source.properties?.[propertyName] ?? null) !== (target.properties?.[propertyName] ?? null))
+        .map((propertyName) => ({
+          field: propertyName,
+          before: (source.properties?.[propertyName] ?? null) as string | number | null,
+          after: (target.properties?.[propertyName] ?? null) as string | number | null,
+          reasonCode: `field_changed_${this.reasonCodeSafe(propertyName)}`
+        }));
+    }
+
     return comparableFields
       .filter((field) => (source[field] ?? null) !== (target[field] ?? null))
       .map((field) => ({
@@ -500,6 +518,10 @@ export class ClassificationService {
         after: (target[field] ?? null) as string | number | null,
         reasonCode: `field_changed_${field}`
       }));
+  }
+
+  private reasonCodeSafe(value: string): string {
+    return value.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
   }
 
   private replacementContextKey(row: DiffComparableRow): string | null {

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { AuditModule } from '../audit/audit.module';
+import { BomChangeTaxonomyService } from './bom-change-taxonomy.service';
 import { MappingAliasLearningService } from './mapping-alias-learning.service';
 import { MappingAuditService } from './mapping-audit.service';
 import { MappingController } from './mapping.controller';
@@ -14,6 +15,7 @@ import { SemanticRegistryService } from './semantic-registry.service';
   imports: [AuditModule],
   controllers: [MappingController],
   providers: [
+    BomChangeTaxonomyService,
     SemanticRegistryService,
     MappingAliasLearningService,
     MappingFieldPolicyService,
@@ -24,6 +26,7 @@ import { SemanticRegistryService } from './semantic-registry.service';
     SessionAuthGuard
   ],
   exports: [
+    BomChangeTaxonomyService,
     SemanticRegistryService,
     MappingAliasLearningService,
     MappingFieldPolicyService,

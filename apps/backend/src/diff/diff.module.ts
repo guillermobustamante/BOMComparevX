@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { AuditModule } from '../audit/audit.module';
+import { MappingModule } from '../mapping/mapping.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SharesModule } from '../shares/shares.module';
 import { UploadsModule } from '../uploads/uploads.module';
@@ -14,7 +15,7 @@ import { NormalizationService } from './normalization.service';
 import { ProfileAdapterService } from './profile-adapter.service';
 
 @Module({
-  imports: [AuditModule, UploadsModule, SharesModule, NotificationsModule],
+  imports: [AuditModule, UploadsModule, SharesModule, NotificationsModule, MappingModule],
   controllers: [DiffController],
   providers: [
     NormalizationService,

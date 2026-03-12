@@ -489,6 +489,7 @@ export class DiffJobService {
       }
 
       const computed = await this.diffComputationService.computeAsync({
+        tenantId: record.tenantId,
         sourceRows: input.sourceRows,
         targetRows: input.targetRows,
         sourceContext: input.sourceContext,
@@ -947,6 +948,11 @@ export class DiffJobService {
     const cells = row.cells
       .map((cell) => `${cell.field}:${cell.before ?? ''}->${cell.after ?? ''}`)
       .join(' ');
+    const impactCategories = row.impactClassification?.categories.map((category) => category.category).join(' ') || '';
+    const impactRoles = [
+      ...(row.impactClassification?.internalApprovingRoles || []),
+      ...(row.impactClassification?.externalApprovingRoles || [])
+    ].join(' ');
     return [
       row.rowId,
       row.changeType,
@@ -958,7 +964,11 @@ export class DiffJobService {
       row.rationale.fromParent || '',
       row.rationale.toParent || '',
       changedFields,
-      cells
+      cells,
+      impactCategories,
+      impactRoles,
+      row.impactClassification?.impactCriticality || '',
+      row.impactClassification?.highestImpactClass || ''
     ].join(' ');
   }
 

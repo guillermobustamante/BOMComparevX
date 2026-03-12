@@ -42,7 +42,7 @@ export class ProfileAdapterService {
     const adapted = rows.map((row) => {
       const parent = this.keyToken(row.parentPath || row.assemblyPath || 'ROOT');
       const level = row.hierarchyLevel ?? 'NA';
-      const slot = this.keyToken(row.position || row.findNumber || row.internalId || 'NA');
+      const slot = this.keyToken(row.occurrenceInternalId || row.position || row.findNumber || row.internalId || 'NA');
       const descriptor = this.keyToken(row.description || 'NA');
       const base = `sap|parent:${parent}|level:${level}|slot:${slot}|desc:${descriptor}`;
       const occurrence = this.nextOccurrence(occurrences, base);
@@ -51,7 +51,7 @@ export class ProfileAdapterService {
 
       return {
         ...row,
-        internalId: row.internalId || stableOccurrenceKey,
+        internalId: row.internalId || row.occurrenceInternalId || stableOccurrenceKey,
         stableOccurrenceKey,
         snapshotRowKey,
         profileName: 'sap',
@@ -98,15 +98,23 @@ export class ProfileAdapterService {
     const parent = this.keyToken(row.parentPath || row.assemblyPath || '');
     const level = row.hierarchyLevel ?? 'NA';
     const slot = this.keyToken(row.position || row.findNumber || '');
+    const occurrenceInternalId = this.keyToken(row.occurrenceInternalId || '');
+    const objectInternalId = this.keyToken(row.objectInternalId || '');
     const partNumber = this.keyToken(row.partNumber || '');
     const revision = this.keyToken(row.revision || '');
     const description = this.keyToken(row.description || '');
 
+    if (occurrenceInternalId) {
+      return `generic|occ_internal:${occurrenceInternalId}`;
+    }
     if (parent && slot) {
       return `generic|parent:${parent}|level:${level}|slot:${slot}`;
     }
     if (partNumber && parent) {
       return `generic|pn:${partNumber}|rev:${revision || 'NA'}|parent:${parent}`;
+    }
+    if (objectInternalId && parent) {
+      return `generic|object:${objectInternalId}|parent:${parent}|level:${level}`;
     }
     if (partNumber && description) {
       return `generic|pn:${partNumber}|rev:${revision || 'NA'}|desc:${description}`;
@@ -116,6 +124,9 @@ export class ProfileAdapterService {
     }
     if (row.internalId) {
       return `generic|internal:${this.keyToken(row.internalId)}`;
+    }
+    if (objectInternalId) {
+      return `generic|object:${objectInternalId}`;
     }
     return null;
   }

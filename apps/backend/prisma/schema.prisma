@@ -8,31 +8,30 @@ datasource db {
 }
 
 model JobRun {
-  jobId                                  String    @id
-  sessionId                              String
-  status                                 String
-  correlationId                          String
-  tenantId                               String
-  requestedBy                            String
+  jobId                                  String    @id @db.NVarChar(64)
+  sessionId                              String    @db.NVarChar(64)
+  status                                 String    @db.NVarChar(32)
+  correlationId                          String    @db.NVarChar(64)
+  tenantId                               String    @db.NVarChar(128)
+  requestedBy                            String    @db.NVarChar(320)
   createdAtUtc                           DateTime
-  idempotencyKey                         String?
-  fileAName                              String
+  idempotencyKey                         String?   @db.NVarChar(256)
+  fileAName                              String    @db.NVarChar(512)
   fileASize                              Int
-  fileBName                              String
+  fileBName                              String    @db.NVarChar(512)
   fileBSize                              Int
   policyComparisonsUsed                  Int
   policyUnrestrictedComparisonsRemaining Int
   policyCooldownUntilUtc                 DateTime?
 
-  @@unique([requestedBy, idempotencyKey], map: "uq_jobRuns_requestedBy_idempotencyKey")
   @@index([tenantId, requestedBy, createdAtUtc], map: "ix_jobRuns_tenant_user_createdAt")
   @@map("jobRuns")
 }
 
 model AppSession {
-  sessionId     String   @id
-  tenantId      String?
-  userEmail     String?
+  sessionId     String   @id @db.NVarChar(191)
+  tenantId      String?  @db.NVarChar(191)
+  userEmail     String?  @db.NVarChar(320)
   dataJson      String   @db.NVarChar(Max)
   expiresAtUtc  DateTime?
   createdAtUtc  DateTime
@@ -44,28 +43,28 @@ model AppSession {
 }
 
 model HistoryEntry {
-  historyId       String   @id
-  jobId           String   @unique
-  sessionId       String
-  sessionName     String?
-  tagLabel        String?
+  historyId       String   @id @db.NVarChar(64)
+  jobId           String   @unique @db.NVarChar(64)
+  sessionId       String   @db.NVarChar(64)
+  sessionName     String?  @db.NVarChar(200)
+  tagLabel        String?  @db.NVarChar(100)
   createdAtUtc    DateTime
   updatedAtUtc    DateTime
   deletedAtUtc    DateTime?
-  deletedBy       String?
-  status          String
-  initiatorEmail  String
-  tenantId        String
+  deletedBy       String?  @db.NVarChar(320)
+  status          String   @db.NVarChar(32)
+  initiatorEmail  String   @db.NVarChar(320)
+  tenantId        String   @db.NVarChar(128)
 
   @@index([tenantId, initiatorEmail, createdAtUtc], map: "ix_historyEntries_tenant_user_createdAt")
-  @@index([tenantId, initiatorEmail, deletedAtUtc, createdAtUtc], map: "ix_historyEntries_tenant_user_deleted_createdAt")
+  @@index([tenantId, deletedAtUtc, createdAtUtc], map: "IX_historyEntries_tenantId_deletedAtUtc_createdAtUtc")
   @@map("historyEntries")
 }
 
 model UploadPolicy {
-  id               String   @id
-  tenantId         String
-  userKey          String
+  id               String   @id @db.NVarChar(64)
+  tenantId         String   @db.NVarChar(128)
+  userKey          String   @db.NVarChar(320)
   comparisonsUsed  Int
   cooldownUntilUtc DateTime?
   updatedAtUtc     DateTime
@@ -76,12 +75,12 @@ model UploadPolicy {
 }
 
 model UploadEvent {
-  eventId         String   @id
-  tenantId        String
-  userKey         String
-  eventType       String
-  correlationId   String
-  detailsJson     String?
+  eventId         String   @id @db.NVarChar(64)
+  tenantId        String   @db.NVarChar(128)
+  userKey         String   @db.NVarChar(320)
+  eventType       String   @db.NVarChar(64)
+  correlationId   String   @db.NVarChar(64)
+  detailsJson     String?  @db.NVarChar(Max)
   createdAtUtc    DateTime
 
   @@index([tenantId, userKey, createdAtUtc], map: "ix_uploadEvents_tenant_user_createdAt")
@@ -89,55 +88,55 @@ model UploadEvent {
 }
 
 model AuditLog {
-  id              String   @id
+  id              String   @id @db.NVarChar(64)
   timestampUtc    DateTime
-  userId          String?
-  tenantId        String?
-  actionType      String
-  resourceType    String?
-  resourceId      String?
-  detailsJson     String?
-  outcome         String?
-  ipAddress       String?
-  correlationId   String?
+  userId          String?  @db.NVarChar(320)
+  tenantId        String?  @db.NVarChar(128)
+  actionType      String   @db.NVarChar(128)
+  resourceType    String?  @db.NVarChar(128)
+  resourceId      String?  @db.NVarChar(128)
+  detailsJson     String?  @db.NVarChar(Max)
+  outcome         String?  @db.NVarChar(64)
+  ipAddress       String?  @db.NVarChar(64)
+  correlationId   String?  @db.NVarChar(64)
 
   @@index([tenantId, timestampUtc], map: "ix_auditLogs_tenant_timestamp")
   @@map("auditLogs")
 }
 
 model BomColumnMapping {
-  mappingId            String   @id
-  tenantId             String
-  bomRevisionId        String
-  originalColumnsJson  String
-  canonicalMappingJson String
-  customColumnIndicesJson String?
+  mappingId            String   @id @db.NVarChar(64)
+  tenantId             String   @db.NVarChar(128)
+  bomRevisionId        String   @db.NVarChar(64)
+  originalColumnsJson  String   @db.NVarChar(Max)
+  canonicalMappingJson String   @db.NVarChar(Max)
+  customColumnIndicesJson String? @db.NVarChar(Max)
   detectionConfidence  Float?
-  languageMetadataJson String?
+  languageMetadataJson String?  @db.NVarChar(Max)
   createdAtUtc         DateTime
-  createdBy            String?
+  createdBy            String?  @db.NVarChar(320)
 
   @@index([tenantId, bomRevisionId, createdAtUtc], map: "ix_bomColumnMappings_tenant_revision_createdAt")
   @@map("bomColumnMappings")
 }
 
 model UploadedRevision {
-  revisionId         String   @id
-  tenantId           String
-  sessionId          String
-  jobId              String
-  slot               String
-  fileName           String
+  revisionId         String   @id @db.NVarChar(191)
+  tenantId           String   @db.NVarChar(191)
+  sessionId          String   @db.NVarChar(191)
+  jobId              String   @db.NVarChar(191)
+  slot               String   @db.NVarChar(32)
+  fileName           String   @db.NVarChar(512)
   fileSize           Int
   createdAtUtc       DateTime
-  parserMode         String
-  sheetName          String
+  parserMode         String   @db.NVarChar(16)
+  sheetName          String   @db.NVarChar(255)
   headersJson        String   @db.NVarChar(Max)
   headerFieldsJson   String   @db.NVarChar(Max)
   headerRowIndex     Int
   dataStartRowIndex  Int
   dataEndRowIndex    Int
-  workbookBuffer     Bytes?
+  workbookBuffer     Bytes?   @db.VarBinary(Max)
   rowsJson           String   @db.NVarChar(Max)
 
   @@unique([tenantId, jobId, slot], map: "uq_uploadedRevisions_tenant_job_slot")
@@ -147,12 +146,12 @@ model UploadedRevision {
 }
 
 model UploadedRevisionPair {
-  pairId           String   @id
-  tenantId         String
-  sessionId        String
-  jobId            String   @unique
-  leftRevisionId   String
-  rightRevisionId  String
+  pairId           String   @id @db.NVarChar(191)
+  tenantId         String   @db.NVarChar(191)
+  sessionId        String   @db.NVarChar(191)
+  jobId            String   @unique @db.NVarChar(191)
+  leftRevisionId   String   @db.NVarChar(191)
+  rightRevisionId  String   @db.NVarChar(191)
   createdAtUtc     DateTime
 
   @@index([tenantId, sessionId, createdAtUtc], map: "ix_uploadedRevisionPairs_tenant_session_createdAt")
@@ -161,36 +160,36 @@ model UploadedRevisionPair {
 }
 
 model ColumnDetectionAudit {
-  auditId            String   @id
-  tenantId           String
-  bomRevisionId      String
-  sourceColumn       String?
-  canonicalField     String?
-  strategy           String
+  auditId            String   @id @db.NVarChar(64)
+  tenantId           String   @db.NVarChar(128)
+  bomRevisionId      String   @db.NVarChar(64)
+  sourceColumn       String?  @db.NVarChar(320)
+  canonicalField     String?  @db.NVarChar(128)
+  strategy           String   @db.NVarChar(64)
   confidence         Float?
-  reviewState        String?
-  actor              String?
-  changedFrom        String?
-  changedTo          String?
+  reviewState        String?  @db.NVarChar(64)
+  actor              String?  @db.NVarChar(320)
+  changedFrom        String?  @db.NVarChar(320)
+  changedTo          String?  @db.NVarChar(320)
   timestampUtc       DateTime
-  correlationId      String?
+  correlationId      String?  @db.NVarChar(64)
 
   @@index([tenantId, bomRevisionId, timestampUtc], map: "ix_columnDetectionAudits_tenant_revision_timestamp")
   @@map("columnDetectionAudits")
 }
 
 model ComparisonShare {
-  shareId        String   @id
-  tenantId       String
-  comparisonId   String
-  ownerEmail     String
-  invitedEmail   String
-  permission     String
+  shareId        String   @id @db.NVarChar(64)
+  tenantId       String   @db.NVarChar(128)
+  comparisonId   String   @db.NVarChar(64)
+  ownerEmail     String   @db.NVarChar(320)
+  invitedEmail   String   @db.NVarChar(320)
+  permission     String   @db.NVarChar(32)
   createdAtUtc   DateTime
   updatedAtUtc   DateTime
   revokedAtUtc   DateTime?
-  createdBy      String?
-  revokedBy      String?
+  createdBy      String?  @db.NVarChar(320)
+  revokedBy      String?  @db.NVarChar(320)
 
   @@unique([tenantId, comparisonId, invitedEmail], map: "uq_comparisonShares_tenant_comparison_invitedEmail")
   @@index([tenantId, ownerEmail, comparisonId], map: "ix_comparisonShares_tenant_owner_comparison")
@@ -199,18 +198,18 @@ model ComparisonShare {
 }
 
 model Notification {
-  notificationId       String   @id
-  tenantId             String
-  userEmail            String
-  type                 String
-  comparisonId         String?
-  title                String
-  message              String
-  linkPath             String?
+  notificationId       String   @id @db.NVarChar(64)
+  tenantId             String   @db.NVarChar(128)
+  userEmail            String   @db.NVarChar(320)
+  type                 String   @db.NVarChar(64)
+  comparisonId         String?  @db.NVarChar(64)
+  title                String   @db.NVarChar(320)
+  message              String   @db.NVarChar(1024)
+  linkPath             String?  @db.NVarChar(1024)
   isRead               Boolean
   createdAtUtc         DateTime
   emailDispatchedAtUtc DateTime?
-  detailsJson          String?
+  detailsJson          String?  @db.NVarChar(Max)
 
   @@index([tenantId, userEmail, createdAtUtc], map: "ix_notifications_tenant_user_createdAt")
   @@index([tenantId, type, createdAtUtc], map: "ix_notifications_tenant_type_createdAt")
@@ -218,12 +217,12 @@ model Notification {
 }
 
 model ExportArtifact {
-  artifactId     String   @id
-  tenantId       String
-  comparisonId   String
-  requestedBy    String
-  format         String
-  fileName       String
+  artifactId     String   @id @db.NVarChar(64)
+  tenantId       String   @db.NVarChar(128)
+  comparisonId   String   @db.NVarChar(64)
+  requestedBy    String   @db.NVarChar(320)
+  format         String   @db.NVarChar(16)
+  fileName       String   @db.NVarChar(512)
   byteSize       Int
   createdAtUtc   DateTime
 
@@ -233,14 +232,14 @@ model ExportArtifact {
 }
 
 model AdminRoleClaim {
-  claimId       String   @id
-  tenantId      String
-  userEmail     String
-  role          String
+  claimId       String   @id @db.NVarChar(64)
+  tenantId      String   @db.NVarChar(128)
+  userEmail     String   @db.NVarChar(320)
+  role          String   @db.NVarChar(64)
   isActive      Boolean
   createdAtUtc  DateTime
   updatedAtUtc  DateTime
-  createdBy     String?
+  createdBy     String?  @db.NVarChar(320)
 
   @@unique([tenantId, userEmail, role], map: "uq_adminRoleClaims_tenant_user_role")
   @@index([tenantId, role, isActive], map: "ix_adminRoleClaims_tenant_role_active")
@@ -248,14 +247,14 @@ model AdminRoleClaim {
 }
 
 model TenantAliasDecision {
-  decisionId              String   @id
-  tenantId                String
-  normalizedSourceColumn  String
-  canonicalField          String
+  decisionId              String   @id @db.NVarChar(191)
+  tenantId                String   @db.NVarChar(191)
+  normalizedSourceColumn  String   @db.NVarChar(255)
+  canonicalField          String   @db.NVarChar(191)
   isEnabled               Boolean
   createdAtUtc            DateTime
   updatedAtUtc            DateTime
-  updatedBy               String?
+  updatedBy               String?  @db.NVarChar(320)
 
   @@unique([tenantId, normalizedSourceColumn, canonicalField], map: "uq_tenantAliasDecisions_tenant_header_field")
   @@index([tenantId, updatedAtUtc], map: "ix_tenantAliasDecisions_tenant_updatedAt")
@@ -263,12 +262,12 @@ model TenantAliasDecision {
 }
 
 model UploadPolicyOverride {
-  overrideId     String   @id
-  tenantId       String
-  userKey        String
+  overrideId     String   @id @db.NVarChar(64)
+  tenantId       String   @db.NVarChar(128)
+  userKey        String   @db.NVarChar(320)
   isUnlimited    Boolean
-  reason         String?
-  createdBy      String?
+  reason         String?  @db.NVarChar(1024)
+  createdBy      String?  @db.NVarChar(320)
   createdAtUtc   DateTime
   updatedAtUtc   DateTime
 
@@ -278,16 +277,16 @@ model UploadPolicyOverride {
 }
 
 model PartNode {
-  nodeId          String   @id
-  tenantId        String
-  revisionId      String
-  sourceRowId     String
-  partNumber      String?
-  revision        String?
-  description     String?
-  internalId      String?
+  nodeId          String   @id @db.NVarChar(64)
+  tenantId        String   @db.NVarChar(128)
+  revisionId      String   @db.NVarChar(64)
+  sourceRowId     String   @db.NVarChar(128)
+  partNumber      String?  @db.NVarChar(256)
+  revision        String?  @db.NVarChar(128)
+  description     String?  @db.NVarChar(512)
+  internalId      String?  @db.NVarChar(256)
   hierarchyLevel  Int?
-  assemblyPath    String?
+  assemblyPath    String?  @db.NVarChar(1024)
   createdAtUtc    DateTime
 
   @@unique([tenantId, revisionId, sourceRowId], map: "uq_partNode_tenant_revision_sourceRow")
@@ -297,15 +296,15 @@ model PartNode {
 }
 
 model ContainsEdge {
-  edgeId        String   @id
-  tenantId      String
-  revisionId    String
-  parentNodeId  String?
-  childNodeId   String
-  sourceRowId   String
+  edgeId        String   @id @db.NVarChar(64)
+  tenantId      String   @db.NVarChar(128)
+  revisionId    String   @db.NVarChar(64)
+  parentNodeId  String?  @db.NVarChar(64)
+  childNodeId   String   @db.NVarChar(64)
+  sourceRowId   String   @db.NVarChar(128)
   quantity      Float?
-  findNumber    String?
-  parentPath    String?
+  findNumber    String?  @db.NVarChar(128)
+  parentPath    String?  @db.NVarChar(1024)
   depth         Int?
   createdAtUtc  DateTime
 
@@ -316,14 +315,14 @@ model ContainsEdge {
 }
 
 model DiffSnapshot {
-  snapshotId      String   @id
-  comparisonId    String   @unique
-  tenantId        String
-  requestedBy     String
-  sessionId       String?
-  leftRevisionId  String?
-  rightRevisionId String?
-  contractVersion String
+  snapshotId      String   @id @db.NVarChar(64)
+  comparisonId    String   @unique @db.NVarChar(64)
+  tenantId        String   @db.NVarChar(128)
+  requestedBy     String   @db.NVarChar(320)
+  sessionId       String?  @db.NVarChar(64)
+  leftRevisionId  String?  @db.NVarChar(64)
+  rightRevisionId String?  @db.NVarChar(64)
+  contractVersion String   @db.NVarChar(32)
   countersJson    String   @db.NVarChar(Max)
   rowsJson        String   @db.NVarChar(Max)
   createdAtUtc    DateTime
@@ -345,4 +344,29 @@ model ConsentAcceptance {
   @@index([tenantId, userEmail, acceptedAtUtc], map: "ix_consentAcceptances_tenant_user_acceptedAt")
   @@index([tenantId, acceptedAtUtc], map: "ix_consentAcceptances_tenant_acceptedAt")
   @@map("consentAcceptances")
+}
+
+model TenantIndustrySetting {
+  settingId        String   @id
+  tenantId         String   @unique
+  defaultIndustry  String
+  updatedAtUtc     DateTime
+  updatedBy        String?
+
+  @@index([tenantId, updatedAtUtc], map: "ix_tenantIndustrySettings_tenant_updatedAt")
+  @@map("tenantIndustrySettings")
+}
+
+model TenantBomTaxonomy {
+  taxonomyId      String   @id
+  tenantId        String
+  industry        String
+  taxonomyJson    String   @db.NVarChar(Max)
+  sourceVersion   String
+  updatedAtUtc    DateTime
+  updatedBy       String?
+
+  @@unique([tenantId, industry], map: "uq_tenantBomTaxonomies_tenant_industry")
+  @@index([tenantId, updatedAtUtc], map: "ix_tenantBomTaxonomies_tenant_updatedAt")
+  @@map("tenantBomTaxonomies")
 }

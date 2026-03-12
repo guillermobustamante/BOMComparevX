@@ -191,7 +191,7 @@ export class ExportsService {
     }
 
     const fileName = `bomcompare_${this.sanitizeFileToken(exportRows.jobId)}_results.xlsx`;
-    const metadataSheetName = this.uniqueSheetName(workbook, 'Comparison Metadata');
+    const metadataSheetName = this.uniqueSheetName(workbook, 'Change Impact Classification');
     const content = this.patchWorkbookTemplatePackage(
       template.workbookBuffer!,
       targetSheetName,
@@ -421,22 +421,8 @@ export class ExportsService {
     workbook: XLSX.WorkBook,
     exportRows: Awaited<ReturnType<DiffJobService['getRowsForExport']>>
   ): void {
-    const metadataSheetName = this.uniqueSheetName(workbook, 'Comparison Metadata');
-    const metadataRows: Array<Array<string | number>> = [
-      ['comparisonId', 'rowId', 'changeType', 'partNumber', 'revision', 'description', 'changedFields', 'classificationReason']
-    ];
-    for (const row of exportRows.rows) {
-      metadataRows.push([
-        exportRows.jobId,
-        row.rowId,
-        row.changeType,
-        row.keyFields.partNumber || '',
-        row.keyFields.revision || '',
-        row.keyFields.description || '',
-        row.rationale.changedFields.join(';'),
-        row.rationale.classificationReason || ''
-      ]);
-    }
+    const metadataSheetName = this.uniqueSheetName(workbook, 'Change Impact Classification');
+    const metadataRows = this.buildImpactClassificationRows(exportRows);
     const metadataSheet = XLSX.utils.aoa_to_sheet(metadataRows);
     metadataSheet['!autofilter'] = {
       ref: XLSX.utils.encode_range({
@@ -778,20 +764,8 @@ export class ExportsService {
   private buildMetadataSheetXml(
     exportRows: Awaited<ReturnType<DiffJobService['getRowsForExport']>>
   ): string {
-    const headers = ['comparisonId', 'rowId', 'changeType', 'partNumber', 'revision', 'description', 'changedFields', 'classificationReason'];
-    const rows = [
-      headers,
-      ...exportRows.rows.map((row) => [
-        exportRows.jobId,
-        row.rowId,
-        row.changeType,
-        row.keyFields.partNumber || '',
-        row.keyFields.revision || '',
-        row.keyFields.description || '',
-        row.rationale.changedFields.join(';'),
-        row.rationale.classificationReason || ''
-      ])
-    ];
+    const rows = this.buildImpactClassificationRows(exportRows);
+    const headers = rows[0];
     const endCol = XLSX.utils.encode_col(headers.length - 1);
     const rowXml = rows.map((values, rowOffset) => {
       const rowNumber = rowOffset + 1;
@@ -810,6 +784,49 @@ export class ExportsService {
       `<sheetData>${rowXml}</sheetData>` +
       `<autoFilter ref="A1:${endCol}${rows.length}"/>` +
       `</worksheet>`;
+  }
+
+  private buildImpactClassificationRows(
+    exportRows: Awaited<ReturnType<DiffJobService['getRowsForExport']>>
+  ): Array<Array<string | number>> {
+    const headers = [
+      'comparisonId',
+      'rowId',
+      'changeType',
+      'partNumber',
+      'revision',
+      'description',
+      'changedFields',
+      'classificationReason',
+      'impactCriticality',
+      'impactClass',
+      'categories',
+      'changeDescriptions',
+      'internalApprovingRoles',
+      'externalApprovingRoles',
+      'complianceTriggers'
+    ];
+
+    return [
+      headers,
+      ...exportRows.rows.map((row) => [
+        exportRows.jobId,
+        row.rowId,
+        row.changeType,
+        row.keyFields.partNumber || '',
+        row.keyFields.revision || '',
+        row.keyFields.description || '',
+        row.rationale.changedFields.join(';'),
+        row.rationale.classificationReason || '',
+        row.impactClassification?.impactCriticality || '',
+        row.impactClassification?.highestImpactClass || '',
+        row.impactClassification?.categories.map((category) => category.category).join('; ') || '',
+        row.impactClassification?.categories.map((category) => category.changeDescription).join(' | ') || '',
+        row.impactClassification?.internalApprovingRoles.join('; ') || '',
+        row.impactClassification?.externalApprovingRoles.join('; ') || '',
+        row.impactClassification?.complianceTriggers.join('; ') || ''
+      ])
+    ];
   }
 
   private patchAppXmlForNewSheet(appXml: string, sheetName: string): string {

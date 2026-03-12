@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DiffComparableRow } from './diff-contract';
+import { DiffComparableRow, DiffPropertyValue } from './diff-contract';
 
 export interface NormalizationMetadata {
   field: string;
@@ -31,6 +31,8 @@ export class NormalizationService {
     const normalized: DiffComparableRow = {
       ...input,
       internalId: this.normalizeText(input.internalId, false),
+      occurrenceInternalId: this.normalizeText(input.occurrenceInternalId, false),
+      objectInternalId: this.normalizeText(input.objectInternalId, false),
       partNumber: this.normalizePartNumber(input.partNumber),
       revision: this.normalizeText(input.revision, true),
       description: this.normalizeText(input.description, true),
@@ -45,10 +47,18 @@ export class NormalizationService {
       findNumber: this.normalizeText(input.findNumber, false),
       hierarchyLevel: this.normalizeNumber(input.hierarchyLevel),
       quantity: this.normalizeNumber(input.quantity),
-      cost: this.normalizeNumber(input.cost)
+      cost: this.normalizeNumber(input.cost),
+      properties: this.normalizeProperties(input.properties)
     };
 
     push('internalId', input.internalId, normalized.internalId ?? null, 'text_trim_space');
+    push(
+      'occurrenceInternalId',
+      input.occurrenceInternalId,
+      normalized.occurrenceInternalId ?? null,
+      'text_trim_space'
+    );
+    push('objectInternalId', input.objectInternalId, normalized.objectInternalId ?? null, 'text_trim_space');
     push('partNumber', input.partNumber, normalized.partNumber ?? null, 'part_number_case_strip');
     push('revision', input.revision, normalized.revision ?? null, 'text_upper_trim_space');
     push('description', input.description, normalized.description ?? null, 'text_upper_trim_space');
@@ -66,6 +76,58 @@ export class NormalizationService {
     push('cost', input.cost ?? null, normalized.cost ?? null, 'numeric_normalization');
 
     return { row: normalized, metadata };
+  }
+
+  normalizeProperties(
+    input: Record<string, DiffPropertyValue> | null | undefined
+  ): Record<string, DiffPropertyValue> | undefined {
+    if (!input) return undefined;
+
+    return Object.fromEntries(
+      Object.entries(input).map(([key, value]) => [key, this.normalizePropertyValue(key, value)])
+    );
+  }
+
+  normalizePropertyValue(propertyName: string, value: DiffPropertyValue): DiffPropertyValue {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value === 'number') return this.normalizeNumber(value);
+    if (typeof value === 'boolean') return value;
+
+    const text = String(value).trim();
+    if (!text) return null;
+
+    const dimensionTuple = this.normalizeDimensionTuple(text);
+    if (dimensionTuple) {
+      return dimensionTuple;
+    }
+
+    const lowerProperty = this.normalizePropertyName(propertyName);
+    if (
+      /\b(quantity|qty|cost|price|weight|mass|height|width|length|depth|diameter|radius|thickness|volume|area)\b/.test(
+        lowerProperty
+      )
+    ) {
+      const numeric = this.normalizeNumber(text);
+      if (numeric !== null) {
+        return numeric;
+      }
+    }
+
+    if (/^(true|false|yes|no|y|n)$/i.test(text)) {
+      return /^(true|yes|y)$/i.test(text);
+    }
+
+    return this.normalizeText(text, true);
+  }
+
+  normalizePropertyName(value: string): string {
+    return value
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, ' ')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   normalizeText(value: string | null | undefined, uppercase: boolean): string | null {
@@ -111,5 +173,20 @@ export class NormalizationService {
       return { value: Number((n * massToG[u]).toFixed(6)), unit: 'G' };
     }
     return { value: n, unit: u };
+  }
+
+  private normalizeDimensionTuple(value: string): string | null {
+    const parts = value
+      .split(/x/gi)
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0);
+    if (parts.length < 2 || parts.length > 3) return null;
+
+    const normalized = parts.map((part) => this.normalizeNumber(part));
+    if (normalized.some((part) => part === null)) {
+      return null;
+    }
+
+    return normalized.map((part) => Number(part).toFixed(6)).join(' x ');
   }
 }

@@ -1,0 +1,127 @@
+<svg width="1600" height="980" viewBox="0 0 1600 980" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="88" y1="42" x2="1504" y2="948" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDFEFF"/>
+      <stop offset="0.42" stop-color="#EEF5FF"/>
+      <stop offset="1" stop-color="#E5F0FF"/>
+    </linearGradient>
+    <linearGradient id="hero" x1="100" y1="98" x2="1320" y2="362" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F4F8FF"/>
+    </linearGradient>
+    <linearGradient id="rail" x1="1328" y1="98" x2="1494" y2="884" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10213B"/>
+      <stop offset="1" stop-color="#1A335C"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="1700" height="1080" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="20"/>
+      <feGaussianBlur stdDeviation="20"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.243137 0 0 0 0 0.360784 0 0 0 0 0.560784 0 0 0 0.12 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="980" fill="url(#bg)"/>
+  <circle cx="1420" cy="122" r="224" fill="#FFFFFF" fill-opacity="0.55"/>
+  <circle cx="154" cy="844" r="210" fill="#FFFFFF" fill-opacity="0.48"/>
+
+  <g filter="url(#shadow)">
+    <rect x="58" y="44" width="1484" height="892" rx="34" fill="#F7FBFF"/>
+  </g>
+
+  <text x="112" y="100" fill="#5C7392" font-family="Segoe UI, Arial, sans-serif" font-size="22" letter-spacing="5">MISSION CONTROL</text>
+  <text x="112" y="152" fill="#10213B" font-family="Segoe UI, Arial, sans-serif" font-size="64" font-weight="700">Taxonomy Editor</text>
+  <text x="112" y="188" fill="#607291" font-family="Segoe UI, Arial, sans-serif" font-size="24">A calmer, more guided way for administrators to govern one change type.</text>
+
+  <rect x="96" y="224" width="1200" height="176" rx="28" fill="url(#hero)" stroke="#D8E4F4"/>
+  <text x="136" y="272" fill="#6B809D" font-family="Segoe UI, Arial, sans-serif" font-size="18" letter-spacing="3">CHANGE TYPE</text>
+  <text x="136" y="326" fill="#10213B" font-family="Segoe UI, Arial, sans-serif" font-size="38" font-weight="700">Product design / form-fit-function change</text>
+  <text x="136" y="366" fill="#5F7392" font-family="Segoe UI, Arial, sans-serif" font-size="22">Geometry, tolerance, interface, performance, durability, or compatibility changes to the product definition.</text>
+
+  <rect x="1040" y="250" width="108" height="40" rx="20" fill="#E8F5EC" stroke="#A5D7B2"/>
+  <text x="1067" y="276" fill="#2B6A3B" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">Class A</text>
+  <rect x="1162" y="250" width="96" height="40" rx="20" fill="#FFF2DE" stroke="#E7C78E"/>
+  <text x="1190" y="276" fill="#8A5B00" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">High</text>
+
+  <rect x="1324" y="96" width="168" height="788" rx="28" fill="url(#rail)"/>
+  <text x="1360" y="146" fill="#DCE7F8" font-family="Segoe UI, Arial, sans-serif" font-size="18" letter-spacing="3">ACTIONS</text>
+
+  <rect x="1350" y="176" width="116" height="58" rx="18" fill="#5B8FFF"/>
+  <text x="1390" y="212" fill="#FFFFFF" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">Save</text>
+
+  <rect x="1350" y="248" width="116" height="58" rx="18" fill="#20385F" stroke="#496991"/>
+  <text x="1376" y="284" fill="#E5EEFA" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="600">Preview</text>
+
+  <rect x="1350" y="320" width="116" height="58" rx="18" fill="#20385F" stroke="#496991"/>
+  <text x="1381" y="356" fill="#E5EEFA" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="600">Duplicate</text>
+
+  <rect x="1350" y="392" width="116" height="58" rx="18" fill="#20385F" stroke="#496991"/>
+  <text x="1392" y="428" fill="#E5EEFA" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="600">Archive</text>
+
+  <text x="1360" y="506" fill="#C1D1EC" font-family="Segoe UI, Arial, sans-serif" font-size="16" letter-spacing="2">WHY THIS LAYOUT</text>
+  <text x="1360" y="548" fill="#FFFFFF" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">One screen.</text>
+  <text x="1360" y="584" fill="#FFFFFF" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">Three decisions.</text>
+  <text x="1360" y="620" fill="#FFFFFF" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700">No clutter.</text>
+
+  <rect x="96" y="432" width="1200" height="64" rx="24" fill="#FFFFFF" stroke="#D8E4F4"/>
+  <rect x="118" y="444" width="164" height="40" rx="20" fill="#E9F2FF"/>
+  <text x="166" y="470" fill="#15469D" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">General</text>
+  <rect x="294" y="444" width="168" height="40" rx="20" fill="#F7FAFE"/>
+  <text x="348" y="470" fill="#58718F" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">Triggers</text>
+  <rect x="474" y="444" width="178" height="40" rx="20" fill="#F7FAFE"/>
+  <text x="530" y="470" fill="#58718F" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">Approvals</text>
+  <rect x="664" y="444" width="182" height="40" rx="20" fill="#F7FAFE"/>
+  <text x="720" y="470" fill="#58718F" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">Automation</text>
+
+  <rect x="96" y="528" width="576" height="324" rx="28" fill="#FFFFFF" stroke="#D8E4F4"/>
+  <text x="132" y="574" fill="#6A7F9B" font-family="Segoe UI, Arial, sans-serif" font-size="18" letter-spacing="3">GENERAL RULES</text>
+  <text x="132" y="628" fill="#10213B" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">Criticality and control path live together</text>
+  <text x="132" y="664" fill="#607291" font-family="Segoe UI, Arial, sans-serif" font-size="20">Instead of four disconnected fields, the admin sees one policy card with plain-language impact summary.</text>
+
+  <rect x="132" y="704" width="236" height="104" rx="22" fill="#F8FBFF" stroke="#D9E7F7"/>
+  <text x="156" y="736" fill="#6B7E99" font-family="Segoe UI, Arial, sans-serif" font-size="16" letter-spacing="2">CONTROL PATH</text>
+  <text x="156" y="776" fill="#153058" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700">ECR / ECO</text>
+  <text x="156" y="804" fill="#607291" font-family="Segoe UI, Arial, sans-serif" font-size="18">DV/PV evidence + PPAP if triggered</text>
+
+  <rect x="386" y="704" width="250" height="104" rx="22" fill="#FFF9EF" stroke="#E8D3A2"/>
+  <text x="410" y="736" fill="#8A6B1E" font-family="Segoe UI, Arial, sans-serif" font-size="16" letter-spacing="2">COMPLIANCE</text>
+  <text x="410" y="776" fill="#5E4310" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700">IATF 16949 / PPAP</text>
+  <text x="410" y="804" fill="#8C6A22" font-family="Segoe UI, Arial, sans-serif" font-size="18">Clause 8.3.6 managed evidence</text>
+
+  <rect x="700" y="528" width="596" height="160" rx="28" fill="#FFFFFF" stroke="#D8E4F4"/>
+  <text x="736" y="574" fill="#6A7F9B" font-family="Segoe UI, Arial, sans-serif" font-size="18" letter-spacing="3">TRIGGER MATRIX</text>
+  <text x="736" y="626" fill="#10213B" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">Properties are grouped as chips, not a long form field</text>
+
+  <rect x="736" y="650" width="174" height="36" rx="18" fill="#EEF4FF" stroke="#C3D7FB"/>
+  <text x="759" y="673" fill="#204D99" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="600">OEM Part Number</text>
+  <rect x="920" y="650" width="168" height="36" rx="18" fill="#EEF4FF" stroke="#C3D7FB"/>
+  <text x="945" y="673" fill="#204D99" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="600">Supplier Part #</text>
+  <rect x="1098" y="650" width="134" height="36" rx="18" fill="#EEF4FF" stroke="#C3D7FB"/>
+  <text x="1131" y="673" fill="#204D99" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="600">Revision</text>
+  <rect x="736" y="700" width="116" height="36" rx="18" fill="#EEF4FF" stroke="#C3D7FB"/>
+  <text x="768" y="723" fill="#204D99" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="600">Quantity</text>
+  <rect x="862" y="700" width="176" height="36" rx="18" fill="#EEF4FF" stroke="#C3D7FB"/>
+  <text x="887" y="723" fill="#204D99" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="600">Reference / Position</text>
+  <rect x="1048" y="700" width="126" height="36" rx="18" fill="#EEF4FF" stroke="#C3D7FB"/>
+  <text x="1082" y="723" fill="#204D99" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="600">Variant</text>
+  <rect x="1184" y="700" width="82" height="36" rx="18" fill="#F7FAFE" stroke="#D8E4F4"/>
+  <text x="1213" y="723" fill="#5F7392" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="600">+ Add</text>
+
+  <rect x="700" y="712" width="596" height="140" rx="28" fill="#FFFFFF" stroke="#D8E4F4"/>
+  <text x="736" y="758" fill="#6A7F9B" font-family="Segoe UI, Arial, sans-serif" font-size="18" letter-spacing="3">APPROVALS</text>
+  <text x="736" y="808" fill="#10213B" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">Internal and external roles stay visible in one split view</text>
+
+  <rect x="96" y="878" width="1200" height="30" rx="15" fill="#E8F0FC"/>
+  <rect x="96" y="878" width="840" height="30" rx="15" fill="#7BA7FF"/>
+  <text x="112" y="899" fill="#15469D" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700">Guided completion: 70%</text>
+
+  <rect x="736" y="824" width="286" height="44" rx="22" fill="#EDF9F0" stroke="#B8DDBF"/>
+  <text x="760" y="852" fill="#326443" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">Design Engineer  x    Manufacturing Engineer  x</text>
+  <rect x="1040" y="824" width="212" height="44" rx="22" fill="#FFF8EB" stroke="#E4C98E"/>
+  <text x="1064" y="852" fill="#8A651B" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">OEM SQE  x    Customer Eng  x</text>
+
+  <text x="136" y="908" fill="#607291" font-family="Segoe UI, Arial, sans-serif" font-size="18">Concept direction: fewer input boxes, stronger hierarchy, guided sections, sticky actions, and visual grouping for administrators.</text>
+</svg>

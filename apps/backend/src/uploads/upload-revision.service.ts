@@ -77,7 +77,16 @@ const HEADER_ALIASES = {
   ],
   supplier: ['supplier', 'vendor', 'manufacturer', 'mfr', 'currentsupplier', 'futuresupplier'],
   plant: ['plant', 'werks', 'plantcode'],
-  internalId: ['internalid', 'id', 'rowid', 'elemid', 'elementid', 'partkey', 'occurrenceinternalname', 'itemnode'],
+  internalId: ['internalid', 'id', 'rowid'],
+  occurrenceInternalId: [
+    'occurrenceinternalname',
+    'occurrenceinternalid',
+    'occurrenceid',
+    'instanceid',
+    'instanceinternalname',
+    'itemnode'
+  ],
+  objectInternalId: ['partkey', 'linkedobjectname', 'linkedobjectid', 'elemid', 'elementid', 'objectid'],
   parentPath: ['parentpath', 'parent', 'path', 'pathpredecessor'],
   position: ['position', 'refdes', 'reference', 'itemnumber', 'lin', 'line', 'findnumber'],
   hierarchyLevel: ['level', 'lvl', 'explosionlevel'],
@@ -502,6 +511,8 @@ export class UploadRevisionService {
     const supplierIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.supplier);
     const plantIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.plant);
     const internalIdIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.internalId);
+    const occurrenceInternalIdIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.occurrenceInternalId);
+    const objectInternalIdIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.objectInternalId);
     const parentPathIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.parentPath);
     const positionIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.position);
     const hierarchyLevelIndex = this.findHeaderIndex(headerColumns, HEADER_ALIASES.hierarchyLevel);
@@ -532,6 +543,8 @@ export class UploadRevisionService {
         indexToField.set(index, field);
       }
     };
+    maybeSetField(occurrenceInternalIdIndex, 'occurrenceInternalId');
+    maybeSetField(objectInternalIdIndex, 'objectInternalId');
     maybeSetField(internalIdIndex, 'internalId');
     maybeSetField(partIndex, 'partNumber');
     maybeSetField(revisionIndex, 'revision');
@@ -555,9 +568,21 @@ export class UploadRevisionService {
       if (tableRow.sourceRowIndex <= headerRow.sourceRowIndex) continue;
       const values = tableRow.values;
       if (!values.some((value) => value.trim().length > 0)) continue;
+      const properties = headerRow.values.reduce<Record<string, string | null>>((acc, header, index) => {
+        const key = header.trim();
+        if (!key) return acc;
+        acc[key] = this.pick(values, index) ?? null;
+        return acc;
+      }, {});
       rows.push({
         rowId: `${prefix}-${tableRow.sourceRowIndex}`,
-        internalId: this.pick(values, internalIdIndex),
+        internalId: this.resolvePreferredInternalId(values, {
+          internalIdIndex,
+          occurrenceInternalIdIndex,
+          objectInternalIdIndex
+        }),
+        occurrenceInternalId: this.pick(values, occurrenceInternalIdIndex),
+        objectInternalId: this.pick(values, objectInternalIdIndex),
         partNumber: this.pick(values, partIndex),
         revision: this.pick(values, revisionIndex),
         description: this.pick(values, descriptionIndex),
@@ -572,7 +597,8 @@ export class UploadRevisionService {
         position: this.pick(values, positionIndex),
         assemblyPath: this.pick(values, assemblyPathIndex),
         findNumber: this.pick(values, findNumberIndex),
-        hierarchyLevel: this.parseHierarchyLevel(this.pick(values, hierarchyLevelIndex))
+        hierarchyLevel: this.parseHierarchyLevel(this.pick(values, hierarchyLevelIndex)),
+        properties
       });
     }
 
@@ -775,6 +801,21 @@ export class UploadRevisionService {
     return parsed;
   }
 
+  private resolvePreferredInternalId(
+    values: string[],
+    indexes: {
+      internalIdIndex: number;
+      occurrenceInternalIdIndex: number;
+      objectInternalIdIndex: number;
+    }
+  ): string | null {
+    return (
+      this.pick(values, indexes.occurrenceInternalIdIndex) ||
+      this.pick(values, indexes.internalIdIndex) ||
+      this.pick(values, indexes.objectInternalIdIndex)
+    );
+  }
+
   private parseHierarchyLevel(value: string | null): number | null {
     if (!value) return null;
     const direct = Number(value);
@@ -823,7 +864,9 @@ export class UploadRevisionService {
 
       const identity =
         row.partNumber ||
+        row.occurrenceInternalId ||
         row.internalId ||
+        row.objectInternalId ||
         row.description ||
         row.assemblyPath ||
         row.rowId;

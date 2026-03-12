@@ -11,6 +11,7 @@ import { MatcherService } from './matcher.service';
 import { NormalizationService } from './normalization.service';
 import { ProfileAdapterContext, ProfileFieldPolicy } from './profile-adapter.contract';
 import { ProfileAdapterService } from './profile-adapter.service';
+import { BomChangeTaxonomyService } from '../mapping/bom-change-taxonomy.service';
 
 const PROGRESS_BATCH_SIZE = 25;
 const PHASE_PERCENT_RANGES = {
@@ -31,7 +32,8 @@ export class DiffComputationService {
     private readonly featureFlags: DiffFeatureFlagService,
     private readonly profileAdapterService: ProfileAdapterService,
     private readonly matcherService: MatcherService,
-    private readonly classificationService: ClassificationService
+    private readonly classificationService: ClassificationService,
+    private readonly bomChangeTaxonomyService: BomChangeTaxonomyService
   ) {}
 
   compute(input: {
@@ -228,6 +230,7 @@ export class DiffComputationService {
   }
 
   async computeAsync(input: {
+    tenantId?: string;
     sourceRows: DiffComparableRow[];
     targetRows: DiffComparableRow[];
     sourceContext?: ProfileAdapterContext;
@@ -416,6 +419,47 @@ export class DiffComputationService {
       if ((index + 1) % PROGRESS_BATCH_SIZE === 0 || index === rows.length - 1) {
         await reportProgress('finalizing', classified.length + 1 + index + 1, finalizationTotalUnits);
       }
+    }
+
+    const tenantId = input.tenantId;
+    if (tenantId) {
+      await Promise.all(
+        rows.map(async (row) => {
+          if (!['modified', 'quantity_change', 'moved', 'replaced', 'no_change'].includes(row.changeType)) {
+            row.impactClassification = null;
+            return;
+          }
+          const changedProperties = row.cells.map((cell) => cell.field);
+          if (changedProperties.length === 0) {
+            row.impactClassification = null;
+            return;
+          }
+          const classifiedImpact = await this.bomChangeTaxonomyService.classifyChangedProperties(
+            tenantId,
+            changedProperties
+          );
+          row.impactClassification = {
+            industry: classifiedImpact.industry,
+            categories: classifiedImpact.categories.map((category) => ({
+              industry: category.industry,
+              category: category.category,
+              changeDescription: category.changeDescription,
+              impactClass: category.impactClass,
+              impactCriticality: category.impactCriticality,
+              internalApprovingRoles: category.internalApprovingRoles,
+              externalApprovingRoles: category.externalApprovingRoles,
+              controlPath: category.controlPath,
+              complianceTrigger: category.complianceTrigger,
+              matchedProperties: category.matchedProperties
+            })),
+            highestImpactClass: classifiedImpact.highestImpactClass,
+            impactCriticality: classifiedImpact.impactCriticality,
+            internalApprovingRoles: classifiedImpact.internalApprovingRoles,
+            externalApprovingRoles: classifiedImpact.externalApprovingRoles,
+            complianceTriggers: classifiedImpact.complianceTriggers
+          };
+        })
+      );
     }
 
     const ambiguousMatchCount = matchResult.matches.filter((match) => match.reviewRequired).length;

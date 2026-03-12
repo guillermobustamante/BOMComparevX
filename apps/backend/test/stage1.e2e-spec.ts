@@ -1824,7 +1824,7 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(exportedWorkbook.SheetNames).toEqual(
       expect.arrayContaining(templateWorkbook.SheetNames)
     );
-    expect(exportedWorkbook.SheetNames).toContain('Comparison Metadata');
+    expect(exportedWorkbook.SheetNames).toContain('Change Impact Classification');
 
     const templateSheet = templateWorkbook.Sheets[templateWorkbook.SheetNames[0]];
     const resultSheet = exportedWorkbook.Sheets[templateWorkbook.SheetNames[0]];
@@ -1835,7 +1835,7 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect((resultSheet['S1']?.v as string) || '').toBe('Change Type');
     expect((resultSheet['T1']?.v as string) || '').toBe('Changed Fields');
     expect((resultSheet['U1']?.v as string) || '').toBe('Classification Reason');
-    const metadataSheet = exportedWorkbook.Sheets['Comparison Metadata'];
+    const metadataSheet = exportedWorkbook.Sheets['Change Impact Classification'];
     expect(metadataSheet['!cols']?.[0]?.hidden).toBe(true);
 
     const exportedTableXml = String(
@@ -2507,7 +2507,7 @@ describe('Stage 1 API baseline (e2e)', () => {
     const target = rows.find((row) => row.keyFields.partNumber === '3023');
     expect(target).toBeDefined();
     expect(target?.changeType).toBe('modified');
-    expect(target?.rationale.changedFields).toEqual(expect.arrayContaining(['color', 'quantity', 'cost']));
+    expect(target?.rationale.changedFields).toEqual(expect.arrayContaining(['Color', 'Qty', 'Cost']));
   });
 
   it(

@@ -20,6 +20,7 @@ import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { SessionState } from '../auth/session-user.interface';
 import { RetentionService } from '../retention/retention.service';
 import { UploadPolicyService } from '../uploads/upload-policy.service';
+import { BomChangeTaxonomyCategory, BomChangeTaxonomyService } from '../mapping/bom-change-taxonomy.service';
 import { MappingAliasLearningService } from '../mapping/mapping-alias-learning.service';
 import { AdminRoleService } from './admin-role.service';
 
@@ -31,7 +32,8 @@ export class AdminController {
     private readonly auditService: AuditService,
     private readonly retentionService: RetentionService,
     private readonly auditGovernanceService: AuditGovernanceService,
-    private readonly mappingAliasLearningService: MappingAliasLearningService
+    private readonly mappingAliasLearningService: MappingAliasLearningService,
+    private readonly bomChangeTaxonomyService: BomChangeTaxonomyService
   ) {}
 
   @Get('me')
@@ -514,6 +516,95 @@ export class AdminController {
       actorEmail
     });
     return { ok: true };
+  }
+
+  @Get('mapping-governance/taxonomy')
+  @UseGuards(SessionAuthGuard)
+  async getTenantTaxonomy(
+    @Req() req: Request,
+    @Query('industry') industry?: string
+  ): Promise<{
+    defaultIndustry: string;
+    availableIndustries: string[];
+    taxonomy: {
+      industry: string;
+      categories: BomChangeTaxonomyCategory[];
+    };
+  }> {
+    this.ensureFeatureEnabled(
+      'admin_policy_ui_stage5_v1',
+      'ADMIN_STAGE5_DISABLED',
+      'Stage 5 admin policy controls are currently disabled by feature flag.'
+    );
+    const session = req.session as SessionState;
+    const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const actorEmail = session.user?.email || 'unknown-user';
+    await this.ensureAdmin(tenantId, actorEmail);
+
+    const defaultIndustry = await this.bomChangeTaxonomyService.getDefaultIndustry(tenantId);
+    const taxonomy = await this.bomChangeTaxonomyService.getTaxonomy(tenantId, industry);
+    return {
+      defaultIndustry,
+      availableIndustries: this.bomChangeTaxonomyService.listIndustries(),
+      taxonomy
+    };
+  }
+
+  @Post('mapping-governance/taxonomy/default-industry')
+  @UseGuards(SessionAuthGuard)
+  async setTenantDefaultIndustry(
+    @Req() req: Request,
+    @Body() body: { defaultIndustry?: string }
+  ): Promise<{ defaultIndustry: string }> {
+    this.ensureFeatureEnabled(
+      'admin_policy_ui_stage5_v1',
+      'ADMIN_STAGE5_DISABLED',
+      'Stage 5 admin policy controls are currently disabled by feature flag.'
+    );
+    const session = req.session as SessionState;
+    const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const actorEmail = session.user?.email || 'unknown-user';
+    await this.ensureAdmin(tenantId, actorEmail);
+
+    return this.bomChangeTaxonomyService.setDefaultIndustry({
+      tenantId,
+      defaultIndustry: body.defaultIndustry || '',
+      actorEmail
+    });
+  }
+
+  @Post('mapping-governance/taxonomy')
+  @UseGuards(SessionAuthGuard)
+  async saveTenantTaxonomy(
+    @Req() req: Request,
+    @Body()
+    body: {
+      industry?: string;
+      categories?: BomChangeTaxonomyCategory[];
+    }
+  ): Promise<{
+    taxonomy: {
+      industry: string;
+      categories: BomChangeTaxonomyCategory[];
+    };
+  }> {
+    this.ensureFeatureEnabled(
+      'admin_policy_ui_stage5_v1',
+      'ADMIN_STAGE5_DISABLED',
+      'Stage 5 admin policy controls are currently disabled by feature flag.'
+    );
+    const session = req.session as SessionState;
+    const tenantId = session.user?.tenantId || 'unknown-tenant';
+    const actorEmail = session.user?.email || 'unknown-user';
+    await this.ensureAdmin(tenantId, actorEmail);
+
+    const taxonomy = await this.bomChangeTaxonomyService.saveTaxonomy({
+      tenantId,
+      industry: body.industry || '',
+      categories: body.categories || [],
+      actorEmail
+    });
+    return { taxonomy };
   }
 
   @Post('test/grant-role')

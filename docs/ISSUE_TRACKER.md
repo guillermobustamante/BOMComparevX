@@ -161,6 +161,74 @@ Resolution:
   - `npm --prefix apps/backend run test`
 - Note: full backend `ci` remains blocked by a Windows Prisma file-lock issue during `prisma generate`, which is separate from this fix.
 
+### ISSUE-007 - Auto-accept fuzzy taxonomy property matches needs governance review
+- Status: `Open`
+- Priority: `P2`
+- Area: `Mapping / Taxonomy / Governance`
+- First observed: `2026-03-11`
+
+Problem:
+- Tenant taxonomy classification currently auto-accepts high-confidence fuzzy matches between changed BOM property names and taxonomy trigger properties.
+- This is acceptable for the current rollout, but it is not yet tenant-governed and may need review workflows, thresholds, or explainability before broader production hardening.
+
+Desired outcome:
+- Revisit fuzzy taxonomy matching so tenants can tune thresholds, inspect auto-accepted matches, and optionally require review before fuzzy matches affect controlled classifications.
+
+Locked current decision:
+- Keep auto-accept enabled for high-confidence fuzzy matches during the first change-intelligence rollout.
+
+### ISSUE-008 - Compliance trigger overrides are not yet tenant-configurable
+- Status: `Open`
+- Priority: `P2`
+- Area: `Mapping / Taxonomy / Compliance`
+- First observed: `2026-03-11`
+
+Problem:
+- Compliance triggers currently follow the seeded taxonomy content as-is.
+- Tenants cannot yet override or extend the governing standard / compliance trigger text for their internal governance model.
+
+Desired outcome:
+- Revisit whether compliance triggers should remain locked to the platform taxonomy or support tenant-level overrides, extensions, or internal policy references.
+
+Locked current decision:
+- Keep compliance trigger text as authored in the taxonomy source during the first rollout.
+
+### ISSUE-009 - Repeated BOM instances can be false-matched on shared part/object ids
+- Status: `Resolved`
+- Priority: `P0`
+- Area: `Diff / Matching / Upload Semantics`
+- First observed: `2026-03-12`
+
+Problem:
+- Some source BOMs contain the same part multiple times while also providing a unique identifier for each occurrence.
+- The matching pipeline could collapse shared object ids such as `PartKey` and occurrence ids such as `OccurrenceInternalName` into one generic identifier.
+- When that happened, repeated instances of the same part could be cross-matched, producing false `modified` rows and large changed-field lists even though the occurrences were unchanged.
+
+Evidence:
+- Upload parsing treated `partkey` and `occurrenceinternalname` as the same `internalId` alias family: [upload-revision.service.ts](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\src\uploads\upload-revision.service.ts:80)
+- Parser resolved that alias family into a single `internalId` field during intake: [upload-revision.service.ts](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\src\uploads\upload-revision.service.ts:504)
+- Generic stable keys did not treat occurrence ids as a first-class identity source: [profile-adapter.service.ts](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\src\diff\profile-adapter.service.ts:97)
+- Matcher identity token precedence depended on the generic internal id field: [matcher.service.ts](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\src\diff\matcher.service.ts:276)
+
+Desired outcome:
+- The system must distinguish occurrence identity from object identity.
+- Occurrence ids must outrank shared object ids during row matching.
+- Repeated identical part instances must remain `no_change` even when row order changes between BOM versions.
+
+Resolution:
+- Implemented on `2026-03-12`.
+- Added separate diff-row fields for `occurrenceInternalId` and `objectInternalId`.
+- Split upload alias handling so occurrence-like headers and object-like headers are preserved separately, while `internalId` remains as a compatibility field resolved with safer precedence.
+- Updated generic and SAP profile adapters to anchor stable occurrence keys on occurrence identity when present.
+- Updated matcher identity token precedence to prefer occurrence identity over generic/shared ids.
+- Extended mapping semantics with `occurrence_id` and `object_id` canonical fields plus registry aliases for common headers.
+- Added regression coverage for parser precedence, repeated-instance order shifts, and mapping semantics.
+
+Verification:
+- `npm --prefix apps/backend run typecheck`
+- `npm --prefix apps/backend run test -- occurrence-aware-matching.e2e-spec.ts`
+- real-row inspection confirmed the provided `SI-Mutter M8` occurrences are identical across both example workbooks when compared by `OccurrenceInternalName`, so prior `modified` results were false positives caused by matching, not real deltas
+
 ## 3. Linked follow-up records
 - Sprint 12 QA: [UI_QA_S12_RESULTS_REVISION_CHAIN.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\UI_QA_S12_RESULTS_REVISION_CHAIN.md:1)
 - Sprint 12.1 backlog: [SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md:1)

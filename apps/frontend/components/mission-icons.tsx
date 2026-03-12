@@ -76,6 +76,18 @@ export function ChevronRightIcon() {
   return wrap(<path d="m9.5 6.5 6 5.5-6 5.5" />);
 }
 
+export function ChevronUpIcon() {
+  return wrap(<path d="m6.5 14.5 5.5-6 5.5 6" />);
+}
+
+export function ChevronDownIcon() {
+  return wrap(<path d="m6.5 9.5 5.5 6 5.5-6" />);
+}
+
+export function PlusIcon() {
+  return wrap(<path d="M12 5v14M5 12h14" />);
+}
+
 export function CheckCircleIcon() {
   return wrap(<path d="M9.5 12.5 11.5 14.5 15.5 10.5M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" />);
 }
