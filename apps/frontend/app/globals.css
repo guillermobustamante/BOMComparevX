@@ -224,6 +224,17 @@ a {
   color: #7a2222;
 }
 
+.impactCategoryPropertyMatched {
+  box-shadow: 0 0 0 1px rgba(241, 207, 126, 0.18), 0 6px 14px rgba(106, 74, 0, 0.08);
+}
+
+.impactCategoryPropertyMuted {
+  opacity: 0.46;
+  background: rgba(248, 250, 252, 0.54);
+  border-color: rgba(199, 208, 222, 0.72);
+  color: #7b8aa2;
+}
+
 .mappingSampleRows {
   margin-top: 16px;
   border: 1px solid var(--line);
@@ -703,7 +714,8 @@ a {
   .taxonomyFieldGrid,
   .taxonomyFieldGridRoles,
   .impactDialogHero,
-  .impactDialogDetailList {
+  .impactDialogDetailList,
+  .impactDialogDetailGrid {
     grid-template-columns: 1fr;
   }
 
@@ -898,6 +910,8 @@ a {
 }
 
 .adminConsole {
+  --admin-rail-thickness: 4px;
+  --admin-rail-gradient: linear-gradient(90deg, #0ea5e9 0%, #38bdf8 30%, rgba(56, 189, 248, 0) 72%);
   position: relative;
   overflow: hidden;
   padding: clamp(22px, 4vw, 34px);
@@ -914,8 +928,8 @@ a {
   position: absolute;
   inset: 0 auto auto 0;
   width: 100%;
-  height: 4px;
-  background: linear-gradient(90deg, #0ea5e9 0%, #38bdf8 30%, rgba(56, 189, 248, 0) 72%);
+  height: var(--admin-rail-thickness);
+  background: var(--admin-rail-gradient);
 }
 
 .adminConsole .btn,
@@ -1008,9 +1022,20 @@ a {
 }
 
 .adminSectionStack {
+  position: relative;
   margin-top: 0;
   display: grid;
-  gap: 22px;
+  gap: 12px;
+}
+
+.adminSectionStack::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--admin-rail-thickness);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #0ea5e9 0%, #38bdf8 38%, rgba(56, 189, 248, 0.18) 100%);
+  pointer-events: none;
 }
 
 .adminSectionCard {
@@ -1024,6 +1049,15 @@ a {
   -webkit-backdrop-filter: blur(16px);
 }
 
+.adminSectionCard::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: var(--admin-rail-thickness);
+  border-radius: 24px 24px 0 0;
+  background: var(--admin-rail-gradient);
+}
+
 .adminSectionCardCompact {
   padding: 22px;
 }
@@ -1034,12 +1068,21 @@ a {
   gap: 18px;
   align-items: flex-start;
   margin-bottom: 18px;
+  transition: margin 180ms ease;
 }
 
 .adminSectionTitleGroup {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   max-width: 860px;
+}
+
+.adminSectionHeaderActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
 }
 
 .adminSectionTitle {
@@ -1055,6 +1098,28 @@ a {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.adminSectionPanelContent {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 220ms ease;
+}
+
+.adminSectionPanelInner {
+  overflow: hidden;
+}
+
+.adminSectionCardCollapsed .adminSectionPanelContent {
+  grid-template-rows: 0fr;
+}
+
+.adminSectionCardCollapsed .adminSectionHeader {
+  margin-bottom: 0;
+}
+
+.adminSectionCardCollapsed .adminSectionHeaderActions .adminIconButton {
+  transform: rotate(-90deg);
 }
 
 .adminFormRow {
@@ -1218,6 +1283,7 @@ a {
   display: flex;
   align-items: center;
   gap: 14px;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -1227,13 +1293,16 @@ a {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  font-size: clamp(24px, 2.5vw, 32px);
-  line-height: 1.08;
-  letter-spacing: -0.04em;
+  width: 100%;
+  min-width: 0;
+  font-size: clamp(18px, 1.8vw, 22px);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
   color: #213047;
 }
 
 .adminTaxonomySection .taxonomyCardTitleGroup {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -1242,10 +1311,13 @@ a {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .adminTaxonomySection .taxonomyCardActions {
   gap: 10px;
+  align-items: center;
+  flex: 0 0 auto;
 }
 
 .taxonomyCollapseButton {
@@ -1280,43 +1352,44 @@ a {
 .taxonomyCriticalityBadge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
+  gap: 6px;
+  padding: 5px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.34);
-  background: rgba(255, 255, 255, 0.72);
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(248, 250, 252, 0.82);
+  color: #5f6f86;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .taxonomyCriticalityBadge::before {
   content: '';
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 999px;
   background: currentColor;
-  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 16%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 12%, transparent);
 }
 
 .taxonomyCriticalityBadgeHigh {
-  border-color: rgba(239, 68, 68, 0.24);
-  background: rgba(254, 242, 242, 0.9);
-  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.18);
+  background: rgba(127, 29, 29, 0.05);
+  color: #9f2f2f;
 }
 
 .taxonomyCriticalityBadgeMedium {
-  border-color: rgba(245, 158, 11, 0.28);
-  background: rgba(255, 251, 235, 0.92);
-  color: #b45309;
+  border-color: rgba(180, 83, 9, 0.18);
+  background: rgba(146, 64, 14, 0.05);
+  color: #9a5c1d;
 }
 
 .taxonomyCriticalityBadgeLow {
-  border-color: rgba(34, 197, 94, 0.24);
-  background: rgba(240, 253, 244, 0.92);
-  color: #15803d;
+  border-color: rgba(21, 128, 61, 0.18);
+  background: rgba(20, 83, 45, 0.05);
+  color: #2f6b49;
 }
 
 .taxonomySectionBlock {
@@ -1346,7 +1419,7 @@ a {
   width: 4px;
   height: 18px;
   border-radius: 999px;
-  background: #0ea5e9;
+  background: #69c9f3;
 }
 
 .adminTaxonomySection .taxonomyFieldFull {
@@ -1380,7 +1453,7 @@ a {
 }
 
 .taxonomySwimlaneBlue:hover {
-  border-color: rgba(56, 189, 248, 0.72);
+  border-color: rgba(105, 201, 243, 0.56);
 }
 
 .taxonomySwimlaneGreen:hover {
@@ -1397,9 +1470,9 @@ a {
 }
 
 .taxonomyTokenBlue {
-  border-color: rgba(56, 189, 248, 0.6);
-  background: rgba(224, 242, 254, 0.72);
-  color: #0284c7;
+  border-color: rgba(105, 201, 243, 0.44);
+  background: rgba(236, 248, 254, 0.88);
+  color: #4e8dac;
 }
 
 .taxonomyTokenGreen {
@@ -1475,43 +1548,160 @@ a {
   color: #63738f;
 }
 
-.impactDialogHero {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 6px;
+.impactDialogModal {
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.06), transparent 28%),
+    rgba(248, 250, 252, 0.94);
+  box-shadow: 0 28px 68px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
-.impactDialogHeroBlock,
+.impactDialogModalHeader {
+  margin-bottom: 20px;
+}
+
+.impactDialogTitleGroup {
+  display: grid;
+  gap: 6px;
+  max-width: 720px;
+}
+
+.impactDialogTitleDescription {
+  margin: 0;
+}
+
+.impactDialogHero {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.95fr) repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 0;
+}
+
+.impactDialogHeroSummaryColumn {
+  display: grid;
+  gap: 16px;
+  grid-column: 1;
+}
+
 .impactDialogCard {
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: linear-gradient(180deg, #ffffff 0%, #f6fbff 100%);
+  position: relative;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
 }
 
 .impactDialogHeroBlock {
+  position: relative;
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  align-content: start;
+  padding: 20px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.05);
 }
 
-.impactDialogSection {
-  margin-top: 16px;
-  display: grid;
-  gap: 8px;
+.impactDialogHeroBlockWide {
+  grid-column: 2 / -1;
 }
 
-.impactDialogGrid {
+.impactDialogHeroBlock::before,
+.impactDialogCard::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 20px;
+  right: 20px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0ea5e9 0%, #38bdf8 40%, rgba(56, 189, 248, 0) 84%);
+}
+
+.impactDialogHeroBlock strong,
+.impactDialogSectionBlock strong {
+  color: #243247;
+}
+
+.impactDialogSectionBlock {
   margin-top: 16px;
   display: grid;
   gap: 12px;
+  align-content: start;
+  padding: 20px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 22px;
+  background: rgba(226, 232, 240, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.46);
+}
+
+.impactDialogGrid {
+  margin-top: 18px;
+  display: grid;
+  gap: 18px;
 }
 
 .impactDialogCardHeader {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(203, 213, 225, 0.46);
+}
+
+.impactDialogCardTitleGroup {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.impactDialogCardTitle {
+  margin: 0;
+  font-size: clamp(20px, 1.8vw, 24px);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: #243247;
+}
+
+.impactDialogCardDescription {
+  margin: 0;
+}
+
+.impactDialogDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.impactDialogSectionBlockWide {
+  grid-column: 1 / -1;
+}
+
+.impactDialogHeroBlock .taxonomyCriticalityBadge {
+  align-self: start;
+  min-height: 28px;
+  padding: 4px 10px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.impactDialogHeroBlock .taxonomyCriticalityBadge::before {
+  width: 7px;
+  height: 7px;
+}
+
+.impactDialogHeroBlock .cellChips,
+.impactDialogSectionBlock .cellChips {
+  align-content: flex-start;
+  min-height: 56px;
 }
 
 .impactDialogDetailList {
@@ -1545,10 +1735,28 @@ a {
     display: grid;
   }
 
+  .adminSectionHeaderActions {
+    justify-content: flex-start;
+  }
+
   .adminHeroMetrics,
   .adminRetentionGrid,
   .adminTaxonomySection .taxonomyFieldGrid {
     grid-template-columns: 1fr;
+  }
+
+  .impactDialogCardHeader {
+    flex-direction: column;
+  }
+
+  .impactDialogHero {
+    grid-template-columns: 1fr;
+  }
+
+  .impactDialogHeroSummaryColumn,
+  .impactDialogHeroBlockWide,
+  .impactDialogSectionBlockWide {
+    grid-column: auto;
   }
 
   .adminFormRow > input,
@@ -1569,6 +1777,11 @@ a {
 }
 
 @media (max-width: 640px) {
+  .impactDialogModal {
+    padding: 20px;
+    border-radius: 24px;
+  }
+
   .adminConsole {
     padding: 18px;
   }
@@ -2808,6 +3021,10 @@ a {
   animation: missionComparePulse 1.25s ease-in-out infinite;
 }
 
+.missionShellRoot .missionCompareRunPulse {
+  animation: missionCompareRunPulse 1.2s ease-in-out infinite;
+}
+
 .missionShellRoot .missionCompareDialogDetails {
   display: grid;
   gap: 6px;
@@ -2890,6 +3107,23 @@ a {
   50% {
     box-shadow: 0 0 0 8px rgba(126, 207, 224, 0);
     transform: scale(1.03);
+  }
+}
+
+@keyframes missionCompareRunPulse {
+  0%,
+  100% {
+    background: #ffffff;
+    border-color: var(--line);
+    box-shadow: 0 0 0 0 rgba(126, 207, 224, 0.24);
+    transform: scale(1);
+  }
+
+  50% {
+    background: #f5fbfd;
+    border-color: #9bd7e3;
+    box-shadow: 0 0 0 10px rgba(126, 207, 224, 0);
+    transform: scale(1.05);
   }
 }
 

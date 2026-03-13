@@ -11,6 +11,10 @@
 - Bring the taxonomy editor closer to the reference: glass card framing, accent rail headings, grouped form sections, chip swimlanes, and stronger hierarchy for move/remove controls.
 - Add per-category collapse and expand behavior in the taxonomy editor using [`randomtests/testtaxonomy5.html`](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\randomtests\testtaxonomy5.html) as the interaction and layout base.
 - Show the current impact criticality as a live badge beside each taxonomy category title and keep it synchronized with the `Impact Criticality` dropdown.
+- Refine Admin header hierarchy by removing redundant section breadcrumb labels where requested, renaming section titles, and reducing taxonomy category header emphasis so category titles remain subordinate to the section title.
+- Add collapsible behavior to each main Admin section with collapsed-by-default state while keeping each section title and description visible.
+- Restore the top cyan detail on every main Admin section with consistent alignment.
+- Fix taxonomy category title truncation within `Change Taxonomy & Impacts` when category cards are collapsed or expanded.
 - Extend that same design language to:
   - Access & Roles
   - Audit & Compliance
@@ -22,6 +26,10 @@
 - Taxonomy cards use sectioned content blocks and chip swimlanes similar to the reference.
 - Each taxonomy category can be collapsed and expanded independently from its header.
 - Each taxonomy category shows its current impact criticality beside the title, and changing the dropdown updates the badge immediately.
+- Taxonomy category titles are visually smaller than the section title, and the impact badge sits on the right side of the category header before the move controls.
+- Access & Roles, Audit Export & Archive, Retention Sweep, and Change Taxonomy & Impacts render collapsed by default with their title and description still visible.
+- Every main Admin section shows a consistently aligned top cyan accent.
+- Taxonomy category titles no longer crop in collapsed or expanded state.
 - The rest of Admin reads as part of the same family instead of generic app panels.
 - Existing Admin actions still work: role grant/revoke, policy reset/override, audit export/archive, retention sweep, taxonomy autosave, taxonomy ordering/removal, alias enable/disable.
 - Mobile and narrower desktop widths remain usable without layout breakage.

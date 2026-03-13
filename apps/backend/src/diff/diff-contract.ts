@@ -47,6 +47,7 @@ export interface DiffImpactCategory {
   externalApprovingRoles: string[];
   controlPath: string;
   complianceTrigger: string;
+  triggerProperties: string[];
   matchedProperties: string[];
 }
 

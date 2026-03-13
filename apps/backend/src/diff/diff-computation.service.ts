@@ -450,6 +450,7 @@ export class DiffComputationService {
               externalApprovingRoles: category.externalApprovingRoles,
               controlPath: category.controlPath,
               complianceTrigger: category.complianceTrigger,
+              triggerProperties: category.triggerProperties,
               matchedProperties: category.matchedProperties
             })),
             highestImpactClass: classifiedImpact.highestImpactClass,

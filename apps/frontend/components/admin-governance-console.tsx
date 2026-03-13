@@ -81,6 +81,8 @@ type TaxonomyListField =
   | 'internalApprovingRoles'
   | 'externalApprovingRoles';
 
+type AdminSectionKey = 'accessRoles' | 'auditArchive' | 'retentionSweep' | 'taxonomyImpacts' | 'learnedAliases';
+
 type ActiveTokenEditor = {
   index: number;
   field: TaxonomyListField;
@@ -161,6 +163,13 @@ export function AdminGovernanceConsole() {
   const [listDrafts, setListDrafts] = useState<Record<string, string>>({});
   const [activeTokenEditor, setActiveTokenEditor] = useState<ActiveTokenEditor>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<boolean[]>([]);
+  const [collapsedSections, setCollapsedSections] = useState<Record<AdminSectionKey, boolean>>({
+    accessRoles: true,
+    auditArchive: true,
+    retentionSweep: true,
+    taxonomyImpacts: true,
+    learnedAliases: true
+  });
 
   const activeAdminCount = useMemo(() => users.filter((user) => user.isAdmin).length, [users]);
   const taxonomyCategoryCount = taxonomyDraft?.categories.length || 0;
@@ -490,6 +499,13 @@ export function AdminGovernanceConsole() {
     );
   }
 
+  function toggleSectionCollapse(section: AdminSectionKey) {
+    setCollapsedSections((current) => ({
+      ...current,
+      [section]: !current[section]
+    }));
+  }
+
   async function claimBootstrapAdmin() {
     setError(null);
     setFeedback(null);
@@ -794,458 +810,537 @@ export function AdminGovernanceConsole() {
 
       {isAdmin && (
         <div className="screenStack adminSectionStack">
-          <section className="panel adminSectionCard">
+          <section className={`panel adminSectionCard ${collapsedSections.accessRoles ? 'adminSectionCardCollapsed' : ''}`}>
             <div className="adminSectionHeader">
               <div className="adminSectionTitleGroup">
-                <span className="missionShellEyebrow">Admin &gt; Access &amp; Roles</span>
-                <h2 className="adminSectionTitle">Access and user policy controls</h2>
+                <h2 className="adminSectionTitle">Access &amp; Roles</h2>
                 <p className="p">Grant or revoke tenant admin access while keeping upload policy controls in the same operating view.</p>
               </div>
+              <div className="adminSectionHeaderActions">
+                <button
+                  className="adminIconButton"
+                  type="button"
+                  onClick={() => toggleSectionCollapse('accessRoles')}
+                  aria-label={`${collapsedSections.accessRoles ? 'Expand' : 'Collapse'} Access & Roles`}
+                  title={collapsedSections.accessRoles ? 'Expand' : 'Collapse'}
+                  data-testid="admin-section-toggle-accessRoles"
+                >
+                  <ChevronDownIcon />
+                </button>
+              </div>
             </div>
-            <div className="screenInlineForm adminFormRow adminFormRowDense">
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search users..."
-                data-testid="admin-user-search-input"
-              />
-              <button
-                className="btn"
-                type="button"
-                onClick={() => void loadAdminContext(query, aliasQuery)}
-                data-testid="admin-user-search-btn"
-              >
-                <SearchIcon />
-                Refresh Users
-              </button>
-            </div>
-            <p className="missionSubtle">Active admins: {activeAdminCount}</p>
-            <div className="mappingTableWrap adminTableWrap">
-              <table className="mappingTable adminTable" data-testid="admin-users-table">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Role</th>
-                    <th>Comparisons Used</th>
-                    <th>Unlimited</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user.email}>
-                      <td>{user.email}</td>
-                      <td>{user.isAdmin ? 'admin' : 'user'}</td>
-                      <td>{user.policy.comparisonsUsed}</td>
-                      <td>{user.policy.isUnlimited ? 'yes' : 'no'}</td>
-                      <td>
-                        <div className="cellChips adminActionCluster">
-                          <button
-                            className="btn"
-                            type="button"
-                            onClick={() => void (user.isAdmin ? revokeAdmin(user.email) : grantAdmin(user.email))}
-                          >
-                            {user.isAdmin ? 'Revoke Admin' : 'Grant Admin'}
-                          </button>
-                          <button
-                            className="btn"
-                            type="button"
-                            onClick={() => void resetPolicy(user.email)}
-                            data-testid={`admin-reset-${user.email}`}
-                          >
-                            Reset Policy
-                          </button>
-                          <button
-                            className="btn"
-                            type="button"
-                            onClick={() => void toggleUnlimited(user.email, !user.policy.isUnlimited)}
-                            data-testid={`admin-toggle-unlimited-${user.email}`}
-                          >
-                            {user.policy.isUnlimited ? 'Disable Unlimited' : 'Enable Unlimited'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {users.length === 0 ? (
-                    <tr>
-                      <td colSpan={5}>No users found.</td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
+            <div className="adminSectionPanelContent">
+              <div className="adminSectionPanelInner">
+                <div className="screenInlineForm adminFormRow adminFormRowDense">
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search users..."
+                    data-testid="admin-user-search-input"
+                  />
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={() => void loadAdminContext(query, aliasQuery)}
+                    data-testid="admin-user-search-btn"
+                  >
+                    <SearchIcon />
+                    Refresh Users
+                  </button>
+                </div>
+                <p className="missionSubtle">Active admins: {activeAdminCount}</p>
+                <div className="mappingTableWrap adminTableWrap">
+                  <table className="mappingTable adminTable" data-testid="admin-users-table">
+                    <thead>
+                      <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Comparisons Used</th>
+                        <th>Unlimited</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user) => (
+                        <tr key={user.email}>
+                          <td>{user.email}</td>
+                          <td>{user.isAdmin ? 'admin' : 'user'}</td>
+                          <td>{user.policy.comparisonsUsed}</td>
+                          <td>{user.policy.isUnlimited ? 'yes' : 'no'}</td>
+                          <td>
+                            <div className="cellChips adminActionCluster">
+                              <button
+                                className="btn"
+                                type="button"
+                                onClick={() => void (user.isAdmin ? revokeAdmin(user.email) : grantAdmin(user.email))}
+                              >
+                                {user.isAdmin ? 'Revoke Admin' : 'Grant Admin'}
+                              </button>
+                              <button
+                                className="btn"
+                                type="button"
+                                onClick={() => void resetPolicy(user.email)}
+                                data-testid={`admin-reset-${user.email}`}
+                              >
+                                Reset Policy
+                              </button>
+                              <button
+                                className="btn"
+                                type="button"
+                                onClick={() => void toggleUnlimited(user.email, !user.policy.isUnlimited)}
+                                data-testid={`admin-toggle-unlimited-${user.email}`}
+                              >
+                                {user.policy.isUnlimited ? 'Disable Unlimited' : 'Enable Unlimited'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {users.length === 0 ? (
+                        <tr>
+                          <td colSpan={5}>No users found.</td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </section>
 
-          <section className="panel adminSectionCard">
+          <section className={`panel adminSectionCard ${collapsedSections.auditArchive ? 'adminSectionCardCollapsed' : ''}`}>
             <div className="adminSectionHeader">
               <div className="adminSectionTitleGroup">
-                <span className="missionShellEyebrow">Admin &gt; Audit &amp; Compliance</span>
-                <h2 className="adminSectionTitle">Audit export and archive runway</h2>
+                <h2 className="adminSectionTitle">Audit Export &amp; Archive</h2>
                 <p className="p">Export tenant audit evidence and manage append-only archive runs from one place.</p>
               </div>
-              <div className="adminChipCluster">
-                <span className="chip">{archiveRuns.length} archive runs</span>
-                <span className="chip">Format: {auditFormat.toUpperCase()}</span>
+              <div className="adminSectionHeaderActions">
+                <div className="adminChipCluster">
+                  <span className="chip">{archiveRuns.length} archive runs</span>
+                  <span className="chip">Format: {auditFormat.toUpperCase()}</span>
+                </div>
+                <button
+                  className="adminIconButton"
+                  type="button"
+                  onClick={() => toggleSectionCollapse('auditArchive')}
+                  aria-label={`${collapsedSections.auditArchive ? 'Expand' : 'Collapse'} Audit Export & Archive`}
+                  title={collapsedSections.auditArchive ? 'Expand' : 'Collapse'}
+                  data-testid="admin-section-toggle-auditArchive"
+                >
+                  <ChevronDownIcon />
+                </button>
               </div>
             </div>
-            <div className="screenInlineForm adminFormRow">
-              <select value={auditFormat} onChange={(event) => setAuditFormat(event.target.value as 'csv' | 'ndjson')}>
-                <option value="csv">CSV</option>
-                <option value="ndjson">NDJSON</option>
-              </select>
-              <input value={auditLimit} onChange={(event) => setAuditLimit(event.target.value)} placeholder="Limit" />
-              <input value={auditActionType} onChange={(event) => setAuditActionType(event.target.value)} placeholder="Action type" />
-              <input value={auditActorEmail} onChange={(event) => setAuditActorEmail(event.target.value)} placeholder="Actor email" />
-              <button className="btn" type="button" onClick={downloadAuditExport}>
-                <ExportIcon />
-                Export Audit
-              </button>
-              <button className="btn btnPrimary" type="button" onClick={() => void runArchive()}>
-                <RunIcon />
-                Run Archive
-              </button>
-            </div>
-            <div className="mappingTableWrap adminTableWrap">
-              <table className="mappingTable adminTable">
-                <thead>
-                  <tr>
-                    <th>Archive Date</th>
-                    <th>Triggered</th>
-                    <th>By</th>
-                    <th>Records</th>
-                    <th>Target</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {archiveRuns.map((run) => (
-                    <tr key={run.archiveId}>
-                      <td>{run.archiveDateUtc}</td>
-                      <td>{new Date(run.triggeredAtUtc).toLocaleString()}</td>
-                      <td>{run.triggeredBy}</td>
-                      <td>{run.recordCount}</td>
-                      <td>{run.storageTarget}</td>
-                    </tr>
-                  ))}
-                  {archiveRuns.length === 0 ? (
-                    <tr>
-                      <td colSpan={5}>No archive runs yet.</td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
+            <div className="adminSectionPanelContent">
+              <div className="adminSectionPanelInner">
+                <div className="screenInlineForm adminFormRow">
+                  <select value={auditFormat} onChange={(event) => setAuditFormat(event.target.value as 'csv' | 'ndjson')}>
+                    <option value="csv">CSV</option>
+                    <option value="ndjson">NDJSON</option>
+                  </select>
+                  <input value={auditLimit} onChange={(event) => setAuditLimit(event.target.value)} placeholder="Limit" />
+                  <input value={auditActionType} onChange={(event) => setAuditActionType(event.target.value)} placeholder="Action type" />
+                  <input value={auditActorEmail} onChange={(event) => setAuditActorEmail(event.target.value)} placeholder="Actor email" />
+                  <button className="btn" type="button" onClick={downloadAuditExport}>
+                    <ExportIcon />
+                    Export Audit
+                  </button>
+                  <button className="btn btnPrimary" type="button" onClick={() => void runArchive()}>
+                    <RunIcon />
+                    Run Archive
+                  </button>
+                </div>
+                <div className="mappingTableWrap adminTableWrap">
+                  <table className="mappingTable adminTable">
+                    <thead>
+                      <tr>
+                        <th>Archive Date</th>
+                        <th>Triggered</th>
+                        <th>By</th>
+                        <th>Records</th>
+                        <th>Target</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {archiveRuns.map((run) => (
+                        <tr key={run.archiveId}>
+                          <td>{run.archiveDateUtc}</td>
+                          <td>{new Date(run.triggeredAtUtc).toLocaleString()}</td>
+                          <td>{run.triggeredBy}</td>
+                          <td>{run.recordCount}</td>
+                          <td>{run.storageTarget}</td>
+                        </tr>
+                      ))}
+                      {archiveRuns.length === 0 ? (
+                        <tr>
+                          <td colSpan={5}>No archive runs yet.</td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </section>
 
-          <section className="panel adminSectionCard">
+          <section className={`panel adminSectionCard ${collapsedSections.retentionSweep ? 'adminSectionCardCollapsed' : ''}`}>
             <div className="adminSectionHeader">
               <div className="adminSectionTitleGroup">
-                <span className="missionShellEyebrow">Admin &gt; Data Retention</span>
-                <h2 className="adminSectionTitle">Retention sweep control</h2>
+                <h2 className="adminSectionTitle">Retention Sweep</h2>
                 <p className="p">Run a manual retention sweep and review what was removed.</p>
               </div>
-            </div>
-            <div className="screenInlineForm adminFormRow adminFormRowDense">
-              <input
-                value={retentionNowUtcIso}
-                onChange={(event) => setRetentionNowUtcIso(event.target.value)}
-                placeholder="Optional nowUtcIso"
-              />
-              <button className="btn btnPrimary" type="button" onClick={() => void runRetentionSweep()}>
-                <RunIcon />
-                Run Retention Sweep
-              </button>
-            </div>
-            {retentionResult ? (
-              <div className="adminRetentionGrid">
-                <div className="adminRetentionMetric">
-                  <span>Deleted export artifacts</span>
-                  <strong>{retentionResult.deletedExportArtifacts}</strong>
-                </div>
-                <div className="adminRetentionMetric">
-                  <span>Deleted notifications</span>
-                  <strong>{retentionResult.deletedNotifications}</strong>
-                </div>
-                <div className="adminRetentionMetric">
-                  <span>Deleted revoked shares</span>
-                  <strong>{retentionResult.deletedRevokedShares}</strong>
-                </div>
-                <div className="adminRetentionMetric">
-                  <span>Swept at</span>
-                  <strong>{new Date(retentionResult.sweptAtUtc).toLocaleString()}</strong>
-                </div>
+              <div className="adminSectionHeaderActions">
+                <button
+                  className="adminIconButton"
+                  type="button"
+                  onClick={() => toggleSectionCollapse('retentionSweep')}
+                  aria-label={`${collapsedSections.retentionSweep ? 'Expand' : 'Collapse'} Retention Sweep`}
+                  title={collapsedSections.retentionSweep ? 'Expand' : 'Collapse'}
+                  data-testid="admin-section-toggle-retentionSweep"
+                >
+                  <ChevronDownIcon />
+                </button>
               </div>
-            ) : (
-              <div className="adminEmptyState">No retention sweep has been run in this session yet.</div>
-            )}
+            </div>
+            <div className="adminSectionPanelContent">
+              <div className="adminSectionPanelInner">
+                <div className="screenInlineForm adminFormRow adminFormRowDense">
+                  <input
+                    value={retentionNowUtcIso}
+                    onChange={(event) => setRetentionNowUtcIso(event.target.value)}
+                    placeholder="Optional nowUtcIso"
+                  />
+                  <button className="btn btnPrimary" type="button" onClick={() => void runRetentionSweep()}>
+                    <RunIcon />
+                    Run Retention Sweep
+                  </button>
+                </div>
+                {retentionResult ? (
+                  <div className="adminRetentionGrid">
+                    <div className="adminRetentionMetric">
+                      <span>Deleted export artifacts</span>
+                      <strong>{retentionResult.deletedExportArtifacts}</strong>
+                    </div>
+                    <div className="adminRetentionMetric">
+                      <span>Deleted notifications</span>
+                      <strong>{retentionResult.deletedNotifications}</strong>
+                    </div>
+                    <div className="adminRetentionMetric">
+                      <span>Deleted revoked shares</span>
+                      <strong>{retentionResult.deletedRevokedShares}</strong>
+                    </div>
+                    <div className="adminRetentionMetric">
+                      <span>Swept at</span>
+                      <strong>{new Date(retentionResult.sweptAtUtc).toLocaleString()}</strong>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="adminEmptyState">No retention sweep has been run in this session yet.</div>
+                )}
+              </div>
+            </div>
           </section>
 
-          <section className="panel adminSectionCard adminTaxonomySection">
+          <section
+            className={`panel adminSectionCard adminTaxonomySection ${
+              collapsedSections.taxonomyImpacts ? 'adminSectionCardCollapsed' : ''
+            }`}
+          >
             <div className="screenToolbar adminSectionHeader">
               <div className="screenToolbarMeta adminSectionTitleGroup">
-                <span className="missionShellEyebrow">Admin &gt; Mapping Governance &gt; Taxonomy</span>
-                <h2 className="adminSectionTitle">Tenant change taxonomy editor</h2>
+                <h2 className="adminSectionTitle">Change Taxonomy &amp; Impacts</h2>
                 <p className="p">All changed BOM properties roll into this tenant-owned taxonomy. Exact property matches win, high-confidence fuzzy matches are accepted automatically for now, and edits save without explicit save buttons.</p>
               </div>
-              <div className="taxonomySummaryStrip adminChipCluster">
-                <span className="chip">{taxonomyCategoryCount} categories</span>
-                <span className="chip">Default: {defaultIndustry}</span>
-                {taxonomyDirty ? <span className="chip chipReview">Pending</span> : null}
+              <div className="adminSectionHeaderActions">
+                <div className="taxonomySummaryStrip adminChipCluster">
+                  <span className="chip">{taxonomyCategoryCount} categories</span>
+                  <span className="chip">Default: {defaultIndustry}</span>
+                  {taxonomyDirty ? <span className="chip chipReview">Pending</span> : null}
+                </div>
+                <button
+                  className="adminIconButton"
+                  type="button"
+                  onClick={() => toggleSectionCollapse('taxonomyImpacts')}
+                  aria-label={`${collapsedSections.taxonomyImpacts ? 'Expand' : 'Collapse'} Change Taxonomy & Impacts`}
+                  title={collapsedSections.taxonomyImpacts ? 'Expand' : 'Collapse'}
+                  data-testid="admin-section-toggle-taxonomyImpacts"
+                >
+                  <ChevronDownIcon />
+                </button>
               </div>
             </div>
+            <div className="adminSectionPanelContent">
+              <div className="adminSectionPanelInner">
+                {taxonomyError ? <div className="alertError">{taxonomyError}</div> : null}
+                {taxonomyFeedback ? <div className="alertSuccess">{taxonomyFeedback}</div> : null}
 
-            {taxonomyError ? <div className="alertError">{taxonomyError}</div> : null}
-            {taxonomyFeedback ? <div className="alertSuccess">{taxonomyFeedback}</div> : null}
+                <div className="taxonomyControls adminFormRow">
+                  <label className="taxonomyControl adminFormField">
+                    <span>Tenant default industry</span>
+                    <select
+                      value={defaultIndustry}
+                      onChange={(event) => void updateDefaultIndustry(event.target.value)}
+                      disabled={taxonomyLoading}
+                      data-testid="taxonomy-default-industry-select"
+                    >
+                      {availableIndustries.map((industry) => (
+                        <option key={industry} value={industry}>
+                          {industry}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-            <div className="taxonomyControls adminFormRow">
-              <label className="taxonomyControl adminFormField">
-                <span>Tenant default industry</span>
-                <select
-                  value={defaultIndustry}
-                  onChange={(event) => void updateDefaultIndustry(event.target.value)}
-                  disabled={taxonomyLoading}
-                  data-testid="taxonomy-default-industry-select"
-                >
-                  {availableIndustries.map((industry) => (
-                    <option key={industry} value={industry}>
-                      {industry}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  <label className="taxonomyControl adminFormField">
+                    <span>Working taxonomy</span>
+                    <select
+                      value={selectedIndustry}
+                      onChange={(event) => void changeWorkingIndustry(event.target.value)}
+                      disabled={taxonomyLoading}
+                      data-testid="taxonomy-working-industry-select"
+                    >
+                      {availableIndustries.map((industry) => (
+                        <option key={industry} value={industry}>
+                          {industry}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-              <label className="taxonomyControl adminFormField">
-                <span>Working taxonomy</span>
-                <select
-                  value={selectedIndustry}
-                  onChange={(event) => void changeWorkingIndustry(event.target.value)}
-                  disabled={taxonomyLoading}
-                  data-testid="taxonomy-working-industry-select"
-                >
-                  {availableIndustries.map((industry) => (
-                    <option key={industry} value={industry}>
-                      {industry}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  <button className="btn" type="button" onClick={() => void loadTaxonomy(selectedIndustry)} disabled={taxonomyLoading}>
+                    <RefreshIcon />
+                    {taxonomyLoading ? 'Loading...' : 'Reload'}
+                  </button>
 
-              <button className="btn" type="button" onClick={() => void loadTaxonomy(selectedIndustry)} disabled={taxonomyLoading}>
-                <RefreshIcon />
-                {taxonomyLoading ? 'Loading...' : 'Reload'}
-              </button>
+                  <button className="btn btnPrimary" type="button" onClick={() => addCategory()} disabled={!taxonomyDraft}>
+                    <PlusIcon />
+                    Add Category
+                  </button>
+                </div>
 
-              <button className="btn btnPrimary" type="button" onClick={() => addCategory()} disabled={!taxonomyDraft}>
-                <PlusIcon />
-                Add Category
-              </button>
-            </div>
+                {!taxonomyDraft ? (
+                  <div className="alertWarning">Taxonomy is not available yet.</div>
+                ) : (
+                  <div className="taxonomyCardGrid" data-testid="taxonomy-editor">
+                    {taxonomyDraft.categories.map((category, index) => (
+                      <article
+                        className={`taxonomyCard ${(collapsedCategories[index] ?? true) ? 'taxonomyCardCollapsed' : ''}`}
+                        key={`${category.category || 'new'}-${index}`}
+                      >
+                        <div className="taxonomyCardHeader">
+                          <div className="taxonomyCardTitleRow">
+                            <button
+                              className="adminIconButton taxonomyCollapseButton"
+                              type="button"
+                              onClick={() => toggleCategoryCollapse(index)}
+                              aria-label={`${(collapsedCategories[index] ?? true) ? 'Expand' : 'Collapse'} category`}
+                              title={(collapsedCategories[index] ?? true) ? 'Expand' : 'Collapse'}
+                              data-testid={`taxonomy-toggle-${index}`}
+                            >
+                              <ChevronDownIcon />
+                            </button>
+                            <div className="taxonomyCardTitleGroup">
+                              <div className="taxonomyCardTitleLine">
+                                <input
+                                  className="taxonomyTitleInput"
+                                  value={category.category}
+                                  onChange={(event) => updateCategory(index, { category: event.target.value })}
+                                  placeholder="Category name"
+                                  data-testid={`taxonomy-category-title-${index}`}
+                                />
+                              </div>
+                            </div>
+                          </div>
 
-            {!taxonomyDraft ? (
-              <div className="alertWarning">Taxonomy is not available yet.</div>
-            ) : (
-              <div className="taxonomyCardGrid" data-testid="taxonomy-editor">
-                {taxonomyDraft.categories.map((category, index) => (
-                  <article
-                    className={`taxonomyCard ${(collapsedCategories[index] ?? true) ? 'taxonomyCardCollapsed' : ''}`}
-                    key={`${category.category || 'new'}-${index}`}
-                  >
-                    <div className="taxonomyCardHeader">
-                      <div className="taxonomyCardTitleRow">
-                        <button
-                          className="adminIconButton taxonomyCollapseButton"
-                          type="button"
-                          onClick={() => toggleCategoryCollapse(index)}
-                          aria-label={`${(collapsedCategories[index] ?? true) ? 'Expand' : 'Collapse'} category`}
-                          title={(collapsedCategories[index] ?? true) ? 'Expand' : 'Collapse'}
-                          data-testid={`taxonomy-toggle-${index}`}
-                        >
-                          <ChevronDownIcon />
-                        </button>
-                        <div className="taxonomyCardTitleGroup">
-                          <div className="taxonomyCardTitleLine">
-                            <input
-                              className="taxonomyTitleInput"
-                              value={category.category}
-                              onChange={(event) => updateCategory(index, { category: event.target.value })}
-                              placeholder="Category name"
-                              data-testid={`taxonomy-category-title-${index}`}
-                            />
+                          <div className="taxonomyCardActions">
                             <span
                               className={impactCriticalityBadgeClass(category.impactCriticality)}
                               data-testid={`taxonomy-criticality-badge-${index}`}
                             >
                               {impactCriticalityBadgeLabel(category.impactCriticality)}
                             </span>
+                            <button
+                              className="adminIconButton"
+                              type="button"
+                              onClick={() => moveCategory(index, -1)}
+                              disabled={index === 0}
+                              aria-label="Move category up"
+                              title="Move Up"
+                            >
+                              <ChevronUpIcon />
+                            </button>
+                            <button
+                              className="adminIconButton"
+                              type="button"
+                              onClick={() => moveCategory(index, 1)}
+                              disabled={index === taxonomyDraft.categories.length - 1}
+                              aria-label="Move category down"
+                              title="Move Down"
+                            >
+                              <ChevronDownIcon />
+                            </button>
+                            <button
+                              className="adminIconButton adminIconButtonDanger"
+                              type="button"
+                              onClick={() => removeCategory(index)}
+                              aria-label="Remove category"
+                              title="Remove"
+                            >
+                              <DeleteIcon />
+                            </button>
                           </div>
                         </div>
-                      </div>
+                        <div className="taxonomyPanelContent" data-testid={`taxonomy-panel-content-${index}`}>
+                          <div className="taxonomyPanelContentInner">
+                            <div className="taxonomySectionBlock">
+                              <h3 className="taxonomySectionTitle">Core Definition</h3>
+                              <label className="taxonomyField taxonomyFieldFull">
+                                <span>Description</span>
+                                <textarea
+                                  value={category.changeDescription}
+                                  onChange={(event) => updateCategory(index, { changeDescription: event.target.value })}
+                                  placeholder="Change description"
+                                  rows={4}
+                                />
+                              </label>
 
-                      <div className="taxonomyCardActions">
-                        <button
-                          className="adminIconButton"
-                          type="button"
-                          onClick={() => moveCategory(index, -1)}
-                          disabled={index === 0}
-                          aria-label="Move category up"
-                          title="Move Up"
-                        >
-                          <ChevronUpIcon />
-                        </button>
-                        <button
-                          className="adminIconButton"
-                          type="button"
-                          onClick={() => moveCategory(index, 1)}
-                          disabled={index === taxonomyDraft.categories.length - 1}
-                          aria-label="Move category down"
-                          title="Move Down"
-                        >
-                          <ChevronDownIcon />
-                        </button>
-                        <button
-                          className="adminIconButton adminIconButtonDanger"
-                          type="button"
-                          onClick={() => removeCategory(index)}
-                          aria-label="Remove category"
-                          title="Remove"
-                        >
-                          <DeleteIcon />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="taxonomyPanelContent" data-testid={`taxonomy-panel-content-${index}`}>
-                      <div className="taxonomyPanelContentInner">
-                        <div className="taxonomySectionBlock">
-                          <h3 className="taxonomySectionTitle">Core Definition</h3>
-                          <label className="taxonomyField taxonomyFieldFull">
-                            <span>Description</span>
-                            <textarea
-                              value={category.changeDescription}
-                              onChange={(event) => updateCategory(index, { changeDescription: event.target.value })}
-                              placeholder="Change description"
-                              rows={4}
-                            />
-                          </label>
+                              <div className="taxonomyFieldGrid">
+                                <label className="taxonomyField">
+                                  <span>Impact class</span>
+                                  <select
+                                    value={category.impactClass}
+                                    onChange={(event) => updateCategory(index, { impactClass: event.target.value })}
+                                  >
+                                    {renderImpactClassOptions(category.impactClass)}
+                                  </select>
+                                </label>
+                                <label className="taxonomyField">
+                                  <span>Impact criticality</span>
+                                  <select
+                                    value={category.impactCriticality}
+                                    onChange={(event) =>
+                                      updateCategory(index, { impactCriticality: event.target.value as ImpactCriticality })
+                                    }
+                                    data-testid={`taxonomy-impact-criticality-${index}`}
+                                  >
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
+                                  </select>
+                                </label>
+                                <label className="taxonomyField">
+                                  <span>Control path</span>
+                                  <input
+                                    value={category.controlPath}
+                                    onChange={(event) => updateCategory(index, { controlPath: event.target.value })}
+                                    placeholder="ECR -> ECO -> validation"
+                                  />
+                                </label>
+                                <label className="taxonomyField">
+                                  <span>Compliance trigger</span>
+                                  <input
+                                    value={category.complianceTrigger}
+                                    onChange={(event) => updateCategory(index, { complianceTrigger: event.target.value })}
+                                    placeholder="ISO 9001:2015 Clause 8.5.6"
+                                  />
+                                </label>
+                              </div>
+                            </div>
 
-                          <div className="taxonomyFieldGrid">
-                            <label className="taxonomyField">
-                              <span>Impact class</span>
-                              <select
-                                value={category.impactClass}
-                                onChange={(event) => updateCategory(index, { impactClass: event.target.value })}
-                              >
-                                {renderImpactClassOptions(category.impactClass)}
-                              </select>
-                            </label>
-                            <label className="taxonomyField">
-                              <span>Impact criticality</span>
-                              <select
-                                value={category.impactCriticality}
-                                onChange={(event) =>
-                                  updateCategory(index, { impactCriticality: event.target.value as ImpactCriticality })
-                                }
-                                data-testid={`taxonomy-impact-criticality-${index}`}
-                              >
-                                <option value="High">High</option>
-                                <option value="Medium">Medium</option>
-                                <option value="Low">Low</option>
-                              </select>
-                            </label>
-                            <label className="taxonomyField">
-                              <span>Control path</span>
-                              <input
-                                value={category.controlPath}
-                                onChange={(event) => updateCategory(index, { controlPath: event.target.value })}
-                                placeholder="ECR -> ECO -> validation"
-                              />
-                            </label>
-                            <label className="taxonomyField">
-                              <span>Compliance trigger</span>
-                              <input
-                                value={category.complianceTrigger}
-                                onChange={(event) => updateCategory(index, { complianceTrigger: event.target.value })}
-                                placeholder="ISO 9001:2015 Clause 8.5.6"
-                              />
-                            </label>
+                            <div className="taxonomySectionBlock">
+                              <h3 className="taxonomySectionTitle">Classification Tags</h3>
+                              <div className="taxonomySwimlaneStack">
+                                {renderTokenSwimlane(index, 'triggerProperties', category.triggerProperties)}
+                                {renderTokenSwimlane(index, 'internalApprovingRoles', category.internalApprovingRoles)}
+                                {renderTokenSwimlane(index, 'externalApprovingRoles', category.externalApprovingRoles)}
+                              </div>
+                            </div>
                           </div>
                         </div>
-
-                        <div className="taxonomySectionBlock">
-                          <h3 className="taxonomySectionTitle">Classification Tags</h3>
-                          <div className="taxonomySwimlaneStack">
-                            {renderTokenSwimlane(index, 'triggerProperties', category.triggerProperties)}
-                            {renderTokenSwimlane(index, 'internalApprovingRoles', category.internalApprovingRoles)}
-                            {renderTokenSwimlane(index, 'externalApprovingRoles', category.externalApprovingRoles)}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                ))}
-                {taxonomyDraft.categories.length === 0 ? (
-                  <div className="alertWarning">No categories are configured for this industry yet. Add one to create the tenant fork.</div>
-                ) : null}
+                      </article>
+                    ))}
+                    {taxonomyDraft.categories.length === 0 ? (
+                      <div className="alertWarning">No categories are configured for this industry yet. Add one to create the tenant fork.</div>
+                    ) : null}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </section>
 
-          <section className="panel adminSectionCard">
+          <section className={`panel adminSectionCard ${collapsedSections.learnedAliases ? 'adminSectionCardCollapsed' : ''}`}>
             <div className="adminSectionHeader">
               <div className="adminSectionTitleGroup">
                 <span className="missionShellEyebrow">Admin &gt; Mapping Governance &gt; Learned Aliases</span>
                 <h2 className="adminSectionTitle">Learned alias moderation</h2>
                 <p className="p">Review tenant-learned aliases, keep the good ones enabled, and suppress noisy ones.</p>
               </div>
-              <div className="adminChipCluster">
-                <span className="chip">{enabledAliasCount} enabled</span>
-                <span className="chip">{aliases.length} total</span>
+              <div className="adminSectionHeaderActions">
+                <div className="adminChipCluster">
+                  <span className="chip">{enabledAliasCount} enabled</span>
+                  <span className="chip">{aliases.length} total</span>
+                </div>
+                <button
+                  className="adminIconButton"
+                  type="button"
+                  onClick={() => toggleSectionCollapse('learnedAliases')}
+                  aria-label={`${collapsedSections.learnedAliases ? 'Expand' : 'Collapse'} Learned alias moderation`}
+                  title={collapsedSections.learnedAliases ? 'Expand' : 'Collapse'}
+                  data-testid="admin-section-toggle-learnedAliases"
+                >
+                  <ChevronDownIcon />
+                </button>
               </div>
             </div>
-            <div className="screenInlineForm adminFormRow adminFormRowDense">
-              <input
-                value={aliasQuery}
-                onChange={(event) => setAliasQuery(event.target.value)}
-                placeholder="Search learned aliases..."
-              />
-              <button className="btn" type="button" onClick={() => void loadAdminContext(query, aliasQuery)}>
-                <RefreshIcon />
-                Refresh Aliases
-              </button>
-            </div>
-            <div className="mappingTableWrap adminTableWrap">
-              <table className="mappingTable adminTable">
-                <thead>
-                  <tr>
-                    <th>Source Header</th>
-                    <th>Canonical Field</th>
-                    <th>Confirmations</th>
-                    <th>Confidence Band</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {aliases.map((alias) => (
-                    <tr key={`${alias.normalizedSourceColumn}-${alias.canonicalField}`}>
-                      <td>{alias.normalizedSourceColumn}</td>
-                      <td>{alias.canonicalField}</td>
-                      <td>{alias.confirmations}</td>
-                      <td>{alias.confidenceBand}</td>
-                      <td>{alias.isEnabled ? 'enabled' : 'disabled'}</td>
-                      <td>
-                        <button className="btn" type="button" onClick={() => void toggleAlias(alias, !alias.isEnabled)}>
-                          {alias.isEnabled ? 'Disable' : 'Enable'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {aliases.length === 0 ? (
-                    <tr>
-                      <td colSpan={6}>No tenant-learned aliases yet.</td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
+            <div className="adminSectionPanelContent">
+              <div className="adminSectionPanelInner">
+                <div className="screenInlineForm adminFormRow adminFormRowDense">
+                  <input
+                    value={aliasQuery}
+                    onChange={(event) => setAliasQuery(event.target.value)}
+                    placeholder="Search learned aliases..."
+                  />
+                  <button className="btn" type="button" onClick={() => void loadAdminContext(query, aliasQuery)}>
+                    <RefreshIcon />
+                    Refresh Aliases
+                  </button>
+                </div>
+                <div className="mappingTableWrap adminTableWrap">
+                  <table className="mappingTable adminTable">
+                    <thead>
+                      <tr>
+                        <th>Source Header</th>
+                        <th>Canonical Field</th>
+                        <th>Confirmations</th>
+                        <th>Confidence Band</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {aliases.map((alias) => (
+                        <tr key={`${alias.normalizedSourceColumn}-${alias.canonicalField}`}>
+                          <td>{alias.normalizedSourceColumn}</td>
+                          <td>{alias.canonicalField}</td>
+                          <td>{alias.confirmations}</td>
+                          <td>{alias.confidenceBand}</td>
+                          <td>{alias.isEnabled ? 'enabled' : 'disabled'}</td>
+                          <td>
+                            <button className="btn" type="button" onClick={() => void toggleAlias(alias, !alias.isEnabled)}>
+                              {alias.isEnabled ? 'Disable' : 'Enable'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {aliases.length === 0 ? (
+                        <tr>
+                          <td colSpan={6}>No tenant-learned aliases yet.</td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </section>
         </div>

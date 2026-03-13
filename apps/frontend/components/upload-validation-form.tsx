@@ -255,6 +255,7 @@ export function UploadValidationForm() {
       : null;
   const isBusy = isSubmitting || isQueueing;
   const isTransitioningToResults = isAutoOpeningResults && Boolean(openResultsHref);
+  const shouldHighlightCompare = canSubmit && !isTransitioningToResults && !openResultsHref;
   const compareTooltip = isSubmitting
     ? 'Validation is running before comparison starts'
     : isQueueing
@@ -304,7 +305,7 @@ export function UploadValidationForm() {
             ) : null}
             <span className="missionCompareActionWrap" title={compareTooltip}>
               <button
-                className="screenIconAction"
+                className={`screenIconAction ${shouldHighlightCompare ? 'missionCompareRunPulse' : ''}`}
                 type="submit"
                 disabled={!canSubmit}
                 aria-label={compareTooltip}

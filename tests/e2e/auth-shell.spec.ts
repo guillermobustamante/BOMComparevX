@@ -797,6 +797,7 @@ test('admin page supports user search and upload policy override/reset for admin
   const page = await context.newPage();
 
   await page.goto('/admin');
+  await page.getByTestId('admin-section-toggle-accessRoles').click();
   await expect(page.getByTestId('admin-users-table')).toBeVisible({ timeout: 20000 });
   await page.getByTestId('admin-user-search-input').fill(targetEmail);
   await page.getByTestId('admin-user-search-btn').click();
@@ -834,6 +835,7 @@ test('admin taxonomy editor supports automotive category styling and tag inserti
   const page = await context.newPage();
 
   await page.goto('/admin');
+  await page.getByTestId('admin-section-toggle-taxonomyImpacts').click();
   await expect(page.getByTestId('taxonomy-editor')).toBeVisible({ timeout: 20000 });
   await page.getByTestId('taxonomy-working-industry-select').selectOption('Automotive');
   await expect(page.getByTestId('taxonomy-category-title-0')).toHaveValue('Product design or form-fit-function change');

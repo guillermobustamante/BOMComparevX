@@ -219,15 +219,201 @@ Resolution:
 - Implemented on `2026-03-12`.
 - Added separate diff-row fields for `occurrenceInternalId` and `objectInternalId`.
 - Split upload alias handling so occurrence-like headers and object-like headers are preserved separately, while `internalId` remains as a compatibility field resolved with safer precedence.
-- Updated generic and SAP profile adapters to anchor stable occurrence keys on occurrence identity when present.
-- Updated matcher identity token precedence to prefer occurrence identity over generic/shared ids.
-- Extended mapping semantics with `occurrence_id` and `object_id` canonical fields plus registry aliases for common headers.
-- Added regression coverage for parser precedence, repeated-instance order shifts, and mapping semantics.
+
+### ISSUE-010 - Upload Run CTA does not draw attention when both BOM files are ready
+- Status: `Resolved`
+- Priority: `P2`
+- Area: `Upload / UX`
+- First observed: `2026-03-12`
+
+Problem:
+- The `/upload` screen enables the Run action once two BOM files are selected, but the CTA does not stand out visually at the moment the user can proceed.
+- Users can miss the next step because the enabled Run button looks too similar to its idle state.
+
+Desired outcome:
+- When two BOM files are loaded and the Run action is available, the CTA should visibly attract attention without feeling noisy or broken.
+- The attention treatment should stop once the upload flow is busy or has transitioned to the results handoff state.
+
+Resolution:
+- Implemented on `2026-03-12`.
+- Added a pulse animation to the Run button on `/upload` whenever both files are present and comparison can be started.
+- Kept the treatment motion-based rather than a hard blink so the CTA is more noticeable without reading as an error state.
+
+### ISSUE-011 - Results impact popup does not match the new Admin visual language
+- Status: `Resolved`
+- Priority: `P2`
+- Area: `Results / UX / Impact Review`
+- First observed: `2026-03-12`
+
+Problem:
+- The `/results` "View Impact" popup still uses the older generic modal/card styling.
+- The impact review experience feels visually disconnected from the newer governance surfaces under `/admin`.
+
+Desired outcome:
+- Restyle the impact popup so it carries the same look and feel as the Admin governance experience.
+- Preserve the existing data and hierarchy while improving clarity for summary, changed properties, and category-level governance details.
+
+Resolution:
+- Implemented on `2026-03-12`.
+- Reworked the impact popup to use Admin-style summary cards, softer glass panels, cyan section rails, and taxonomy-like criticality badges.
+- Kept the existing impact content intact while restructuring the layout so category details scan more like the governance editor.
+
+### ISSUE-012 - Historical comparison results are not locked to the taxonomy/classification version used at comparison time
+- Status: `Open`
+- Priority: `P1`
+- Area: `Results / Governance / Auditability`
+- First observed: `2026-03-12`
+
+Problem:
+- Existing comparison results can change when Admin taxonomy definitions or classification tags are edited after the comparison has already completed.
+- This makes historical results unstable and weakens auditability, because the same past comparison may present different impact classifications over time.
+
+Desired outcome:
+- Each comparison result should remain locked to the taxonomy/classification version that was active when that comparison was executed.
+- Later taxonomy or classification-tag edits should only affect new comparisons unless a user explicitly requests a governed reclassification flow.
+
+Future consideration:
+- Persist a taxonomy/classification snapshot version or immutable resolved classification payload with each comparison.
+- Show the governing taxonomy version on results so users can distinguish historical classifications from newer taxonomy revisions.
+
+### ISSUE-013 - Taxonomy impact matching misses semantically equivalent property names
+- Status: `Resolved`
+- Priority: `P1`
+- Area: `Mapping / Taxonomy / Classification`
+- First observed: `2026-03-12`
+
+Problem:
+- Impact classification currently compares changed BOM property names against taxonomy trigger properties mostly as raw labels.
+- This misses semantically equivalent names such as `MEVS Current Revision` vs `Component Revision` or `MEVS Part Number` vs `Component PN`.
+- As a result, legitimate taxonomy categories can fail to trigger even when the changed field clearly represents the same business concept.
+
+Desired outcome:
+- Taxonomy impact matching should resolve both changed property names and taxonomy trigger properties through canonical semantic meaning before using raw fuzzy string fallback.
+- Industry-seeded aliases should cover common Generic and Automotive classification-tag vocabulary.
+- Positive and negative automated tests should prove that real aliases trigger correctly and unrelated fields do not.
+
+Resolution:
+- Implemented on `2026-03-12`.
+- Added canonical semantic matching to taxonomy classification between changed properties and taxonomy trigger tags.
+- Kept raw exact-label matching first, inserted semantic canonical matching second, and left raw fuzzy fallback as the last path.
+- Seeded Generic and Automotive alias coverage for common trigger/tag vocabulary including part number, revision, quantity, UoM, supplier part number, PPAP, tooling, and service-part semantics.
+- Added positive and negative automated tests proving that multiple aliases classify correctly while unrelated fields remain unclassified.
 
 Verification:
 - `npm --prefix apps/backend run typecheck`
-- `npm --prefix apps/backend run test -- occurrence-aware-matching.e2e-spec.ts`
-- real-row inspection confirmed the provided `SI-Mutter M8` occurrences are identical across both example workbooks when compared by `OccurrenceInternalName`, so prior `modified` results were false positives caused by matching, not real deltas
+- `npm --prefix apps/backend run build`
+- `npm --prefix apps/backend run test -- change-intelligence.e2e-spec.ts`
+
+### ISSUE-014 - Results impact popup duplicates low-value summary fields
+- Status: `Resolved`
+- Priority: `P2`
+- Area: `Results / UX / Impact Review`
+- First observed: `2026-03-12`
+
+Problem:
+- The `/results` "View Impact" popup showed `Industry` in the summary hero even though that value is low-signal during row review.
+- The popup also repeated impact criticality inside each category card even though the screen already shows criticality in the hero summary.
+- This spent prime summary space on redundant information while pushing the more useful `Changed properties` content lower in the layout.
+
+Desired outcome:
+- Remove `Industry` from the popup summary hero.
+- Move `Changed properties` into the summary hero area.
+- Remove the duplicate secondary impact-criticality badge from each category card.
+
+Resolution:
+- Implemented on `2026-03-12`.
+- Replaced the `Industry` summary card with `Changed properties` in the impact dialog hero.
+- Removed the standalone changed-properties section below the hero to avoid duplication.
+- Removed the per-category criticality badge from the category cards so the popup keeps one primary criticality signal.
+
+### ISSUE-015 - Governance Command Center section rails look disconnected
+- Status: `Resolved`
+- Priority: `P2`
+- Area: `Admin / UX / Visual Hierarchy`
+- First observed: `2026-03-12`
+
+Problem:
+- The cyan top rails on the Governance Command Center section cards appeared as detached segments rather than one connected guidance system.
+- The left start point, spacing, and width behavior did not read as a shared layout rhythm across cards.
+- This made the stack feel visually inconsistent compared with the primary cyan rule directly beneath the `Governance Command Center` heading.
+
+Desired outcome:
+- Every governance section card should use the same left offset, width behavior, and spacing for its cyan rail.
+- The cyan rail on each card should start flush from the same left boundary.
+- The card rails should visually connect through a shared vertical guide in the stack container.
+- The rail treatment should match the look and feel of the top cyan rule under the page title.
+
+Resolution:
+- Implemented on `2026-03-12`.
+- Introduced shared admin rail CSS variables so the page-level rule and section-card rules use the same thickness and gradient treatment.
+- Added a vertical guide rail to the governance section stack.
+- Reduced inter-card spacing and changed each card rail to run flush across the full top edge so the sections read as one connected system.
+
+### ISSUE-016 - Results impact popup detail blocks include low-value matched-properties section
+- Status: `Resolved`
+- Priority: `P2`
+- Area: `Results / UX / Impact Review`
+- First observed: `2026-03-12`
+
+Problem:
+- The `/results` impact popup still included a `Matched properties` section inside each category card even though it added little value compared with reviewer routing and governance controls.
+- That extra section pushed the higher-signal detail blocks down and weakened the intended two-row review layout.
+
+Desired outcome:
+- Remove `Matched properties` from the category detail grid.
+- Keep `Internal reviewers` and `External reviewers` on the first row.
+- Keep `Compliance trigger` and `Control path` on the second row.
+
+Resolution:
+- Implemented on `2026-03-12`.
+- Removed the `Matched properties` section from each impact category card.
+- Kept the remaining four detail blocks in grid order so they render as:
+  - row 1: `Internal reviewers`, `External reviewers`
+  - row 2: `Compliance trigger`, `Control path`
+
+### ISSUE-017 - Results impact popup needs category-trigger properties and better hero hierarchy
+- Status: `Resolved`
+- Priority: `P2`
+- Area: `Results / UX / Impact Review`
+- First observed: `2026-03-12`
+
+Problem:
+- The `/results` impact popup no longer showed the category-triggering property set inside each category card.
+- The hero area also gave `Impact class` its own top-row card, which weakened the summary hierarchy and left `Changed properties` visually compressed.
+
+Desired outcome:
+- Bring back the category-triggering property section using the label `Properties in this Category`.
+- Place that section above the reviewer row inside each impact category card.
+- Highlight the changed properties that triggered the category.
+- Stack `Impact class` directly under `Impact criticality` in the left summary column.
+- Expand `Changed properties` to occupy the two right-side hero columns.
+
+Resolution:
+- Implemented on `2026-03-12`.
+- Added a `Properties in this Category` section above the reviewer row in each category card.
+- Rendered the triggering properties as highlighted chips using the category-level matched property list.
+- Reworked the hero grid so `Impact criticality` and `Impact class` share the left column and `Changed properties` spans the two right-side columns.
+
+### ISSUE-018 - Results impact popup needs full category property context, not only triggered subset
+- Status: `Resolved`
+- Priority: `P2`
+- Area: `Results / UX / Impact Review`
+- First observed: `2026-03-12`
+
+Problem:
+- The `/results` impact popup showed only the triggered property subset for each category, which made it hard to understand the full taxonomy scope of that category.
+- Reviewers could not easily distinguish which properties belong to the category overall versus which ones actually triggered on the current row.
+
+Desired outcome:
+- Show all taxonomy trigger properties for the category in the `Properties in this Category` section.
+- Highlight the properties that triggered for the current change.
+- Fade the properties that belong to the category but were not involved in the current change.
+
+Resolution:
+- Implemented on `2026-03-12`.
+- Extended the results impact payload so each category includes the full taxonomy `triggerProperties` list as well as the matched trigger-property subset.
+- Updated the popup to render every taxonomy property in the category.
+- Highlighted the properties that triggered the current classification and muted the non-triggered properties for contrast.
 
 ## 3. Linked follow-up records
 - Sprint 12 QA: [UI_QA_S12_RESULTS_REVISION_CHAIN.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\UI_QA_S12_RESULTS_REVISION_CHAIN.md:1)

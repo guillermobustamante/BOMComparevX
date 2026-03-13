@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { DatabaseService } from '../database/database.service';
+import { SemanticRegistryService } from './semantic-registry.service';
 
 export interface BomChangeTaxonomyCategory {
   industry: string;
@@ -25,7 +26,7 @@ export interface BomChangeTaxonomyDocument {
 export interface BomChangePropertyMatch {
   propertyName: string;
   taxonomyProperty: string;
-  mode: 'exact' | 'fuzzy';
+  mode: 'exact' | 'semantic' | 'fuzzy';
   confidence: number;
 }
 
@@ -41,13 +42,85 @@ export interface BomChangeClassificationResult {
 }
 
 const DEFAULT_INDUSTRY = 'General discrete manufacturing';
+const AUTOMOTIVE_INDUSTRY = 'Automotive';
 const TAXONOMY_SOURCE_VERSION = 'runbook-v1';
 const EXACT_MATCH_CONFIDENCE = 1;
+const SEMANTIC_MATCH_CONFIDENCE_FLOOR = 0.9;
 const FUZZY_ACCEPT_THRESHOLD = 0.94;
+
+interface TaxonomySemanticAliasEntry {
+  canonicalField: string;
+  alias: string;
+  confidence: number;
+  industries?: string[];
+}
+
+interface ResolvedSemanticField {
+  canonicalField: string;
+  confidence: number;
+}
+
+const TAXONOMY_SEMANTIC_ALIASES: TaxonomySemanticAliasEntry[] = [
+  { canonicalField: 'part_number', alias: 'component pn', confidence: 0.99, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'part_number', alias: 'component part number', confidence: 0.99, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'part_number', alias: 'component number', confidence: 0.98, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'part_number', alias: 'component', confidence: 0.92, industries: [DEFAULT_INDUSTRY] },
+  { canonicalField: 'part_number', alias: 'part', confidence: 0.91, industries: [DEFAULT_INDUSTRY] },
+  { canonicalField: 'part_number', alias: 'child item', confidence: 0.96, industries: [DEFAULT_INDUSTRY] },
+  { canonicalField: 'part_number', alias: 'mevs part number', confidence: 0.98, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'revision', alias: 'component revision', confidence: 0.99, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'revision', alias: 'revision level', confidence: 0.99, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'revision', alias: 'mevs current revision', confidence: 0.98, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'revision', alias: 'mevs prod int revision', confidence: 0.97, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'revision', alias: 'mevs revision', confidence: 0.97, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'revision', alias: 'drawing spec revision', confidence: 0.95, industries: [AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'revision', alias: 'drawing/spec revision', confidence: 0.95, industries: [AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'quantity', alias: 'quantity in this line', confidence: 0.98, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'quantity', alias: 'quantityinthisline', confidence: 0.98, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'quantity', alias: 'comp qty', confidence: 0.97, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'quantity', alias: 'comp qty cun', confidence: 0.97, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'quantity', alias: 'aqqtym', confidence: 0.95, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'unit_of_measure', alias: 'uom', confidence: 0.99, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'unit_of_measure', alias: 'uo m', confidence: 0.97, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'unit_of_measure', alias: 'unit of measure', confidence: 0.99, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'description', alias: 'component description', confidence: 0.99, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'description', alias: 'component desc', confidence: 0.97, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'description', alias: 'comp desc', confidence: 0.97, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'object_id', alias: 'part key', confidence: 0.99, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'object_id', alias: 'partkey', confidence: 0.99, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'find_number', alias: 'find number', confidence: 0.99, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'find_number', alias: 'item sequence', confidence: 0.95, industries: [DEFAULT_INDUSTRY] },
+  { canonicalField: 'customer_part_number', alias: 'oem part number', confidence: 0.99, industries: [AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'customer_part_number', alias: 'oem pn', confidence: 0.97, industries: [AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'manufacturer_part_number', alias: 'supplier part number', confidence: 0.99, industries: [AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'manufacturer_part_number', alias: 'vendor part number', confidence: 0.97, industries: [AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'ppap_status', alias: 'ppap status', confidence: 0.99, industries: [AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'ppap_status', alias: 'ppap trigger flag', confidence: 0.96, industries: [AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'ppap_status', alias: 'ppap state', confidence: 0.95, industries: [AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'tooling_status', alias: 'tooling status', confidence: 0.99, industries: [AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'tooling_status', alias: 'tool status', confidence: 0.96, industries: [AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'service_part_flag', alias: 'service bom flag', confidence: 0.98, industries: [DEFAULT_INDUSTRY, AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'service_part_flag', alias: 'service part flag', confidence: 0.98, industries: [AUTOMOTIVE_INDUSTRY] },
+  { canonicalField: 'service_part_flag', alias: 'service part link', confidence: 0.93, industries: [AUTOMOTIVE_INDUSTRY] }
+];
+
+function normalizeTaxonomyValue(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/gi, ' ')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 @Injectable()
 export class BomChangeTaxonomyService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly semanticRegistry: SemanticRegistryService = new SemanticRegistryService()
+  ) {}
 
   private readonly defaultIndustryByTenant = new Map<string, string>();
   private readonly taxonomyByTenantIndustry = new Map<string, BomChangeTaxonomyDocument>();
@@ -200,7 +273,23 @@ export class BomChangeTaxonomyService {
             confidence: EXACT_MATCH_CONFIDENCE
           });
           const existing = categories.get(match.category.category) || { ...match.category, matchedProperties: [] };
-          existing.matchedProperties = [...new Set([...existing.matchedProperties, propertyName])];
+          existing.matchedProperties = [...new Set([...existing.matchedProperties, match.taxonomyProperty])];
+          categories.set(match.category.category, existing);
+        }
+        continue;
+      }
+
+      const semanticMatches = this.findSemanticMatches(propertyName, taxonomy.categories, taxonomy.industry);
+      if (semanticMatches.length > 0) {
+        for (const match of semanticMatches) {
+          propertyMatches.push({
+            propertyName,
+            taxonomyProperty: match.taxonomyProperty,
+            mode: 'semantic',
+            confidence: match.confidence
+          });
+          const existing = categories.get(match.category.category) || { ...match.category, matchedProperties: [] };
+          existing.matchedProperties = [...new Set([...existing.matchedProperties, match.taxonomyProperty])];
           categories.set(match.category.category, existing);
         }
         continue;
@@ -218,7 +307,7 @@ export class BomChangeTaxonomyService {
         confidence: fuzzyMatch.confidence
       });
       const existing = categories.get(fuzzyMatch.category.category) || { ...fuzzyMatch.category, matchedProperties: [] };
-      existing.matchedProperties = [...new Set([...existing.matchedProperties, propertyName])];
+      existing.matchedProperties = [...new Set([...existing.matchedProperties, fuzzyMatch.taxonomyProperty])];
       categories.set(fuzzyMatch.category.category, existing);
     }
 
@@ -340,6 +429,35 @@ export class BomChangeTaxonomyService {
     );
   }
 
+  private findSemanticMatches(
+    propertyName: string,
+    categories: BomChangeTaxonomyCategory[],
+    industry: string
+  ): Array<{ category: BomChangeTaxonomyCategory; taxonomyProperty: string; confidence: number }> {
+    const resolvedProperty = this.resolveSemanticField(propertyName, industry);
+    if (!resolvedProperty || resolvedProperty.confidence < SEMANTIC_MATCH_CONFIDENCE_FLOOR) {
+      return [];
+    }
+
+    return categories.flatMap((category) =>
+      category.triggerProperties.flatMap((triggerProperty) => {
+        const resolvedTrigger = this.resolveSemanticField(triggerProperty, industry);
+        if (!resolvedTrigger || resolvedTrigger.confidence < SEMANTIC_MATCH_CONFIDENCE_FLOOR) {
+          return [];
+        }
+        if (resolvedTrigger.canonicalField !== resolvedProperty.canonicalField) {
+          return [];
+        }
+
+        return [{
+          category,
+          taxonomyProperty: triggerProperty,
+          confidence: Number(Math.min(resolvedProperty.confidence, resolvedTrigger.confidence).toFixed(4))
+        }];
+      })
+    );
+  }
+
   private findBestFuzzyMatch(
     propertyName: string,
     categories: BomChangeTaxonomyCategory[]
@@ -362,6 +480,55 @@ export class BomChangeTaxonomyService {
         this.impactCriticalityRank(b.category.impactCriticality) - this.impactCriticalityRank(a.category.impactCriticality) ||
         a.category.category.localeCompare(b.category.category)
     )[0];
+  }
+
+  private resolveSemanticField(value: string, industry: string): ResolvedSemanticField | null {
+    const normalizedValue = this.normalizeValue(value);
+    if (!normalizedValue) return null;
+
+    const aliasExact = TAXONOMY_SEMANTIC_ALIASES
+      .filter((entry) => this.aliasAppliesToIndustry(entry, industry) && this.normalizeValue(entry.alias) === normalizedValue)
+      .sort((a, b) => b.confidence - a.confidence || a.alias.localeCompare(b.alias))[0];
+    if (aliasExact) {
+      return {
+        canonicalField: aliasExact.canonicalField,
+        confidence: aliasExact.confidence
+      };
+    }
+
+    const registryExact = this.semanticRegistry.findExact(value);
+    if (registryExact) {
+      return {
+        canonicalField: registryExact.canonicalField,
+        confidence: registryExact.confidence
+      };
+    }
+
+    const aliasFuzzy = TAXONOMY_SEMANTIC_ALIASES
+      .filter((entry) => this.aliasAppliesToIndustry(entry, industry))
+      .map((entry) => ({
+        canonicalField: entry.canonicalField,
+        confidence: Number((this.calculateSimilarity(normalizedValue, this.normalizeValue(entry.alias)) * entry.confidence).toFixed(4))
+      }))
+      .filter((entry) => entry.confidence >= SEMANTIC_MATCH_CONFIDENCE_FLOOR)
+      .sort((a, b) => b.confidence - a.confidence || a.canonicalField.localeCompare(b.canonicalField))[0];
+    if (aliasFuzzy) {
+      return aliasFuzzy;
+    }
+
+    const registryFuzzy = this.semanticRegistry.findFuzzy(value);
+    if (registryFuzzy && registryFuzzy.confidence >= SEMANTIC_MATCH_CONFIDENCE_FLOOR) {
+      return {
+        canonicalField: registryFuzzy.canonicalField,
+        confidence: registryFuzzy.confidence
+      };
+    }
+
+    return null;
+  }
+
+  private aliasAppliesToIndustry(entry: TaxonomySemanticAliasEntry, industry: string): boolean {
+    return !entry.industries?.length || entry.industries.includes(industry);
   }
 
   private calculateSimilarity(a: string, b: string): number {
@@ -408,13 +575,7 @@ export class BomChangeTaxonomyService {
   }
 
   private normalizeValue(value: string): string {
-    return value
-      .normalize('NFKD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/gi, ' ')
-      .toLowerCase()
-      .replace(/\s+/g, ' ')
-      .trim();
+    return normalizeTaxonomyValue(value);
   }
 
   private resolveIndustryName(value: string): string {
