@@ -18,62 +18,11 @@ import {
   TreeViewIcon,
   UploadTrayIcon
 } from '@/components/mission-icons';
+import { ResultsImpactDialog } from './results-impact-dialog';
+import { ChangeType, DiffRow, ImpactCriticality } from './results-grid-contract';
 
-type ChangeType = 'added' | 'removed' | 'replaced' | 'modified' | 'moved' | 'quantity_change' | 'no_change';
 type PageSize = 50 | 100 | 200;
 type ResultsViewMode = 'flat' | 'tree';
-type ImpactCriticality = 'High' | 'Medium' | 'Low';
-
-interface DiffImpactCategory {
-  industry: string;
-  category: string;
-  changeDescription: string;
-  impactClass: string;
-  impactCriticality: ImpactCriticality;
-  internalApprovingRoles: string[];
-  externalApprovingRoles: string[];
-  controlPath: string;
-  complianceTrigger: string;
-  triggerProperties: string[];
-  matchedProperties: string[];
-}
-
-interface DiffImpactClassification {
-  industry: string;
-  categories: DiffImpactCategory[];
-  highestImpactClass: string | null;
-  impactCriticality: ImpactCriticality | null;
-  internalApprovingRoles: string[];
-  externalApprovingRoles: string[];
-  complianceTriggers: string[];
-}
-
-interface DiffRow {
-  rowId: string;
-  changeType: ChangeType;
-  sourceIndex: number;
-  targetIndex: number;
-  keyFields: {
-    partNumber: string | null;
-    revision: string | null;
-    description: string | null;
-  };
-  cells: Array<{
-    field: string;
-    before: string | number | null;
-    after: string | number | null;
-    reasonCode: string;
-  }>;
-  rationale: {
-    classificationReason: string;
-    matchReason?: string;
-    tieBreakTrace?: string[];
-    score?: number;
-    reviewRequired?: boolean;
-    changedFields: string[];
-  };
-  impactClassification?: DiffImpactClassification | null;
-}
 
 interface DiffStatus {
   contractVersion: string;
@@ -203,11 +152,6 @@ export function ResultsGrid() {
   function impactCriticalityClass(value: ImpactCriticality | null | undefined): string {
     if (!value) return 'impactBadgeNone';
     return `impactBadge${value}`;
-  }
-
-  function impactCriticalityBadgeClass(value: ImpactCriticality | null | undefined): string {
-    if (!value) return 'taxonomyCriticalityBadge';
-    return `taxonomyCriticalityBadge taxonomyCriticalityBadge${value}`;
   }
 
   function summarizeImpact(row: DiffRow): string {
@@ -1568,128 +1512,7 @@ export function ResultsGrid() {
         </div>
       )}
 
-      {impactDialogRow && (
-        <div className="screenModalLayer" role="presentation">
-          <button
-            type="button"
-            className="screenModalBackdrop"
-            aria-label="Close change impact dialog"
-            onClick={() => setImpactDialogRow(null)}
-          />
-          <section
-            className="screenModalCard panel impactDialogModal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="results-impact-dialog-title"
-            data-testid="results-impact-dialog"
-          >
-            <div className="screenModalHeader impactDialogModalHeader">
-              <div className="impactDialogTitleGroup">
-                <p className="missionShellEyebrow">Change Impact Classification</p>
-                <h2 className="adminSectionTitle" id="results-impact-dialog-title">
-                  {impactDialogRow.keyFields.partNumber || impactDialogRow.rowId}
-                </h2>
-                <p className="p impactDialogTitleDescription">
-                  {impactDialogRow.keyFields.description || 'No description'}
-                </p>
-              </div>
-              <button
-                className="adminIconButton"
-                type="button"
-                aria-label="Close change impact dialog"
-                title="Close"
-                onClick={() => setImpactDialogRow(null)}
-              >
-                <CloseIcon />
-              </button>
-            </div>
-
-            <div className="impactDialogHero">
-              <div className="impactDialogHeroSummaryColumn">
-                <div className="impactDialogHeroBlock">
-                  <span className="impactDialogLabel">Impact criticality</span>
-                  <span className={impactCriticalityBadgeClass(impactDialogRow.impactClassification?.impactCriticality)}>
-                    {impactDialogRow.impactClassification?.impactCriticality || 'None'}
-                  </span>
-                </div>
-                <div className="impactDialogHeroBlock">
-                  <span className="impactDialogLabel">Impact class</span>
-                  <strong>{impactDialogRow.impactClassification?.highestImpactClass || '-'}</strong>
-                </div>
-              </div>
-              <div className="impactDialogHeroBlock impactDialogHeroBlockWide">
-                <span className="impactDialogLabel">Changed properties</span>
-                <div className="cellChips">
-                  {impactDialogRow.rationale.changedFields.length ? impactDialogRow.rationale.changedFields.map((field) => (
-                    <span className="chip" key={`${impactDialogRow.rowId}-${field}`}>
-                      {field}
-                    </span>
-                  )) : <span className="chip">None</span>}
-                </div>
-              </div>
-            </div>
-
-            <div className="impactDialogGrid">
-              {(impactDialogRow.impactClassification?.categories || []).map((category) => (
-                <article className="impactDialogCard" key={`${impactDialogRow.rowId}-${category.category}`}>
-                  <div className="impactDialogCardHeader">
-                    <div className="impactDialogCardTitleGroup">
-                      <h3 className="impactDialogCardTitle">{category.category}</h3>
-                      <p className="p impactDialogCardDescription">{category.changeDescription}</p>
-                    </div>
-                  </div>
-                  <div className="impactDialogDetailGrid">
-                    <div className="impactDialogSectionBlock impactDialogSectionBlockWide">
-                      <h4 className="taxonomySectionTitle">Properties in this Category</h4>
-                      <div className="cellChips">
-                        {category.triggerProperties.length ? category.triggerProperties.map((value) => {
-                          const matched = category.matchedProperties.some((property) => property === value);
-                          return (
-                            <span
-                              className={`chip ${matched ? 'chipReview impactCategoryPropertyMatched' : 'impactCategoryPropertyMuted'}`}
-                              key={`${category.category}-trigger-${value}`}
-                            >
-                              {value}
-                            </span>
-                          );
-                        }) : <span className="chip">None</span>}
-                      </div>
-                    </div>
-                    <div className="impactDialogSectionBlock">
-                      <h4 className="taxonomySectionTitle">Internal reviewers</h4>
-                      <div className="cellChips">
-                        {category.internalApprovingRoles.length ? category.internalApprovingRoles.map((role) => (
-                          <span className="chip" key={`${category.category}-internal-${role}`}>
-                            {role}
-                          </span>
-                        )) : <span className="chip">None</span>}
-                      </div>
-                    </div>
-                    <div className="impactDialogSectionBlock">
-                      <h4 className="taxonomySectionTitle">External reviewers</h4>
-                      <div className="cellChips">
-                        {category.externalApprovingRoles.length ? category.externalApprovingRoles.map((role) => (
-                          <span className="chip" key={`${category.category}-external-${role}`}>
-                            {role}
-                          </span>
-                        )) : <span className="chip">None</span>}
-                      </div>
-                    </div>
-                    <div className="impactDialogSectionBlock">
-                      <h4 className="taxonomySectionTitle">Compliance trigger</h4>
-                      <strong>{category.complianceTrigger || '-'}</strong>
-                    </div>
-                    <div className="impactDialogSectionBlock">
-                      <h4 className="taxonomySectionTitle">Control path</h4>
-                      <strong>{category.controlPath || '-'}</strong>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
+      {impactDialogRow && <ResultsImpactDialog row={impactDialogRow} onClose={() => setImpactDialogRow(null)} />}
 
       {exportDialogOpen && (
         <div className="screenModalLayer" role="presentation">

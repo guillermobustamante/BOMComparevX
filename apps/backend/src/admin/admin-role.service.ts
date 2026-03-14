@@ -70,7 +70,7 @@ export class AdminRoleService {
       },
       orderBy: { userEmail: 'asc' }
     });
-    const claims = rows.map((row) => this.fromRow(row));
+    const claims = rows.map((row: Parameters<typeof this.fromRow>[0]) => this.fromRow(row));
     for (const claim of claims) {
       this.claimsByKey.set(this.claimKey(claim.tenantId, claim.userEmail, claim.role), claim);
     }

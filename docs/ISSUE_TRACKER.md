@@ -415,6 +415,45 @@ Resolution:
 - Updated the popup to render every taxonomy property in the category.
 - Highlighted the properties that triggered the current classification and muted the non-triggered properties for contrast.
 
+### ISSUE-019 - Engineering measurement fields do not resolve to taxonomy tags
+- Status: `Resolved`
+- Priority: `P1`
+- Area: `Diff / Taxonomy Classification / Semantics`
+- First observed: `2026-03-13`
+
+Problem:
+- Engineering properties such as `Volume_mm3`, `Area_mm2`, `BoundingBox_mm`, and `CenterOfMass` were detected as changed but did not trigger tenant taxonomy tags like `Volume`, `Area`, `Bounding Box`, or `Center of Mass`.
+- The taxonomy matcher relied on exact string equality, curated semantic aliases, and a strict fuzzy threshold, which is not sufficient for unit-bearing engineering fields.
+
+Desired outcome:
+- Resolve unit-bearing and source-specific engineering properties to stable classification tags automatically.
+- Do this without requiring tenants to manually add every suffix and naming variant to taxonomy trigger properties.
+
+Resolution:
+- Implemented on `2026-03-13`.
+- Added a dedicated taxonomy property-family semantic layer in the backend.
+- Inserted family matching ahead of fuzzy taxonomy matching.
+- Added unit-aware normalization so properties such as `Volume_mm3` can classify against taxonomy tag `Volume`.
+- Encoded the canonical engineering property-family runbook baseline into the resolver.
+- Added regression tests for engineering property family matching plus public-source BOM vocabularies across general manufacturing, electronics, aerospace, defense, construction, and medical-service contexts.
+
+### ISSUE-020 - Medical devices industry taxonomy is referenced by architecture but not defined in the runbook
+- Status: `Pending`
+- Priority: `P2`
+- Area: `Taxonomy / Industry Coverage`
+- First observed: `2026-03-13`
+
+Problem:
+- The backend industry handling anticipates a `Medical devices` taxonomy, but [bom_change_taxonomy_by_industry.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\runbooks\bom_change_taxonomy_by_industry.md) does not currently include a medical-devices section.
+- This limits deterministic family-to-category mapping for medical-device-specific trigger properties.
+
+Desired outcome:
+- Add a first-class `Medical devices` taxonomy section with categories, trigger properties, approving roles, control path, and compliance triggers.
+
+Current recommendation:
+- Keep the canonical family model global.
+- Add the dedicated medical-devices taxonomy as a follow-up stage rather than overfitting the current industries.
+
 ## 3. Linked follow-up records
 - Sprint 12 QA: [UI_QA_S12_RESULTS_REVISION_CHAIN.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\UI_QA_S12_RESULTS_REVISION_CHAIN.md:1)
 - Sprint 12.1 backlog: [SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md:1)

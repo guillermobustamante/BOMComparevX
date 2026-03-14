@@ -6,6 +6,9 @@
   "scripts": {
     "backend:test": "npm --prefix apps/backend run test:e2e",
     "backend:ci": "npm --prefix apps/backend run ci",
+    "lint": "npm --prefix apps/backend run lint && npm --prefix apps/frontend run lint",
+    "test": "npm --prefix apps/backend run test",
+    "build": "npm --prefix apps/backend run build && npm --prefix apps/frontend run build",
     "frontend:test:e2e": "npx playwright test",
     "frontend:test:e2e:install": "npx playwright install chromium",
     "frontend:ci": "npm --prefix apps/frontend run ci",

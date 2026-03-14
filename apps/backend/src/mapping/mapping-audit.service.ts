@@ -19,6 +19,22 @@ export interface MappingAuditEntry {
   correlationId: string | null;
 }
 
+interface PersistedMappingAuditRow {
+  auditId: string;
+  tenantId: string;
+  bomRevisionId: string;
+  sourceColumn: string | null;
+  canonicalField: string | null;
+  strategy: string;
+  confidence: number | null;
+  reviewState: string | null;
+  actor: string | null;
+  changedFrom: string | null;
+  changedTo: string | null;
+  timestampUtc: Date;
+  correlationId: string | null;
+}
+
 @Injectable()
 export class MappingAuditService {
   constructor(private readonly databaseService: DatabaseService) {}
@@ -82,7 +98,7 @@ export class MappingAuditService {
         where: { tenantId, bomRevisionId: revisionId },
         orderBy: { timestampUtc: 'asc' }
       });
-      return rows.map((row) => ({
+      return rows.map((row: PersistedMappingAuditRow) => ({
         auditId: row.auditId,
         tenantId: row.tenantId,
         revisionId: row.bomRevisionId,

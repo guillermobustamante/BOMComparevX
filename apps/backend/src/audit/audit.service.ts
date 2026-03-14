@@ -27,6 +27,20 @@ export interface AuditLogRecord {
   correlationId: string | null;
 }
 
+interface PersistedAuditLogRow {
+  id: string;
+  timestampUtc: Date;
+  userId: string | null;
+  tenantId: string | null;
+  actionType: string;
+  resourceType: string | null;
+  resourceId: string | null;
+  detailsJson: string | null;
+  outcome: string | null;
+  ipAddress: string | null;
+  correlationId: string | null;
+}
+
 @Injectable()
 export class AuditService {
   constructor(private readonly databaseService: DatabaseService) {}
@@ -115,7 +129,7 @@ export class AuditService {
       take: limit
     });
 
-    const fromDb: AuditLogRecord[] = dbRows.map((row) => ({
+    const fromDb: AuditLogRecord[] = dbRows.map((row: PersistedAuditLogRow) => ({
       id: row.id,
       timestampUtc: row.timestampUtc.toISOString(),
       actorEmail: row.userId || null,

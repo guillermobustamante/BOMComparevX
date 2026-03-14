@@ -292,7 +292,7 @@ export class SharesService {
         comparisonId
       }
     });
-    const mapped = rows.map((row) => this.fromRow(row));
+    const mapped = rows.map((row: Parameters<typeof this.fromRow>[0]) => this.fromRow(row));
     for (const row of mapped) {
       this.sharesByKey.set(this.shareKey(row.tenantId, row.comparisonId, row.invitedEmail), row);
     }

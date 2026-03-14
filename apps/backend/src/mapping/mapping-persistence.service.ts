@@ -10,6 +10,16 @@ import {
 
 type MappingStrategy = 'REGISTRY_EXACT' | 'REGISTRY_FUZZY' | 'HEURISTIC' | 'MANUAL';
 
+interface PersistedBomColumnMappingListRow {
+  mappingId: string;
+  bomRevisionId: string;
+  createdAtUtc: Date;
+  createdBy: string | null;
+  originalColumnsJson: string | null;
+  canonicalMappingJson: string | null;
+  detectionConfidence: number | null;
+}
+
 @Injectable()
 export class MappingPersistenceService {
   constructor(private readonly databaseService: DatabaseService) {}
@@ -132,7 +142,7 @@ export class MappingPersistenceService {
         orderBy: { createdAtUtc: 'desc' },
         take: limit
       });
-      return rows.map((row) => {
+      return rows.map((row: PersistedBomColumnMappingListRow) => {
         const originalColumns = this.parseJson<string[]>(row.originalColumnsJson, []);
         const mappings = this.parseJson<MappingSnapshotContract['mappings']>(row.canonicalMappingJson, []);
         return {

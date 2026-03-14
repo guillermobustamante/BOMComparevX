@@ -15,7 +15,7 @@ export class SqlSessionStore extends session.Store {
   ): void {
     void this.readSession(sid)
       .then((value) => callback(undefined, value))
-      .catch((error) => callback(error));
+      .catch((error: unknown) => callback(error));
   }
 
   override set(
@@ -25,14 +25,14 @@ export class SqlSessionStore extends session.Store {
   ): void {
     void this.writeSession(sid, value)
       .then(() => callback?.())
-      .catch((error) => callback?.(error));
+      .catch((error: unknown) => callback?.(error));
   }
 
   override destroy(sid: string, callback?: (err?: unknown) => void): void {
     void this.databaseService.client.appSession
       .deleteMany({ where: { sessionId: sid } })
       .then(() => callback?.())
-      .catch((error) => callback?.(error));
+      .catch((error: unknown) => callback?.(error));
   }
 
   override touch(
@@ -42,7 +42,7 @@ export class SqlSessionStore extends session.Store {
   ): void {
     void this.writeSession(sid, value, true)
       .then(() => callback?.())
-      .catch((error) => callback?.(error));
+      .catch((error: unknown) => callback?.(error));
   }
 
   private async readSession(sid: string): Promise<session.SessionData | null> {

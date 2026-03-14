@@ -10,6 +10,7 @@ import { MappingFieldPolicyService } from './mapping-field-policy.service';
 import { MappingPersistenceService } from './mapping-persistence.service';
 import { MappingPreviewService } from './mapping-preview.service';
 import { SemanticRegistryService } from './semantic-registry.service';
+import { TaxonomyPropertyFamilyService } from './taxonomy-property-family.service';
 
 @Module({
   imports: [AuditModule],
@@ -17,6 +18,7 @@ import { SemanticRegistryService } from './semantic-registry.service';
   providers: [
     BomChangeTaxonomyService,
     SemanticRegistryService,
+    TaxonomyPropertyFamilyService,
     MappingAliasLearningService,
     MappingFieldPolicyService,
     MappingDetectionService,
@@ -28,6 +30,7 @@ import { SemanticRegistryService } from './semantic-registry.service';
   exports: [
     BomChangeTaxonomyService,
     SemanticRegistryService,
+    TaxonomyPropertyFamilyService,
     MappingAliasLearningService,
     MappingFieldPolicyService,
     MappingDetectionService,

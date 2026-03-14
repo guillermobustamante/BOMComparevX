@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { DatabaseService } from '../database/database.service';
 import { SemanticRegistryService } from './semantic-registry.service';
+import { TaxonomyPropertyFamilyService } from './taxonomy-property-family.service';
 
 export interface BomChangeTaxonomyCategory {
   industry: string;
@@ -26,7 +27,7 @@ export interface BomChangeTaxonomyDocument {
 export interface BomChangePropertyMatch {
   propertyName: string;
   taxonomyProperty: string;
-  mode: 'exact' | 'semantic' | 'fuzzy';
+  mode: 'exact' | 'family' | 'semantic' | 'fuzzy';
   confidence: number;
 }
 
@@ -58,6 +59,13 @@ interface TaxonomySemanticAliasEntry {
 interface ResolvedSemanticField {
   canonicalField: string;
   confidence: number;
+}
+
+interface ResolvedCategoryMatch {
+  category: BomChangeTaxonomyCategory;
+  taxonomyProperty: string;
+  confidence: number;
+  mode: BomChangePropertyMatch['mode'];
 }
 
 const TAXONOMY_SEMANTIC_ALIASES: TaxonomySemanticAliasEntry[] = [
@@ -119,7 +127,8 @@ function normalizeTaxonomyValue(value: string): string {
 export class BomChangeTaxonomyService {
   constructor(
     private readonly databaseService: DatabaseService,
-    private readonly semanticRegistry: SemanticRegistryService = new SemanticRegistryService()
+    private readonly semanticRegistry: SemanticRegistryService = new SemanticRegistryService(),
+    private readonly propertyFamilyResolver: TaxonomyPropertyFamilyService = new TaxonomyPropertyFamilyService(semanticRegistry)
   ) {}
 
   private readonly defaultIndustryByTenant = new Map<string, string>();
@@ -263,73 +272,18 @@ export class BomChangeTaxonomyService {
     const categories = new Map<string, BomChangeTaxonomyCategory & { matchedProperties: string[] }>();
 
     for (const propertyName of changedProperties) {
-      const exactMatches = this.findExactMatches(propertyName, taxonomy.categories);
-      if (exactMatches.length > 0) {
-        for (const match of exactMatches) {
-          propertyMatches.push({
-            propertyName,
-            taxonomyProperty: match.taxonomyProperty,
-            mode: 'exact',
-            confidence: EXACT_MATCH_CONFIDENCE
-          });
-          const existing = categories.get(match.category.category) || { ...match.category, matchedProperties: [] };
-          existing.matchedProperties = [...new Set([...existing.matchedProperties, match.taxonomyProperty])];
-          categories.set(match.category.category, existing);
-        }
-        continue;
+      for (const match of this.resolveCategoryMatches(propertyName, taxonomy)) {
+        propertyMatches.push({
+          propertyName,
+          taxonomyProperty: match.taxonomyProperty,
+          mode: match.mode,
+          confidence: match.confidence
+        });
+        this.recordCategoryMatch(categories, match);
       }
-
-      const semanticMatches = this.findSemanticMatches(propertyName, taxonomy.categories, taxonomy.industry);
-      if (semanticMatches.length > 0) {
-        for (const match of semanticMatches) {
-          propertyMatches.push({
-            propertyName,
-            taxonomyProperty: match.taxonomyProperty,
-            mode: 'semantic',
-            confidence: match.confidence
-          });
-          const existing = categories.get(match.category.category) || { ...match.category, matchedProperties: [] };
-          existing.matchedProperties = [...new Set([...existing.matchedProperties, match.taxonomyProperty])];
-          categories.set(match.category.category, existing);
-        }
-        continue;
-      }
-
-      const fuzzyMatch = this.findBestFuzzyMatch(propertyName, taxonomy.categories);
-      if (!fuzzyMatch || fuzzyMatch.confidence < FUZZY_ACCEPT_THRESHOLD) {
-        continue;
-      }
-
-      propertyMatches.push({
-        propertyName,
-        taxonomyProperty: fuzzyMatch.taxonomyProperty,
-        mode: 'fuzzy',
-        confidence: fuzzyMatch.confidence
-      });
-      const existing = categories.get(fuzzyMatch.category.category) || { ...fuzzyMatch.category, matchedProperties: [] };
-      existing.matchedProperties = [...new Set([...existing.matchedProperties, fuzzyMatch.taxonomyProperty])];
-      categories.set(fuzzyMatch.category.category, existing);
     }
 
-    const resolvedCategories = [...categories.values()].sort(
-      (a, b) =>
-        this.impactCriticalityRank(b.impactCriticality) - this.impactCriticalityRank(a.impactCriticality) ||
-        a.category.localeCompare(b.category)
-    );
-
-    const impactCriticality = resolvedCategories[0]?.impactCriticality || null;
-    const highestImpactClass = resolvedCategories[0]?.impactClass || null;
-
-    return {
-      industry: taxonomy.industry,
-      categories: resolvedCategories,
-      highestImpactClass,
-      impactCriticality,
-      internalApprovingRoles: this.uniqueFlat(resolvedCategories.map((category) => category.internalApprovingRoles)),
-      externalApprovingRoles: this.uniqueFlat(resolvedCategories.map((category) => category.externalApprovingRoles)),
-      complianceTriggers: this.uniqueFlat(resolvedCategories.map((category) => [category.complianceTrigger])),
-      propertyMatches
-    };
+    return this.buildClassificationResult(taxonomy.industry, categories, propertyMatches);
   }
 
   private loadSeedDocuments(): Map<string, BomChangeTaxonomyDocument> {
@@ -420,12 +374,17 @@ export class BomChangeTaxonomyService {
   private findExactMatches(
     propertyName: string,
     categories: BomChangeTaxonomyCategory[]
-  ): Array<{ category: BomChangeTaxonomyCategory; taxonomyProperty: string }> {
+  ): ResolvedCategoryMatch[] {
     const normalizedProperty = this.normalizeValue(propertyName);
     return categories.flatMap((category) =>
       category.triggerProperties
         .filter((triggerProperty) => this.normalizeValue(triggerProperty) === normalizedProperty)
-        .map((triggerProperty) => ({ category, taxonomyProperty: triggerProperty }))
+        .map((triggerProperty) => ({
+          category,
+          taxonomyProperty: triggerProperty,
+          confidence: EXACT_MATCH_CONFIDENCE,
+          mode: 'exact'
+        }))
     );
   }
 
@@ -433,7 +392,7 @@ export class BomChangeTaxonomyService {
     propertyName: string,
     categories: BomChangeTaxonomyCategory[],
     industry: string
-  ): Array<{ category: BomChangeTaxonomyCategory; taxonomyProperty: string; confidence: number }> {
+  ): ResolvedCategoryMatch[] {
     const resolvedProperty = this.resolveSemanticField(propertyName, industry);
     if (!resolvedProperty || resolvedProperty.confidence < SEMANTIC_MATCH_CONFIDENCE_FLOOR) {
       return [];
@@ -452,7 +411,37 @@ export class BomChangeTaxonomyService {
         return [{
           category,
           taxonomyProperty: triggerProperty,
-          confidence: Number(Math.min(resolvedProperty.confidence, resolvedTrigger.confidence).toFixed(4))
+          confidence: Number(Math.min(resolvedProperty.confidence, resolvedTrigger.confidence).toFixed(4)),
+          mode: 'semantic'
+        }];
+      })
+    );
+  }
+
+  private findPropertyFamilyMatches(
+    propertyName: string,
+    categories: BomChangeTaxonomyCategory[]
+  ): ResolvedCategoryMatch[] {
+    const resolvedProperty = this.propertyFamilyResolver.resolve(propertyName);
+    if (!resolvedProperty) {
+      return [];
+    }
+
+    return categories.flatMap((category) =>
+      category.triggerProperties.flatMap((triggerProperty) => {
+        const resolvedTrigger = this.propertyFamilyResolver.resolve(triggerProperty);
+        if (!resolvedTrigger) {
+          return [];
+        }
+        if (resolvedTrigger.familyId !== resolvedProperty.familyId) {
+          return [];
+        }
+
+        return [{
+          category,
+          taxonomyProperty: triggerProperty,
+          confidence: Number(Math.min(resolvedProperty.confidence, resolvedTrigger.confidence).toFixed(4)),
+          mode: 'family'
         }];
       })
     );
@@ -461,7 +450,7 @@ export class BomChangeTaxonomyService {
   private findBestFuzzyMatch(
     propertyName: string,
     categories: BomChangeTaxonomyCategory[]
-  ): { category: BomChangeTaxonomyCategory; taxonomyProperty: string; confidence: number } | null {
+  ): ResolvedCategoryMatch | null {
     const normalizedProperty = this.normalizeValue(propertyName);
     if (!normalizedProperty) return null;
 
@@ -474,12 +463,75 @@ export class BomChangeTaxonomyService {
     );
     const viable = candidates.filter((candidate) => candidate.confidence >= FUZZY_ACCEPT_THRESHOLD);
     if (!viable.length) return null;
-    return viable.sort(
+    const best = viable.sort(
       (a, b) =>
         b.confidence - a.confidence ||
         this.impactCriticalityRank(b.category.impactCriticality) - this.impactCriticalityRank(a.category.impactCriticality) ||
         a.category.category.localeCompare(b.category.category)
     )[0];
+    return {
+      ...best,
+      mode: 'fuzzy'
+    };
+  }
+
+  private resolveCategoryMatches(
+    propertyName: string,
+    taxonomy: BomChangeTaxonomyDocument
+  ): ResolvedCategoryMatch[] {
+    const exactMatches = this.findExactMatches(propertyName, taxonomy.categories);
+    if (exactMatches.length > 0) {
+      return exactMatches;
+    }
+
+    const familyMatches = this.findPropertyFamilyMatches(propertyName, taxonomy.categories);
+    if (familyMatches.length > 0) {
+      return familyMatches;
+    }
+
+    const semanticMatches = this.findSemanticMatches(propertyName, taxonomy.categories, taxonomy.industry);
+    if (semanticMatches.length > 0) {
+      return semanticMatches;
+    }
+
+    const fuzzyMatch = this.findBestFuzzyMatch(propertyName, taxonomy.categories);
+    if (!fuzzyMatch || fuzzyMatch.confidence < FUZZY_ACCEPT_THRESHOLD) {
+      return [];
+    }
+
+    return [fuzzyMatch];
+  }
+
+  private recordCategoryMatch(
+    categories: Map<string, BomChangeTaxonomyCategory & { matchedProperties: string[] }>,
+    match: ResolvedCategoryMatch
+  ): void {
+    const existing = categories.get(match.category.category) || { ...match.category, matchedProperties: [] };
+    existing.matchedProperties = [...new Set([...existing.matchedProperties, match.taxonomyProperty])];
+    categories.set(match.category.category, existing);
+  }
+
+  private buildClassificationResult(
+    industry: string,
+    categories: Map<string, BomChangeTaxonomyCategory & { matchedProperties: string[] }>,
+    propertyMatches: BomChangePropertyMatch[]
+  ): BomChangeClassificationResult {
+    const resolvedCategories = [...categories.values()].sort(
+      (a, b) =>
+        this.impactCriticalityRank(b.impactCriticality) - this.impactCriticalityRank(a.impactCriticality) ||
+        a.category.localeCompare(b.category)
+    );
+
+    return {
+      industry,
+      categories: resolvedCategories,
+      highestImpactClass: resolvedCategories[0]?.impactClass || null,
+      impactCriticality: resolvedCategories[0]?.impactCriticality || null,
+      internalApprovingRoles: this.uniqueFlat(resolvedCategories.map((category) => category.internalApprovingRoles)),
+      externalApprovingRoles: this.uniqueFlat(resolvedCategories.map((category) => category.externalApprovingRoles)),
+      complianceTriggers: this.uniqueFlat(resolvedCategories.map((category) => [category.complianceTrigger])),
+      propertyMatches
+    };
   }
 
   private resolveSemanticField(value: string, industry: string): ResolvedSemanticField | null {

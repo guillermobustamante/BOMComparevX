@@ -5,6 +5,7 @@
   "description": "NestJS backend for BOM Compare VX",
   "scripts": {
     "build": "npx nest build",
+    "lint": "npm run typecheck",
     "prisma:generate": "npx prisma generate",
     "prisma:validate": "cross-env DATABASE_URL=\"sqlserver://localhost:1433;database=dummy;user=dummy;password=dummy;encrypt=true;trustServerCertificate=true;connection timeout=30;\" npx prisma validate",
     "prisma:migrate:dev": "npx prisma migrate dev",

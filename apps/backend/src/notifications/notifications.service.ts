@@ -57,7 +57,7 @@ export class NotificationsService {
         },
         orderBy: { createdAtUtc: 'desc' }
       });
-      const mapped = rows.map((row) => this.fromRow(row));
+      const mapped = rows.map((row: Parameters<typeof this.fromRow>[0]) => this.fromRow(row));
       for (const row of mapped) {
         this.notificationsById.set(row.notificationId, row);
       }

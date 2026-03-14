@@ -193,11 +193,11 @@ describe('Change intelligence foundations', () => {
     ]);
     expect(result.propertyMatches).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ propertyName: 'MEVS Part Number', taxonomyProperty: 'Component PN', mode: 'semantic' }),
-        expect.objectContaining({ propertyName: 'MEVS Current Revision', taxonomyProperty: 'Component Revision', mode: 'semantic' }),
-        expect.objectContaining({ propertyName: 'QuantityInThisLine', taxonomyProperty: 'Quantity', mode: 'semantic' }),
-        expect.objectContaining({ propertyName: 'Comp. Qty (CUn)', taxonomyProperty: 'Quantity', mode: 'semantic' }),
-        expect.objectContaining({ propertyName: 'UOM', taxonomyProperty: 'UoM', mode: 'semantic' })
+        expect.objectContaining({ propertyName: 'MEVS Part Number', taxonomyProperty: 'Component PN' }),
+        expect.objectContaining({ propertyName: 'MEVS Current Revision', taxonomyProperty: 'Component Revision' }),
+        expect.objectContaining({ propertyName: 'QuantityInThisLine', taxonomyProperty: 'Quantity' }),
+        expect.objectContaining({ propertyName: 'Comp. Qty (CUn)', taxonomyProperty: 'Quantity' }),
+        expect.objectContaining({ propertyName: 'UOM', taxonomyProperty: 'UoM' })
       ])
     );
     expect(result.propertyMatches.every((match) => match.confidence >= 0.9)).toBe(true);
@@ -218,12 +218,47 @@ describe('Change intelligence foundations', () => {
 
     const result = await taxonomyService.classifyChangedProperties(
       'tenant-generic-negative',
-      ['Volume_mm3', 'COMP_DESC', 'PartKey'],
+      ['Shipping Volume Status', 'COMP_DESC', 'PartKey'],
       'General discrete manufacturing'
     );
 
     expect(result.categories).toEqual([]);
     expect(result.propertyMatches).toEqual([]);
+  });
+
+  it('classifies engineering measurement fields through canonical property families', async () => {
+    await saveTenantTaxonomy('tenant-engineering-families', 'Automotive', {
+      category: 'Product design or form-fit-function change',
+      changeDescription: 'Engineering property family resolution coverage',
+      impactClass: 'A',
+      impactCriticality: 'High',
+      triggerProperties: ['Volume', 'Area', 'Bounding Box', 'Center of Mass'],
+      internalApprovingRoles: ['Design Engineer'],
+      externalApprovingRoles: [],
+      controlPath: 'ECR/ECO',
+      complianceTrigger: 'IATF 16949'
+    });
+
+    const result = await taxonomyService.classifyChangedProperties(
+      'tenant-engineering-families',
+      ['Volume_mm3', 'Area_mm2', 'BoundingBox_mm', 'CenterOfMass'],
+      'Automotive'
+    );
+
+    expect(result.categories).toEqual([
+      expect.objectContaining({
+        category: 'Product design or form-fit-function change',
+        matchedProperties: expect.arrayContaining(['Volume', 'Area', 'Bounding Box', 'Center of Mass'])
+      })
+    ]);
+    expect(result.propertyMatches).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ propertyName: 'Volume_mm3', taxonomyProperty: 'Volume', mode: 'family' }),
+        expect.objectContaining({ propertyName: 'Area_mm2', taxonomyProperty: 'Area', mode: 'family' }),
+        expect.objectContaining({ propertyName: 'BoundingBox_mm', taxonomyProperty: 'Bounding Box', mode: 'family' }),
+        expect.objectContaining({ propertyName: 'CenterOfMass', taxonomyProperty: 'Center of Mass' })
+      ])
+    );
   });
 
   it('classifies multiple Automotive aliases through semantic trigger matching', async () => {
@@ -260,11 +295,11 @@ describe('Change intelligence foundations', () => {
     ]);
     expect(result.propertyMatches).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ propertyName: 'Vendor Part Number', taxonomyProperty: 'Supplier Part Number', mode: 'semantic' }),
-        expect.objectContaining({ propertyName: 'MEVS Current Revision', taxonomyProperty: 'Revision Level', mode: 'semantic' }),
-        expect.objectContaining({ propertyName: 'PPAP Status', taxonomyProperty: 'PPAP Trigger Flag', mode: 'semantic' }),
-        expect.objectContaining({ propertyName: 'Service Part Flag', taxonomyProperty: 'Service Part Link', mode: 'semantic' }),
-        expect.objectContaining({ propertyName: 'Tool Status', taxonomyProperty: 'Tooling Status', mode: 'semantic' })
+        expect.objectContaining({ propertyName: 'Vendor Part Number', taxonomyProperty: 'Supplier Part Number' }),
+        expect.objectContaining({ propertyName: 'MEVS Current Revision', taxonomyProperty: 'Revision Level' }),
+        expect.objectContaining({ propertyName: 'PPAP Status', taxonomyProperty: 'PPAP Trigger Flag' }),
+        expect.objectContaining({ propertyName: 'Service Part Flag', taxonomyProperty: 'Service Part Link' }),
+        expect.objectContaining({ propertyName: 'Tool Status', taxonomyProperty: 'Tooling Status' })
       ])
     );
     expect(result.propertyMatches.every((match) => match.confidence >= 0.9)).toBe(true);
@@ -291,5 +326,247 @@ describe('Change intelligence foundations', () => {
 
     expect(result.categories).toEqual([]);
     expect(result.propertyMatches).toEqual([]);
+  });
+
+  it('classifies shared electronics BOM vocabulary from public assembly ecosystems', async () => {
+    await saveTenantTaxonomy('tenant-electronics-public-vocab', 'Electronics', {
+      category: 'Component replacement or cross-reference change',
+      changeDescription: 'Public electronics BOM vocabulary coverage',
+      impactClass: 'A',
+      impactCriticality: 'High',
+      triggerProperties: ['Reference Designator', 'Manufacturer Part Number', 'Quantity', 'Footprint', 'Package / Case'],
+      internalApprovingRoles: ['Hardware Engineer'],
+      externalApprovingRoles: [],
+      controlPath: 'ECO',
+      complianceTrigger: 'JEDEC J-STD-046'
+    });
+
+    const result = await taxonomyService.classifyChangedProperties(
+      'tenant-electronics-public-vocab',
+      ['Designator', 'Manufacturer Part #', 'Qty per board', 'Footprint', 'Package'],
+      'Electronics'
+    );
+
+    expect(result.categories).toEqual([
+      expect.objectContaining({
+        category: 'Component replacement or cross-reference change',
+        matchedProperties: expect.arrayContaining([
+          'Reference Designator',
+          'Manufacturer Part Number',
+          'Quantity',
+          'Footprint',
+          'Package / Case'
+        ])
+      })
+    ]);
+  });
+
+  it('classifies shared construction and COBie vocabulary through property families', async () => {
+    await saveTenantTaxonomy('tenant-construction-public-vocab', 'Construction and built environment', {
+      category: 'Design scope or configuration change',
+      changeDescription: 'Public COBie and construction schedule vocabulary coverage',
+      impactClass: 'A',
+      impactCriticality: 'High',
+      triggerProperties: ['Asset Identifier', 'IFC GUID', 'Specification Reference', 'Location / Zone / Room', 'System Classification', 'BoQ / Schedule Item'],
+      internalApprovingRoles: ['BIM Manager'],
+      externalApprovingRoles: [],
+      controlPath: 'Change order',
+      complianceTrigger: 'ISO 19650'
+    });
+
+    const result = await taxonomyService.classifyChangedProperties(
+      'tenant-construction-public-vocab',
+      ['TagNumber', 'GlobalId', 'Spec Section', 'Room', 'System', 'Cost Code'],
+      'Construction and built environment'
+    );
+
+    expect(result.categories).toEqual([
+      expect.objectContaining({
+        category: 'Design scope or configuration change',
+        matchedProperties: expect.arrayContaining([
+          'Asset Identifier',
+          'IFC GUID',
+          'Specification Reference',
+          'Location / Zone / Room',
+          'System Classification',
+          'BoQ / Schedule Item'
+        ])
+      })
+    ]);
+  });
+
+  it('classifies shared service-parts vocabulary used in public medical equipment parts lists', async () => {
+    await saveTenantTaxonomy('tenant-service-parts-public-vocab', 'General discrete manufacturing', {
+      category: 'Functional BOM structure change',
+      changeDescription: 'Public service-parts and medical-equipment vocabulary coverage',
+      impactClass: 'A',
+      impactCriticality: 'High',
+      triggerProperties: ['Part Number', 'Serial Effectivity', 'Software / Calibration', 'Handling / Storage'],
+      internalApprovingRoles: ['Service Engineer'],
+      externalApprovingRoles: [],
+      controlPath: 'ECO',
+      complianceTrigger: 'ISO 9001'
+    });
+
+    const result = await taxonomyService.classifyChangedProperties(
+      'tenant-service-parts-public-vocab',
+      ['Part No.', 'Serial Number', 'Software Version', 'Shelf Life'],
+      'General discrete manufacturing'
+    );
+
+    expect(result.categories).toEqual([
+      expect.objectContaining({
+        category: 'Functional BOM structure change',
+        matchedProperties: expect.arrayContaining([
+          'Part Number',
+          'Serial Effectivity',
+          'Software / Calibration',
+          'Handling / Storage'
+        ])
+      })
+    ]);
+  });
+
+  it('classifies shared PLM and ERP BOM vocabulary from public manufacturing ecosystems', async () => {
+    await saveTenantTaxonomy('tenant-generic-public-vocab', 'General discrete manufacturing', {
+      category: 'Functional BOM structure change',
+      changeDescription: 'Shared PLM and ERP vocabulary coverage',
+      impactClass: 'A',
+      impactCriticality: 'High',
+      triggerProperties: ['Quantity', 'UoM', 'Occurrence Identifier', 'Description', 'Variant / Configuration Rule'],
+      internalApprovingRoles: ['Manufacturing Engineer'],
+      externalApprovingRoles: [],
+      controlPath: 'ECO',
+      complianceTrigger: 'ISO 9001'
+    });
+
+    const result = await taxonomyService.classifyChangedProperties(
+      'tenant-generic-public-vocab',
+      ['BOM Header Quantity', 'Base Unit', 'Item Node Number', 'BOM Notes', 'Variant Condition'],
+      'General discrete manufacturing'
+    );
+
+    expect(result.categories).toEqual([
+      expect.objectContaining({
+        category: 'Functional BOM structure change',
+        matchedProperties: expect.arrayContaining([
+          'Quantity',
+          'UoM',
+          'Occurrence Identifier',
+          'Description',
+          'Variant / Configuration Rule'
+        ])
+      })
+    ]);
+  });
+
+  it('classifies public aerospace parts-list vocabulary through property families', async () => {
+    await saveTenantTaxonomy('tenant-aerospace-public-vocab', 'Aerospace', {
+      category: 'Flight product definition or interface change',
+      changeDescription: 'Public aerospace field-vocabulary coverage',
+      impactClass: 'A',
+      impactCriticality: 'High',
+      triggerProperties: ['Regulatory Classification', 'Weight', 'Center of Mass', 'Bounding Box', 'Service Applicability', 'Serial Effectivity', 'Software / Calibration', 'Compatibility Matrix'],
+      internalApprovingRoles: ['Configuration Management'],
+      externalApprovingRoles: [],
+      controlPath: 'CCB',
+      complianceTrigger: 'AS9100'
+    });
+
+    const result = await taxonomyService.classifyChangedProperties(
+      'tenant-aerospace-public-vocab',
+      ['Source Control Drawing', 'Weight_kg', 'CenterOfGravity', 'Envelope', 'Maintenance Applicability', 'Serialized Applicability', 'Loadable Software Part Number', 'Block / Mod Standard'],
+      'Aerospace'
+    );
+
+    expect(result.categories).toEqual([
+      expect.objectContaining({
+        category: 'Flight product definition or interface change',
+        matchedProperties: expect.arrayContaining([
+          'Regulatory Classification',
+          'Weight',
+          'Center of Mass',
+          'Bounding Box',
+          'Service Applicability',
+          'Serial Effectivity',
+          'Software / Calibration',
+          'Compatibility Matrix'
+        ])
+      })
+    ]);
+  });
+
+  it('classifies public defense and government-contracting vocabulary through property families', async () => {
+    await saveTenantTaxonomy('tenant-defense-public-vocab', 'Defense and government contracting', {
+      category: 'Source-control or compliance-significant change',
+      changeDescription: 'Public defense field-vocabulary coverage',
+      impactClass: 'A',
+      impactCriticality: 'High',
+      triggerProperties: ['Approved Supplier', 'Supplier Code', 'Regulatory Classification', 'Deviation / Concession', 'Approval Status', 'Serial Effectivity', 'Lot Effectivity'],
+      internalApprovingRoles: ['Program Quality'],
+      externalApprovingRoles: [],
+      controlPath: 'Government CCB',
+      complianceTrigger: 'DFARS'
+    });
+
+    const result = await taxonomyService.classifyChangedProperties(
+      'tenant-defense-public-vocab',
+      ['Bearing Source', 'CAGE', 'Export Control Classification', 'Nonconformance Number', 'Government CCB', 'Serial Number', 'Lot Number'],
+      'Defense and government contracting'
+    );
+
+    expect(result.categories).toEqual([
+      expect.objectContaining({
+        category: 'Source-control or compliance-significant change',
+        matchedProperties: expect.arrayContaining([
+          'Approved Supplier',
+          'Supplier Code',
+          'Regulatory Classification',
+          'Deviation / Concession',
+          'Approval Status',
+          'Serial Effectivity',
+          'Lot Effectivity'
+        ])
+      })
+    ]);
+  });
+
+  it('classifies public medical-device and spare-parts vocabulary through property families', async () => {
+    await saveTenantTaxonomy('tenant-medical-public-vocab', 'Medical devices', {
+      category: 'Device definition or labeling change',
+      changeDescription: 'Public medical-device and service-parts vocabulary coverage',
+      impactClass: 'A',
+      impactCriticality: 'High',
+      triggerProperties: ['Part Number', 'Serial Effectivity', 'Lot Effectivity', 'Software / Calibration', 'Handling / Storage', 'Label Specification', 'Material', 'Length', 'Width', 'Height', 'Weight'],
+      internalApprovingRoles: ['Regulatory Affairs'],
+      externalApprovingRoles: [],
+      controlPath: 'Design control',
+      complianceTrigger: '21 CFR 820'
+    });
+
+    const result = await taxonomyService.classifyChangedProperties(
+      'tenant-medical-public-vocab',
+      ['Catalog Number', 'Serial Number', 'Lot Number', 'Software Version', 'Shelf Life', 'Labeling', 'MaterialSpec', 'Length_mm', 'Width_mm', 'Height_mm', 'Weight_kg'],
+      'Medical devices'
+    );
+
+    expect(result.categories).toEqual([
+      expect.objectContaining({
+        category: 'Device definition or labeling change',
+        matchedProperties: expect.arrayContaining([
+          'Part Number',
+          'Serial Effectivity',
+          'Lot Effectivity',
+          'Software / Calibration',
+          'Handling / Storage',
+          'Label Specification',
+          'Material',
+          'Length',
+          'Width',
+          'Height',
+          'Weight'
+        ])
+      })
+    ]);
   });
 });

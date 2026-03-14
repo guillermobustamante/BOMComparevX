@@ -113,7 +113,7 @@ export class UploadHistoryService {
           createdAtUtc: 'desc'
         }
       });
-      return rows.map((row) => this.mapRow(row));
+      return rows.map((row: Parameters<typeof this.mapRow>[0]) => this.mapRow(row));
     }
 
     return [...this.historyById.values()]
