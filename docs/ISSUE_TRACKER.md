@@ -454,6 +454,237 @@ Current recommendation:
 - Keep the canonical family model global.
 - Add the dedicated medical-devices taxonomy as a follow-up stage rather than overfitting the current industries.
 
+### ISSUE-021 - Results page redesign needs to adopt the new mission-control surface without breaking actions
+- Status: `Resolved`
+- Priority: `P1`
+- Area: `Frontend / Results / UX`
+- First observed: `2026-03-14`
+
+Problem:
+- The `/results` page still rendered with the older table-and-toolbar shell rather than the redesigned mission-control layout in `randomtests/Results-Redisign.html`.
+- The redesign also had to preserve all existing toolbar tooltips, backend wiring, filters, pagination, view toggles, exports, sharing, and impact-review actions.
+
+Desired outcome:
+- Apply the new results surface only to `/results` in both light and dark themes.
+- Preserve all existing button tooltips and interactive behavior.
+- Keep the page wired to the current backend routes and comparison workflow.
+- Add regression coverage for the redesigned toolbar and impact workflow.
+
+Resolution:
+- Implemented on `2026-03-14`.
+- Refactored the `/results` toolbar, action cluster, pagination placement, and results table styling to match the redesign intent while preserving the existing fetch/start/share/export/history/upload wiring.
+- Kept the current tooltip set on all toolbar controls.
+- Added Playwright regression coverage for the redesigned toolbar actions and impact dialog flow.
+
+### ISSUE-022 - Navigation shell needs to adopt the new sidebar design without breaking routing or theme controls
+- Status: `Resolved`
+- Priority: `P1`
+- Area: `Frontend / Navigation / Shell`
+- First observed: `2026-03-14`
+
+Problem:
+- The app shell still used the previous rail-style navigation rather than the redesigned sidebar in `randomtests/Nav-Redisign.html`.
+- The new navigation also needed to preserve route wiring, theme toggles, current tooltips, and responsive open/close behavior.
+
+Desired outcome:
+- Apply the new navigation design only to the app shell.
+- Preserve navigation routing and existing page actions.
+- Keep tooltip coverage on nav items, toggle, profile, and theme controls.
+- Ensure light/dark theme switching still works correctly.
+- Add regression coverage for the redesigned navigation behavior.
+
+Resolution:
+- Implemented on `2026-03-14`.
+- Refactored the app shell sidebar into the redesigned wide/collapsed navigation model while preserving route links and shell header behavior.
+- Added tooltip/title coverage to nav items, sidebar toggle, profile avatar, and theme buttons.
+- Kept light/dark theme wiring on the shell and preserved mobile auto-close behavior on route changes.
+- Added Playwright regression coverage for navigation routing, collapse/expand behavior, tooltip presence, and theme switching.
+
+### ISSUE-023 - Results grid still diverges from the redesign in toolbar rhythm, typography, and row treatment
+- Status: `Resolved`
+- Priority: `P1`
+- Area: `Frontend / Results / Visual System`
+- First observed: `2026-03-14`
+
+Problem:
+- The `/results` page was functionally wired, but its toolbar rhythm, button strip, grid typography, and row backgrounds still diverged materially from the redesign reference.
+- The desktop toolbar split too early into two rows, the button strip had an extra grouped treatment, table header/body typography felt heavier than the mock, and semantic row colors were more saturated than intended.
+
+Desired outcome:
+- Make the `/results` toolbar, pagination cluster, table header typography, grid body sizing, and semantic row colors align much more closely with the redesign.
+- Keep all current backend wiring, tooltips, actions, filters, pagination, and impact behavior intact.
+- Allow any small shared shell adjustments that are needed to support the design direction across pages.
+
+Resolution:
+- Implemented on `2026-03-14`.
+- Reworked the `/results` desktop toolbar layout so the filter row and action/pagination cluster align much more closely with the redesign before collapsing at narrower widths.
+- Updated the results controls, progress badge, icon buttons, pagination cluster, and table action buttons to the flatter redesign sizing and typography.
+- Switched the results grid headings back to normal-case UI typography and tightened the body sizing and mono treatment.
+- Shifted the semantic row fills to the lighter redesign palette while preserving all current results interactions and regression coverage.
+
+### ISSUE-024 - Navigation shell still diverges from the redesign iconography and active-state styling
+- Status: `Resolved`
+- Priority: `P1`
+- Area: `Frontend / Navigation / Visual System`
+- First observed: `2026-03-14`
+
+Problem:
+- The shell navigation behavior was already wired, but the rendered navigation still diverged from the redesign in iconography, active-state tint, and general look-and-feel in both expanded and collapsed modes.
+- The top toggle button icon and several nav icons did not match the redesign reference closely enough.
+
+Desired outcome:
+- Make the navigation shell match the redesign more closely in both expanded and collapsed states.
+- Align the toggle button, active-state treatment, and nav icon set with the reference design.
+- Preserve current routing, theme controls, collapse/expand behavior, and tooltip coverage.
+
+Resolution:
+- Implemented on `2026-03-14`.
+- Updated the navigation icon set and rail toggle icon to the redesigned visual language.
+- Refined the nav-specific active-state styling and rail presentation to better match the new design in both expanded and collapsed modes.
+- Preserved all existing shell routing, tooltip, and theme-toggle behavior and revalidated the navigation Playwright coverage.
+
+### ISSUE-025 - Results page still falls short of exact target parity against the redesign mock
+- Status: `Resolved`
+- Priority: `P1`
+- Area: `Frontend / Results / Visual Parity`
+- First observed: `2026-03-15`
+
+Problem:
+- The `/results` page is closer to the redesign than the original implementation, but it still does not match the target in [Results-Redisign.html](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\randomtests\Results-Redisign.html).
+- The most visible remaining gaps are the missing `MISSION CONTROL` eyebrow, the wrong theme-toggle component, the multi-row toolbar layout, oversized controls, heavier outer surface chrome, non-matching table header treatment, row density differences, and final semantic color tuning.
+
+Desired outcome:
+- Bring `/results` into near-exact visual parity with the target mock while preserving existing backend wiring, filters, tooltips, exports, sharing, pagination, and impact actions.
+- Explicitly exclude mock-data composition parity from this stage.
+
+Resolution:
+- Implemented on `2026-03-15`.
+- Executed [BACKLOG_S18_RESULTS_VISUAL_PARITY.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\BACKLOG_S18_RESULTS_VISUAL_PARITY.md).
+- Restored the `MISSION CONTROL` eyebrow on `/results` and reduced the title scale to match the target rhythm more closely.
+- Replaced the results-page segmented theme selector with a compact pill-style toggle while preserving theme wiring.
+- Reworked the desktop results toolbar into a compact horizontal working row with tighter control sizing and flatter chrome.
+- Retuned the table header band, row density, impact cell spacing, classification buttons, and semantic row fills to align more closely with the target mock.
+- Added a screenshot-driven QA step and captured [results-visual-capture.png](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\artifacts\results-visual-capture.png), then removed the inherited panel chrome based on the live capture review.
+- Verified with frontend typecheck, frontend build, and Playwright coverage for navigation, results behavior, and visual capture.
+
+### ISSUE-026 - Upload page still diverges from the redesign mock and lacks per-revision drag/drop
+- Status: `Resolved`
+- Priority: `P1`
+- Area: `Frontend / Upload / Visual Parity`
+- First observed: `2026-03-15`
+
+Problem:
+- The `/upload` page does not yet match the target in [Compare-Redisign.html](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\randomtests\Compare-Redisign.html).
+- The current page is functionally close, but the shell chrome, theme control, dropzone treatment, revision-card styling, metadata rendering, and copy still diverge visibly from the redesign.
+- The most important functional mismatch is that only the master upload zone accepts drag/drop today. `Revision A` and `Revision B` are not individual drag/drop targets, even though the target design expects each card to behave as its own drop zone.
+
+Evidence:
+- Current upload implementation renders one active top dropzone and two non-droppable revision cards in [upload-validation-form.tsx](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\frontend\components\upload-validation-form.tsx:282)
+- Current upload styling uses the mission-shell surface system rather than the flatter redesign treatment in [globals.css](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\frontend\app\globals.css:3473)
+- The app shell currently applies the segmented `Light / Dark` toggle and rounded mission header rather than the compact compare-page toggle from the redesign in [app-shell.tsx](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\frontend\components\app-shell.tsx:23)
+
+Desired outcome:
+- Make `/upload` match the redesign in `randomtests/Compare-Redisign.html` as closely as possible.
+- Keep the top master dropzone behavior where one dropped file maps to `Revision A` and two dropped files map to `Revision A` then `Revision B`.
+- Make `Revision A` and `Revision B` independently drag-drop enabled so a user can drag one file directly onto either card.
+- Align the shell/header, theme toggle, spacing, dashed borders, flatter surfaces, button sizing, typography, and status/role pills with the redesign.
+- Replace upload-card empty-state copy and status text so the screen reads like the target mock.
+
+Gap summary:
+- Header mismatch:
+  - current `/upload` uses the rounded mission-shell header instead of the flatter compare-page header with a simple divider
+  - current theme control is segmented `Light / Dark`; target uses a compact slider toggle
+- Action mismatch:
+  - current page includes a floating run icon control in the top-right of the workspace
+  - target mock does not use that floating action treatment in the compare workspace
+- Global dropzone mismatch:
+  - current dropzone is more glassy, bluer, and more rounded than the target
+  - target uses a flatter white panel, lighter dashed border, and tighter spacing
+- Revision card mismatch:
+  - current cards are static bordered cards, not dashed drop cards
+  - current cards do not visually enter drag-over state
+  - current buttons and corner radii are heavier than the target
+- Metadata mismatch:
+  - current empty-state source text says `No file selected`; target says `Drag file here or select`
+  - current status uses plain text such as `Waiting for source`; target uses pills
+  - current ready state reads `Ready for validation`; target reads `Ready for comparison`
+- Typography mismatch:
+  - target uses stronger mono eyebrow and metadata treatment
+  - current title and body rhythm are still closer to the shared mission shell than the redesign
+
+Current recommendation:
+- Treat this as a dedicated upload visual-parity pass, not a minor CSS cleanup.
+- Execute the work in this order:
+  - page-header and theme-toggle parity
+  - master dropzone parity
+  - revision-card drag/drop behavior
+  - revision-card visual parity
+  - metadata text and pill parity
+  - final spacing and responsive tuning
+- Hold implementation until this issue is explicitly scheduled.
+
+Resolution:
+- Implemented on `2026-03-15`.
+- Updated the `/upload` shell so the page uses a flatter compare-page header, compact theme switch, and lighter top-surface treatment aligned to the redesign.
+- Restyled the master upload zone and both revision cards to match the flatter dashed-outline compare mock more closely.
+- Follow-up refinement on `2026-03-15`:
+  - aligned the upload page more literally to `randomtests/Compare-Redisign.html` for light/dark token values, typography scale, button chrome, pill styling, and stack breakpoint behavior
+  - reduced style leakage from the broader mission-control theme so `/upload` follows the compare mock rather than the shared Admin/Results surface system
+- Added true drag/drop support on both `Revision A` and `Revision B` cards while preserving deterministic top-dropzone mapping of one file to `Revision A` and two files to `Revision A` then `Revision B`.
+- Updated upload metadata copy and status rendering to use the redesign language, including:
+  - `Drag file here or select`
+  - `Ready for comparison`
+  - pill-based `Waiting for source`, `Baseline BOM`, and `Candidate BOM`
+- Hid the compare action in the idle state so the initial screen composition aligns more closely with the target mock, while still showing the compare CTA with attention treatment once both files are ready.
+- Added focused Playwright coverage for:
+  - master dropzone deterministic mapping
+  - direct drag/drop onto `Revision A` and `Revision B`
+  - upload-page shell theme-toggle behavior after the header redesign
+
+Verification:
+- `npm --prefix apps/frontend run typecheck`
+- `npm --prefix apps/frontend run build`
+- `npx playwright test tests/e2e/upload-redesign.spec.ts tests/e2e/navigation-redesign.spec.ts`
+
+### ISSUE-027 - Mapping Check screen is too technical and too narrow for broader business use
+- Status: `Pending`
+- Priority: `P1`
+- Area: `Mapping / UX / Taxonomy / Governance`
+- First observed: `2026-03-15`
+
+Problem:
+- The current `Mapping Check` screen is still presented primarily as a technical column-to-canonical-field review table.
+- It is understandable for engineering or data-steering users, but it is not friendly enough for purchasing, sales, managers, or other non-engineering reviewers.
+- It also under-represents the broader purpose of the system now that all BOM columns are preserved and taxonomy-driven impact classification is a first-class capability.
+- Users can see only a narrow mapping contract expressed as the main decision surface, which makes the experience feel like “map a handful of fields” instead of “teach the system how to understand this BOM.”
+
+Evidence:
+- Frontend mapping review remains a table-first editor centered on raw canonical fields, strategy, confidence, and review state in [mapping-preview-editor.tsx](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\frontend\components\mapping-preview-editor.tsx:1)
+- Backend preview contract is still minimal and comparison-centric in [mapping-contract.ts](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\src\mapping\mapping-contract.ts:1)
+- Preview generation still mainly answers “are required canonical fields mapped?” rather than “how well does the system understand this BOM?” in [mapping-preview.service.ts](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\apps\backend\src\mapping\mapping-preview.service.ts:1)
+
+Desired outcome:
+- Redesign `Mapping Check` as a business-friendly `Field Understanding Workspace`.
+- Keep all source columns visible somewhere in the experience, but group and rank them by importance.
+- Clearly distinguish:
+  - fields required for safe comparison
+  - fields that improve matching quality
+  - fields that improve change impact classification
+  - fields that are preserved but not yet semantically understood
+- Surface plain-language guidance, sample values, and taxonomy relevance so non-engineering users can understand why the screen matters.
+- Preserve expert explainability and backend mapping rigor without forcing every user through a technical table.
+
+Options ranked:
+- `Option 1` - Recommended: summary-first `Field Understanding Workspace` with grouped columns, business-readable labels, sample values, and progressive disclosure for evidence
+- `Option 2`: enhanced version of the current table with clearer labels, filters, and taxonomy badges
+- `Option 3`: persona-based simple/expert dual-mode workflow
+
+Current recommendation:
+- Execute [BACKLOG_S19_MAPPING_CHECK_REDESIGN.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\BACKLOG_S19_MAPPING_CHECK_REDESIGN.md)
+- Keep the existing detection engine and semantic/taxonomy services
+- Add a richer preview contract and redesign the frontend as a grouped, summary-first field-understanding experience
+- Make the experience safe for business users without weakening engineering/admin control over durable alias learning and governance
+
 ## 3. Linked follow-up records
 - Sprint 12 QA: [UI_QA_S12_RESULTS_REVISION_CHAIN.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\UI_QA_S12_RESULTS_REVISION_CHAIN.md:1)
 - Sprint 12.1 backlog: [SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md:1)

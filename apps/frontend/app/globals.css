@@ -388,16 +388,19 @@ a {
 
 .missionShellRoot .resultsInlineFilters input,
 .missionShellRoot .resultsInlineFilters select {
-  min-height: 44px;
-  border: 1px solid var(--mission-line);
-  border-radius: 14px;
-  background: var(--mission-panel);
-  color: var(--mission-ink);
-  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+  min-height: 36px;
+  border: 1px solid var(--results-border);
+  border-radius: 6px;
+  background: var(--results-input-bg);
+  color: var(--results-text);
+  box-shadow: none;
+  font-size: 13px;
+  padding: 6px 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 .missionShellRoot .resultsInlineFilters input::placeholder {
-  color: var(--mission-muted);
+  color: var(--results-muted);
 }
 
 .missionShellRoot .resultsInlineFilters select {
@@ -411,6 +414,22 @@ a {
     calc(100% - 12px) calc(50% - 3px);
   background-size: 6px 6px, 6px 6px;
   background-repeat: no-repeat;
+}
+
+.missionResultsFiltersStrip > :nth-child(1) {
+  flex: 0 0 200px;
+}
+
+.missionResultsFiltersStrip > :nth-child(2) {
+  flex: 0 0 150px;
+}
+
+.missionResultsFiltersStrip > :nth-child(3) {
+  flex: 0 0 160px;
+}
+
+.missionResultsFiltersStrip > :nth-child(4) {
+  flex: 0 0 220px;
 }
 
 .resultsFilters input,
@@ -452,9 +471,9 @@ a {
 
 .resultsProgressLabel {
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .resultsProgressTrack {
@@ -565,12 +584,12 @@ a {
 
 .resultsPaginationPageSize {
   min-width: 110px;
-  height: 38px;
-  padding: 0 14px;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: var(--surface-muted);
-  color: var(--foreground);
+  height: 36px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--results-border);
+  background: var(--results-input-bg);
+  color: var(--results-text);
   font: inherit;
 }
 
@@ -2407,8 +2426,400 @@ a {
 }
 
 .missionResultsToolbar {
+  display: flex;
   justify-content: space-between;
-  padding: 0 20px 18px;
+  align-items: center;
+  gap: 18px;
+  padding: 0 0 18px;
+}
+
+.missionResultsSurface {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+  color: var(--results-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.missionShellRoot .missionResultsSurface.panel {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.missionResultsToolbarLeft,
+.missionResultsToolbarRight,
+.missionResultsActionStrip,
+.missionResultsPaginationGroup,
+.missionResultsTreeCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.missionResultsToolbar {
+  display: grid;
+  gap: 10px;
+  padding: 10px 0 8px;
+  background: var(--results-surface);
+  border-bottom: 1px solid var(--results-border);
+}
+
+.missionResultsToolbarTop,
+.missionResultsToolbarGridRow,
+.missionResultsToolbarLeft {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.missionResultsToolbarTop,
+.missionResultsToolbarGridRow,
+.missionResultsToolbarLeft,
+.missionResultsPaginationGroup,
+.missionResultsTreeCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.missionResultsToolbarTop {
+  justify-content: flex-end;
+  min-height: 36px;
+}
+
+.missionResultsToolbarGridRow {
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.missionResultsToolbarLeft {
+  flex-wrap: nowrap;
+}
+
+.missionResultsToolbarRight {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 12px;
+}
+
+.missionResultsFiltersStrip {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.missionResultsProgressBadge {
+  flex: 0 0 auto;
+  min-width: 170px;
+  max-width: 170px;
+  padding: 6px 12px;
+  border: 1px solid var(--results-border);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--results-muted);
+  font-size: 12px;
+  font-family: "Roboto Mono", "Courier New", monospace;
+}
+
+.missionResultsProgressBadge .resultsProgressTrack {
+  flex: 0 0 40px;
+  min-width: 40px;
+  height: 4px;
+  background: color-mix(in srgb, var(--results-border) 72%, transparent);
+}
+
+.missionResultsProgressBadge .resultsProgressMeta {
+  font-size: 12px;
+}
+
+.missionResultsActionStrip {
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.missionToggleStrip.missionResultsActionStrip {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.missionResultsIconButton {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 6px;
+  background: var(--results-input-bg);
+  border-color: var(--results-border);
+  color: var(--results-text);
+  box-shadow: none;
+}
+
+.missionShellRoot .missionResultsIconButton:hover:not(:disabled),
+.missionShellRoot .missionResultsIconButton.screenIconActionActive {
+  background: var(--results-hover);
+  border-color: var(--results-text);
+  color: var(--results-text);
+}
+
+.missionResultsPagination {
+  margin-top: 0;
+  flex: 0 0 auto;
+}
+
+.missionResultsPaginationGroup {
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 12px;
+}
+
+.missionResultsPaginationSummary {
+  color: var(--results-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.missionResultsPageSize {
+  min-width: 108px;
+  min-height: 36px;
+  border-radius: 6px;
+  border-color: var(--results-border);
+  background: var(--results-input-bg);
+  color: var(--results-text);
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+.missionResultsInlineAlert {
+  margin: 0 0 14px;
+}
+
+.missionResultsTableWrap {
+  margin-top: 0;
+  padding: 12px 0 24px;
+  background: var(--results-band);
+  overflow: auto;
+}
+
+.missionResultsTable {
+  margin-top: 0;
+  min-width: 1120px;
+  font-size: 13px;
+  color: var(--results-text);
+}
+
+.missionResultsTable th,
+.missionResultsTable td {
+  padding: 12px 16px;
+  border-top: 0;
+  border-bottom: 1px solid var(--results-border);
+}
+
+.missionResultsTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--results-border);
+  background: var(--results-band);
+  color: var(--results-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.missionResultsTable tbody td {
+  font-size: 13px;
+  line-height: 1.4;
+  vertical-align: top;
+}
+
+.missionResultsRow {
+  transition: background-color 0.2s ease;
+}
+
+.missionResultsRow:hover {
+  background: var(--results-hover);
+}
+
+.missionResultsRow-added {
+  background: var(--results-row-added);
+}
+
+.missionResultsRow-removed {
+  background: var(--results-row-removed);
+}
+
+.missionResultsRow-modified {
+  background: var(--results-row-modified);
+}
+
+.missionResultsRow-moved {
+  background: var(--results-row-moved);
+}
+
+.missionResultsRow-qty,
+.missionResultsRow-replaced {
+  background: var(--results-row-qty);
+}
+
+.missionResultsRow-none {
+  background: transparent;
+}
+
+.missionResultsChangePill,
+.missionResultsFieldChip {
+  font-family: "Roboto Mono", "IBM Plex Mono", "Consolas", monospace;
+  letter-spacing: 0;
+}
+
+.missionResultsChangePill {
+  border: 1px solid currentColor;
+  background: transparent;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.missionResultsChangePill-added {
+  color: var(--results-pill-added);
+}
+
+.missionResultsChangePill-removed {
+  color: var(--results-pill-removed);
+}
+
+.missionResultsChangePill-modified {
+  color: var(--results-pill-modified);
+}
+
+.missionResultsChangePill-moved {
+  color: var(--results-pill-moved);
+}
+
+.missionResultsChangePill-qty,
+.missionResultsChangePill-replaced {
+  color: var(--results-pill-qty);
+}
+
+.missionResultsChangePill-none {
+  color: var(--results-muted);
+  border-color: var(--results-border);
+}
+
+.missionResultsMono {
+  font-family: "Roboto Mono", "IBM Plex Mono", "Consolas", monospace;
+  font-size: 13px;
+}
+
+.missionResultsImpactCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 210px;
+}
+
+.missionResultsImpactPill {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--results-border);
+  border-radius: 4px;
+  background: var(--results-input-bg);
+  color: var(--results-text);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.missionResultsImpactLabel {
+  color: var(--results-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.missionResultsChangedFields {
+  min-width: 240px;
+}
+
+.missionResultsFieldChip {
+  border: 1px solid var(--results-border);
+  background: var(--results-input-bg);
+  color: var(--results-text);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.missionResultsFieldChipMuted {
+  color: var(--results-muted);
+  opacity: 0.72;
+}
+
+.missionTableAction {
+  min-height: 0;
+  padding: 4px 12px;
+  border: 1px solid var(--results-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--results-text);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.missionTableAction:hover:not(:disabled),
+.missionTableActionActive {
+  background: transparent;
+  border-color: var(--results-text);
+}
+
+.missionTableAction:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.missionTreeToggle,
+.missionTreeTogglePlaceholder {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+}
+
+.missionTreeToggle {
+  border: 1px solid var(--results-border);
+  border-radius: 8px;
+  background: var(--results-input-bg);
+  color: var(--results-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.missionTreeTogglePlaceholder {
+  display: inline-block;
+}
+
+.missionResultsTreeCell {
+  min-width: 0;
+}
+
+.missionResultsTreeContext {
+  margin-top: 6px;
+  color: var(--mission-muted);
+  font-size: 12px;
+  font-family: "Consolas", "SFMono-Regular", "Menlo", monospace;
 }
 
 .missionToggleStrip {
@@ -2422,6 +2833,24 @@ a {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+@media (max-width: 1320px) {
+  .missionResultsToolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .missionResultsToolbarLeft,
+  .missionResultsToolbarRight {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .missionResultsFiltersStrip {
+    flex-wrap: wrap;
+  }
 }
 
 @media (max-width: 1200px) {
@@ -2468,6 +2897,22 @@ a {
     align-items: flex-start;
   }
 
+  .missionResultsToolbarLeft,
+  .missionResultsToolbarRight,
+  .missionResultsPaginationGroup {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .missionResultsActionStrip {
+    order: 1;
+  }
+
+  .missionResultsPagination {
+    order: 2;
+    width: 100%;
+  }
+
   .missionMetaGrid {
     grid-template-columns: 1fr;
   }
@@ -2500,6 +2945,14 @@ a {
   .missionGridTable td {
     padding: 12px 8px;
   }
+
+  .missionResultsInlineAlert,
+  .missionResultsTableWrap {
+    margin-left: 14px;
+    margin-right: 14px;
+    padding-left: 0;
+    padding-right: 0;
+  }
 }
 
 .missionShellRoot {
@@ -2525,9 +2978,13 @@ a {
 
 .missionShellRoot.shell {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
-  gap: 8px;
-  padding: 12px;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+}
+
+.missionShellRoot.shell[data-nav='expanded'] {
+  grid-template-columns: 280px minmax(0, 1fr);
 }
 
 .missionShellRoot[data-theme='dark'] {
@@ -2547,6 +3004,28 @@ a {
   background:
     radial-gradient(circle at top left, rgba(114, 212, 210, 0.14), transparent 30%),
     linear-gradient(180deg, #050b0d 0%, #081114 100%);
+}
+
+.missionShellRoot {
+  --mission-nav-accent: #0969da;
+  --mission-nav-accent-soft: rgba(9, 105, 218, 0.08);
+  --mission-nav-hover: rgba(87, 96, 106, 0.1);
+  --mission-nav-surface: #ffffff;
+  --mission-nav-border: #d0d7de;
+  --mission-nav-text: #24292f;
+  --mission-nav-text-muted: #57606a;
+  --mission-nav-bg: #f6f8fa;
+}
+
+.missionShellRoot[data-theme='dark'] {
+  --mission-nav-accent: #58a6ff;
+  --mission-nav-accent-soft: rgba(88, 166, 255, 0.12);
+  --mission-nav-hover: rgba(139, 148, 158, 0.12);
+  --mission-nav-surface: #161b22;
+  --mission-nav-border: #30363d;
+  --mission-nav-text: #c9d1d9;
+  --mission-nav-text-muted: #8b949e;
+  --mission-nav-bg: #0d1117;
 }
 
 .missionShellRoot,
@@ -2628,141 +3107,327 @@ a {
 
 .missionShellRoot .missionShellRail {
   position: sticky;
-  top: 12px;
-  align-self: start;
+  top: 0;
   flex-direction: column;
-  gap: 10px;
-  width: 76px;
-  min-height: calc(100vh - 24px);
-  padding: 8px 6px;
-  border: 1px solid var(--mission-line);
-  border-radius: 22px;
-  background: var(--mission-panel);
-  backdrop-filter: blur(18px);
-  overflow: hidden auto;
+  gap: 0;
+  width: 68px;
+  min-height: 100vh;
+  padding: 0;
+  border-right: 1px solid var(--mission-nav-border);
+  border-radius: 0;
+  background: var(--mission-nav-surface);
+  overflow: hidden;
   z-index: 20;
+  box-shadow: none;
+  transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.3s, border-color 0.3s;
 }
 
 .missionShellRoot .missionShellRailExpanded {
-  width: 252px;
-  padding: 10px 8px;
-  border-color: var(--mission-line-strong);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+  width: 280px;
+  border-color: var(--mission-nav-border);
 }
 
 .missionShellRoot .missionShellRailTop {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 16px;
+  min-height: 80px;
+  padding: 24px 16px 16px;
 }
 
 .missionShellRoot .missionShellRailToggle {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   padding: 0;
-  margin-inline: auto;
-  border-radius: 10px;
+  flex: 0 0 36px;
+  min-width: 36px;
+  border-radius: 8px;
+  background: var(--mission-nav-surface);
+  border-color: var(--mission-nav-border);
+  color: var(--mission-nav-text);
+  box-shadow: none;
+}
+
+.missionShellRoot .missionShellRailToggle:hover {
+  border-color: var(--mission-nav-text-muted);
+  background: var(--mission-nav-hover);
 }
 
 .missionShellRoot .missionShellBrand {
-  display: none;
+  display: flex;
   flex-direction: column;
-  gap: 2px;
+  justify-content: center;
+  min-width: 0;
+  opacity: 0;
+  transition: opacity 0.25s ease;
 }
 
 .missionShellRoot .missionShellRailExpanded .missionShellBrand {
-  display: flex;
+  opacity: 1;
 }
 
-.missionShellRoot .missionShellEyebrow {
-  margin: 0;
-  color: var(--mission-muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+.missionShellRoot .missionShellBrand strong {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  color: var(--mission-nav-text);
+  white-space: nowrap;
 }
 
 .missionShellRoot .missionShellNav {
+  flex: 1 1 auto;
   flex-direction: column;
+  padding: 0 12px;
+  margin-top: 12px;
   gap: 4px;
 }
 
 .missionShellRoot .missionShellNavItem {
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
-  padding: 0;
-  border-radius: 12px;
+  min-height: 48px;
+  padding: 8px 12px;
+  gap: 12px;
+  border-radius: 8px;
+  color: var(--mission-nav-text);
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.missionShellRoot .missionShellNavItem:hover {
+  background: var(--mission-nav-hover);
+}
+
+.missionShellRoot .missionShellNavItemActive {
+  background: var(--mission-nav-accent-soft);
+  color: var(--mission-nav-accent);
 }
 
 .missionShellRoot .missionShellNavIcon {
-  width: 34px;
-  height: 34px;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--mission-line);
-  border-radius: 10px;
+  color: inherit;
 }
 
-.missionShellRoot .missionShellNavItem:hover .missionShellNavIcon,
 .missionShellRoot .missionShellNavItemActive .missionShellNavIcon {
-  border-color: var(--mission-line-strong);
-  background: var(--mission-accent-soft);
+  color: var(--mission-nav-accent);
 }
 
 .missionShellRoot .missionShellNavText {
-  display: none;
+  display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
-}
-
-.missionShellRoot .missionShellRailExpanded .missionShellNavItem {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-  padding: 6px;
-  border: 1px solid transparent;
-}
-
-.missionShellRoot .missionShellRailExpanded .missionShellNavItemActive,
-.missionShellRoot .missionShellRailExpanded .missionShellNavItem:hover {
-  border-color: var(--mission-line);
-  background: var(--mission-accent-soft);
+  opacity: 0;
+  transition: opacity 0.25s ease;
 }
 
 .missionShellRoot .missionShellRailExpanded .missionShellNavText {
-  display: flex;
+  opacity: 1;
 }
 
 .missionShellRoot .missionShellNavText strong {
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mission-nav-text);
 }
 
 .missionShellRoot .missionShellNavText small {
-  color: var(--mission-muted);
-  font-size: 10px;
+  color: var(--mission-nav-text-muted);
+  font-size: 11px;
 }
 
 .missionShellRoot .missionShellRailMeta {
-  display: none;
+  display: block;
   margin-top: auto;
-  flex-direction: column;
-  gap: 8px;
+  padding: 16px;
+  border-top: 1px solid var(--mission-nav-border);
+  background: var(--mission-nav-bg);
 }
 
-.missionShellRoot .missionShellRailExpanded .missionShellRailMeta {
+.missionShellRoot .missionShellProfile {
   display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.missionShellRoot .missionShellProfileMenu {
+  position: relative;
+}
+
+.missionShellRoot .missionShellProfileAvatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mission-nav-border);
+  border-radius: 999px;
+  background: var(--mission-nav-surface);
+  color: var(--mission-nav-text-muted);
+}
+
+.missionShellRoot .missionShellProfileAvatar:hover {
+  border-color: var(--mission-nav-text);
+  color: var(--mission-nav-text);
+}
+
+.missionShellRoot .missionShellProfileText {
+  display: none;
+  min-width: 0;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.missionShellRoot .missionShellRailExpanded .missionShellProfileText {
+  display: grid;
+  gap: 2px;
+  opacity: 1;
+}
+
+.missionShellRoot .missionShellProfileEmail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--mission-nav-text);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.missionShellRoot .missionShellProfileTenant {
+  color: var(--mission-nav-text-muted);
+  font-family: "Consolas", "SFMono-Regular", "Menlo", monospace;
+  font-size: 11px;
+}
+
+.missionShellRoot .missionShellProfilePopover {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 10px);
+  min-width: 170px;
+  padding: 8px;
+  border: 1px solid var(--mission-nav-border);
+  border-radius: 10px;
+  background: var(--mission-nav-surface);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  z-index: 30;
+}
+
+.missionShellRoot:not([data-nav='expanded']) .missionShellProfilePopover {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.missionShellRoot .missionShellProfileMenuItem {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--mission-nav-text);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.missionShellRoot .missionShellProfileMenuItem:hover {
+  background: var(--mission-nav-hover);
+}
+
+.missionShellRoot:not([data-nav='expanded']) .missionShellProfile {
+  justify-content: center;
+}
+
+.missionShellRoot:not([data-nav='expanded']) .missionShellNavItem {
+  justify-content: center;
+  padding: 12px;
+}
+
+.missionShellRoot:not([data-nav='expanded']) .missionShellRailTop {
+  padding-inline: 16px;
+}
+
+.missionShellRoot:not([data-nav='expanded']) .missionShellBrand,
+.missionShellRoot:not([data-nav='expanded']) .missionShellNavText {
+  width: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .missionShellRoot .missionShellContent {
   min-width: 0;
   flex-direction: column;
   gap: 12px;
+  padding: 12px;
+}
+
+.missionShellRootResults {
+  --results-surface: #ffffff;
+  --results-border: #d0d7de;
+  --results-text: #24292f;
+  --results-muted: #57606a;
+  --results-band: #f6f8fa;
+  --results-input-bg: #ffffff;
+  --results-hover: #f3f4f6;
+  --results-row-added: rgba(26, 127, 55, 0.05);
+  --results-row-removed: rgba(207, 34, 46, 0.05);
+  --results-row-modified: rgba(9, 105, 218, 0.05);
+  --results-row-moved: rgba(154, 103, 0, 0.05);
+  --results-row-qty: rgba(130, 80, 223, 0.05);
+  --results-pill-added: #1a7f37;
+  --results-pill-removed: #cf222e;
+  --results-pill-modified: #0969da;
+  --results-pill-moved: #9a6700;
+  --results-pill-qty: #8250df;
+  background: #f6f8fa;
+  color: var(--results-text);
+}
+
+.missionShellRoot[data-theme='dark'].missionShellRootResults {
+  --results-surface: #161b22;
+  --results-border: #30363d;
+  --results-text: #c9d1d9;
+  --results-muted: #8b949e;
+  --results-band: #0d1117;
+  --results-input-bg: #0d1117;
+  --results-hover: #1f2428;
+  --results-row-added: rgba(63, 185, 80, 0.05);
+  --results-row-removed: rgba(248, 81, 73, 0.05);
+  --results-row-modified: rgba(88, 166, 255, 0.05);
+  --results-row-moved: rgba(210, 153, 34, 0.05);
+  --results-row-qty: rgba(188, 140, 255, 0.05);
+  --results-pill-added: #3fb950;
+  --results-pill-removed: #f85149;
+  --results-pill-modified: #58a6ff;
+  --results-pill-moved: #d29922;
+  --results-pill-qty: #bc8cff;
+  background: #0d1117;
+}
+
+.missionShellRootResults .missionShellContentResults {
+  gap: 0;
   padding: 0;
+  background: #f6f8fa;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.missionShellRoot[data-theme='dark'].missionShellRootResults .missionShellContentResults,
+.missionShellRoot[data-theme='dark'].missionShellRootResults .missionShellBodyResults {
+  background: #0d1117;
+}
+
+.missionShellRootResults .missionShellBodyResults {
+  min-width: 0;
+  padding: 0 32px 24px;
+  background: #f6f8fa;
 }
 
 .missionShellRoot .missionShellHeader {
@@ -2776,16 +3441,159 @@ a {
   background: var(--mission-panel);
 }
 
+.missionShellRoot .missionShellHeaderResults {
+  align-items: start;
+  padding: 12px 32px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--results-border);
+  border-radius: 0;
+  background: var(--results-surface);
+}
+
+.missionShellRoot.missionShellRootUpload {
+  --upload-bg: #f6f8fa;
+  --upload-surface: #ffffff;
+  --upload-border: #d0d7de;
+  --upload-text: #24292f;
+  --upload-text-muted: #57606a;
+  --upload-accent: #0969da;
+  --upload-success: #1a7f37;
+  --upload-warning: #9a6700;
+  --upload-hover: #f3f4f6;
+  --upload-drop-bg: #ffffff;
+  --upload-drop-hover: #f0f6fc;
+  --upload-card-header-bg: #f6f8fa;
+  background: var(--upload-bg);
+  color: var(--upload-text);
+}
+
+.missionShellRoot[data-theme='dark'].missionShellRootUpload {
+  --upload-bg: #0d1117;
+  --upload-surface: #161b22;
+  --upload-border: #30363d;
+  --upload-text: #c9d1d9;
+  --upload-text-muted: #8b949e;
+  --upload-accent: #58a6ff;
+  --upload-success: #3fb950;
+  --upload-warning: #d29922;
+  --upload-hover: #1f2428;
+  --upload-drop-bg: rgba(22, 27, 34, 0.4);
+  --upload-drop-hover: rgba(22, 27, 34, 0.8);
+  --upload-card-header-bg: #0d1117;
+}
+
+.missionShellRoot .missionShellHeaderUpload {
+  align-items: end;
+  padding: 32px 48px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--upload-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.missionShellRoot .missionShellTitleGroup {
+  min-width: 0;
+}
+
+.missionShellRoot .missionShellTitleGroupResults {
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.missionShellRoot .missionShellHeaderResults .missionShellHeaderActions {
+  align-self: start;
+  justify-self: end;
+  margin-top: 0;
+}
+
+.missionShellRoot .missionShellTitleGroupUpload {
+  align-self: end;
+}
+
 .missionShellRoot .missionShellTitle {
   margin: 4px 0 0;
-  font-family: "Aptos Display", "Segoe UI Variable", "Trebuchet MS", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: clamp(28px, 3vw, 40px);
+}
+
+.missionShellRoot .missionShellEyebrow {
+  margin: 0;
+  color: var(--results-muted);
+  font-family: "Roboto Mono", "IBM Plex Mono", "Consolas", monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.missionShellRoot .missionShellTitleGroupResults .missionShellTitle {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--results-text);
+}
+
+.missionShellRoot .missionShellTitleGroupUpload .missionShellTitle {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--upload-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.missionShellRoot .missionShellHeaderUpload .missionShellEyebrow {
+  margin: 0 0 8px;
+  color: var(--upload-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.09em;
+}
+
+.missionShellRootUpload .missionShellContent {
+  gap: 0;
+  padding: 0 32px 32px 0;
+}
+
+.missionShellRootUpload .missionShellBody {
+  min-width: 0;
+}
+
+.missionShellRootUpload .btn {
+  background-color: var(--upload-surface);
+  color: var(--upload-text);
+  border: 1px solid var(--upload-border);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.missionShellRootUpload .btn:hover:not(:disabled) {
+  border-color: var(--upload-text-muted);
+  background-color: var(--upload-hover);
+}
+
+.missionShellRootUpload .missionShellThemeSwitchSlider {
+  border-color: var(--upload-border);
+  background: var(--upload-surface);
+}
+
+.missionShellRootUpload .missionShellThemeSwitchIcon {
+  color: var(--upload-text-muted);
+}
+
+.missionShellRootUpload .missionShellThemeSwitchKnob {
+  background: var(--upload-text);
 }
 
 .missionShellRoot .missionShellHeaderActions {
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
@@ -2817,19 +3625,128 @@ a {
   background: var(--mission-accent-soft);
 }
 
-.missionShellRoot .missionShellBody {
-  min-width: 0;
+.missionShellRoot .missionShellThemeSwitch {
+  position: relative;
+  display: inline-flex;
+  width: 54px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.missionShellRoot .missionShellThemeSwitch input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.missionShellRoot .missionShellThemeSwitchSlider {
+  position: relative;
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  border: 1px solid var(--mission-line);
+  border-radius: 999px;
+  background: var(--mission-panel);
+  pointer-events: none;
+}
+
+.missionShellRoot .missionShellHeaderResults .btn {
+  background-color: var(--results-surface);
+  color: var(--results-text);
+  border: 1px solid var(--results-border);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.missionShellRoot .missionShellHeaderResults .btn:hover:not(:disabled) {
+  border-color: var(--results-muted);
+  background-color: var(--results-hover);
+}
+
+.missionShellRoot .missionShellHeaderResults .missionShellThemeSwitchSlider {
+  border-color: var(--results-border);
+  background: var(--results-surface);
+}
+
+.missionShellRoot .missionShellHeaderResults .missionShellThemeSwitchIcon {
+  color: var(--results-muted);
+}
+
+.missionShellRoot .missionShellHeaderResults .missionShellThemeSwitchKnob {
+  background: var(--results-text);
+}
+
+.missionShellRoot .missionShellThemeSwitchKnob {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--mission-ink);
+  transition: transform 0.24s ease;
+  z-index: 1;
+}
+
+.missionShellRoot .missionShellThemeSwitch input:checked + .missionShellThemeSwitchSlider .missionShellThemeSwitchKnob {
+  transform: translateX(26px);
+}
+
+.missionShellRoot .missionShellThemeSwitchIcon {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mission-muted);
+}
+
+.missionShellRoot .missionShellThemeSwitchIcon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.missionShellRoot[data-theme='dark'] .missionShellThemeSwitchKnob {
+  transform: translateX(0);
+}
+
+.missionShellRoot[data-theme='light'] .missionShellThemeSwitchKnob {
+  transform: translateX(26px);
+}
+
+.missionShellRoot .srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .missionShellRoot .missionComparePage {
+  width: min(100%, 1400px);
+  margin: 0 auto;
   flex-direction: column;
-  gap: 12px;
+  gap: 24px;
+  padding: 32px 16px 36px;
 }
 
 .missionShellRoot .missionCompareTopRail,
 .missionShellRoot .missionCompareGrid {
   display: grid;
-  gap: 12px;
+  gap: 24px;
 }
 
 .missionShellRoot .missionCompareTopRail {
@@ -2844,25 +3761,53 @@ a {
 .missionShellRoot .missionCompareCard,
 .missionShellRoot .missionCompareLaunchCard {
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
-  border: 1px solid var(--mission-line);
-  border-radius: 20px;
-  background: var(--mission-panel);
+  gap: 0;
+  padding: 0;
+  border: 1px dashed var(--upload-border);
+  border-radius: 6px;
+  background: var(--upload-surface);
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.missionShellRoot[data-theme='dark'] .missionCompareCard,
+.missionShellRoot[data-theme='dark'] .missionCompareLaunchCard {
+  background: var(--upload-surface);
+}
+
+.missionShellRoot .missionCompareCardDropzone {
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.missionShellRoot .missionCompareCardDropzone:hover,
+.missionShellRoot .missionCompareCardDropzoneActive {
+  border-color: var(--upload-accent);
+  background: var(--upload-drop-hover);
 }
 
 .missionShellRoot .missionCompareCardHeader {
   align-items: start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--upload-border);
+  background: var(--upload-card-header-bg);
+}
+
+.missionShellRoot .missionCompareCardHeader .h2 {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--upload-text);
 }
 
 .missionShellRoot .missionCompareEyebrow {
   margin: 0 0 4px;
-  color: var(--mission-muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  color: var(--upload-text-muted);
+  font-family: "Roboto Mono", "Courier New", monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
@@ -2881,55 +3826,61 @@ a {
 .missionShellRoot .missionCompareMetaGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 14px;
+  gap: 24px;
+  padding: 20px;
 }
 
-.missionShellRoot .missionCompareMetaGrid span {
+.missionShellRoot .missionCompareMetaLabel {
   display: block;
-  margin-bottom: 4px;
-  color: var(--mission-muted);
+  margin-bottom: 8px;
+  color: var(--upload-text-muted);
+  font-family: "Roboto Mono", "Courier New", monospace;
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.missionShellRoot .missionCompareMetaGrid strong {
-  font-family: "IBM Plex Mono", "Consolas", monospace;
-  font-size: 14px;
+.missionShellRoot .missionCompareMetaValue {
+  font-family: "Roboto Mono", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--upload-text);
 }
 
 .missionShellRoot .missionCompareDropzone {
   margin-top: 0;
-  min-height: 112px;
-  border-radius: 18px;
+  min-height: 0;
+  padding: 32px 22px;
+  border-width: 1px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   border-style: dashed;
-  border-color: rgba(71, 117, 127, 0.38);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(243, 249, 251, 0.96) 100%);
-  color: var(--mission-ink);
+  border-color: var(--upload-border);
+  background: var(--upload-drop-bg);
+  color: var(--upload-text);
 }
 
 .missionShellRoot .missionCompareDropzone.dropzoneActive {
-  border-color: rgba(71, 117, 127, 0.62);
-  background: linear-gradient(180deg, rgba(227, 244, 248, 0.92) 0%, rgba(241, 250, 252, 1) 100%);
+  border-color: var(--upload-accent);
+  background: var(--upload-drop-hover);
 }
 
 .missionShellRoot .missionCompareDropzoneIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 54px;
-  height: 54px;
-  border: 1px solid rgba(71, 117, 127, 0.24);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.86);
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--upload-border);
+  border-radius: 6px;
+  background: var(--upload-surface);
 }
 
 .missionShellRoot .missionCompareDropzoneIcon svg {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -2943,11 +3894,14 @@ a {
 }
 
 .missionShellRoot .missionCompareDropzoneContent strong {
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--upload-text);
 }
 
 .missionShellRoot .missionCompareDropzoneContent span {
-  color: var(--mission-muted);
+  color: var(--upload-text-muted);
+  font-size: 13px;
 }
 
 .missionShellRoot .missionCompareTopActions {
@@ -2961,6 +3915,12 @@ a {
 .missionShellRoot .missionCompareTopActionsRow {
   display: flex;
   justify-content: flex-end;
+}
+
+.missionShellRoot .missionCompareActionButton {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
 }
 
 .missionShellRoot .missionCompareActionWrap {
@@ -3038,25 +3998,74 @@ a {
   margin-top: 0;
 }
 
+.missionShellRoot .missionCompareSelectButton {
+  min-width: 128px;
+  min-height: 0;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.missionShellRoot .missionComparePill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-family: "Roboto Mono", "Courier New", monospace;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.missionShellRoot .missionComparePillWaiting {
+  color: var(--upload-warning);
+  border-color: color-mix(in srgb, var(--upload-warning) 30%, transparent);
+  background: color-mix(in srgb, var(--upload-warning) 10%, transparent);
+}
+
+.missionShellRoot .missionComparePillReady,
+.missionShellRoot .missionComparePillBaseline {
+  color: var(--upload-success);
+  border-color: color-mix(in srgb, var(--upload-success) 30%, transparent);
+  background: color-mix(in srgb, var(--upload-success) 10%, transparent);
+}
+
+.missionShellRoot .missionComparePillCandidate {
+  color: var(--upload-accent);
+  border-color: color-mix(in srgb, var(--upload-accent) 30%, transparent);
+  background: color-mix(in srgb, var(--upload-accent) 10%, transparent);
+}
+
+.missionShellRoot .missionComparePillWarning {
+  color: #b54708;
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(245, 158, 11, 0.1);
+}
+
 @media (max-width: 1100px) {
   .missionShellRoot.shell {
-    grid-template-columns: 76px minmax(0, 1fr);
+    grid-template-columns: 68px minmax(0, 1fr);
   }
 
   .missionShellRoot .missionShellHeader {
     grid-template-columns: 1fr;
   }
 
-  .missionShellRoot .missionShellRailExpanded {
-    position: fixed;
-    top: 8px;
-    left: 8px;
-    bottom: 8px;
-    width: min(252px, calc(100vw - 16px));
+  .missionShellRoot .missionShellHeaderUpload {
+    padding-inline: 24px;
   }
 
-  .missionShellRoot .missionCompareGrid {
-    grid-template-columns: 1fr;
+  .missionShellRoot .missionShellRailExpanded {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(280px, calc(100vw - 32px));
+    box-shadow: 0 28px 60px rgba(0, 0, 0, 0.28);
   }
 
   .missionShellRoot .missionCompareTopRail {
@@ -3071,6 +4080,10 @@ a {
     padding: 8px;
   }
 
+  .missionShellRoot .missionShellContent {
+    padding: 8px 8px 12px 0;
+  }
+
   .missionShellRoot .missionShellHeaderActions,
   .missionShellRoot .missionCompareCardHeader {
     flex-direction: column;
@@ -3083,6 +4096,27 @@ a {
   }
 
   .missionShellRoot .missionCompareMetaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .missionShellRoot .missionComparePage {
+    gap: 20px;
+    padding: 24px 8px 26px;
+  }
+
+  .missionShellRoot .missionCompareDropzone,
+  .missionShellRoot .missionCompareCardHeader,
+  .missionShellRoot .missionCompareMetaGrid {
+    padding-inline: 18px;
+  }
+
+  .missionShellRoot .missionCompareCardHeader .h2 {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 860px) {
+  .missionShellRoot .missionCompareGrid {
     grid-template-columns: 1fr;
   }
 }

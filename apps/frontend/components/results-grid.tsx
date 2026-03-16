@@ -165,6 +165,26 @@ export function ResultsGrid() {
     return `${categories[0].category} +${categories.length - 1}`;
   }
 
+  function changeTone(changeType: ChangeType): string {
+    switch (changeType) {
+      case 'added':
+        return 'added';
+      case 'removed':
+        return 'removed';
+      case 'modified':
+        return 'modified';
+      case 'moved':
+        return 'moved';
+      case 'quantity_change':
+        return 'qty';
+      case 'replaced':
+        return 'replaced';
+      case 'no_change':
+      default:
+        return 'none';
+    }
+  }
+
   useEffect(() => {
     rowsCountRef.current = rows.length;
   }, [rows.length]);
@@ -812,216 +832,224 @@ export function ResultsGrid() {
   }
 
   return (
-    <section className="panel" data-testid="results-panel">
-      <div className="screenToolbar" data-testid="results-toolbar">
-        <div className="screenToolbarActions resultsToolbarActionsDense resultsToolbarInline">
-          {status && status.status === 'running' && (
-            <div className="resultsProgressBadge" data-testid="results-partial-badge">
-              <span className="resultsProgressLabel">Running</span>
-              <div className="resultsProgressTrack" aria-hidden="true">
-                <span className="resultsProgressFill" style={{ width: `${status.percentComplete}%` }} />
-              </div>
-              <span className="resultsProgressMeta">
-                {status.phase} {status.percentComplete}%
-              </span>
-            </div>
-          )}
-          {status && status.status === 'completed' && !status.errorCode && !status.errorMessage && (
-            <div className="resultsProgressBadge resultsProgressBadgeComplete" data-testid="results-complete-badge">
-              <CheckCircleIcon />
-              <div className="resultsProgressTrack" aria-hidden="true">
-                <span className="resultsProgressFill" style={{ width: '100%' }} />
-              </div>
-              <span className="resultsProgressMeta">{status.loadedRows}/{status.totalRows}</span>
-            </div>
-          )}
-          <div className="resultsInlineFilters resultsFilters resultsFiltersMain">
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search text..."
-              disabled={!resultsDynamicFiltersEnabled}
-              data-testid="results-search-input"
-            />
-            <input
-              value={partFilter}
-              onChange={(event) => setPartFilter(event.target.value)}
-              placeholder="Part number filter..."
-              disabled={!resultsDynamicFiltersEnabled}
-              data-testid="results-part-filter-input"
-            />
-            <select
-              value={changeFilter}
-              onChange={(event) => setChangeFilter(event.target.value as 'all' | ChangeType)}
-              disabled={!resultsDynamicFiltersEnabled}
-              data-testid="results-change-filter"
+    <section className="panel missionResultsSurface" data-testid="results-panel">
+      <div className="missionResultsToolbar" data-testid="results-toolbar">
+        <div className="missionResultsToolbarTop">
+          <div className="missionToggleStrip missionResultsActionStrip">
+            <button
+              className="screenIconAction missionResultsIconButton"
+              type="button"
+              onClick={() => {
+                setChainUploadError(null);
+                setChainUploadDialogOpen(true);
+              }}
+              disabled={!sessionId || chainUploadBusy}
+              aria-label="Upload next revision"
+              title={!sessionId ? 'Current session is unavailable' : chainUploadBusy ? 'Uploading next revision' : 'Upload next revision'}
+              data-testid="results-upload-next-btn"
             >
-              {CHANGE_FILTERS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <select
-              value={sortMode}
-              onChange={(event) => setSortMode(event.target.value as 'source' | 'part' | 'change')}
-              disabled={!resultsDynamicFiltersEnabled}
-              data-testid="results-sort-select"
+              <UploadTrayIcon />
+            </button>
+            <button
+              className="screenIconAction missionResultsIconButton"
+              type="button"
+              onClick={() => {
+                setHistoryError(null);
+                setHistoryFeedback(null);
+                setHistoryDialogOpen(true);
+              }}
+              disabled={!sessionId}
+              aria-label="Previous comparisons"
+              title={!sessionId ? 'Current session is unavailable' : 'Previous comparisons'}
+              data-testid="results-session-history-btn"
             >
-              <option value="source">Sort: Source Order</option>
-              <option value="part">Sort: Part Number</option>
-              <option value="change">Sort: Change Type</option>
-            </select>
+              <HistoryIcon />
+            </button>
+            <button
+              className={`screenIconAction missionResultsIconButton ${viewMode === 'flat' ? 'screenIconActionActive' : ''}`}
+              type="button"
+              onClick={() => void toggleView('flat')}
+              disabled={viewMode === 'flat'}
+              aria-label="Flat view"
+              title="Flat view"
+              data-testid="results-view-flat-btn"
+            >
+              <FlatViewIcon />
+            </button>
+            <button
+              className={`screenIconAction missionResultsIconButton ${viewMode === 'tree' ? 'screenIconActionActive' : ''}`}
+              type="button"
+              onClick={() => void toggleView('tree')}
+              disabled={!resultsTreeViewEnabled || viewMode === 'tree'}
+              aria-label="Tree view"
+              title="Tree view"
+              data-testid="results-view-tree-btn"
+            >
+              <TreeViewIcon />
+            </button>
+            <button
+              className="screenIconAction missionResultsIconButton"
+              type="button"
+              onClick={() => setShareDialogOpen(true)}
+              disabled={!activeComparisonId}
+              aria-label="Share"
+              title="Share"
+              data-testid="results-share-btn"
+            >
+              <ShareIcon />
+            </button>
+            <button
+              className="screenIconAction missionResultsIconButton"
+              type="button"
+              onClick={() => setExportDialogOpen(true)}
+              disabled={!activeComparisonId}
+              aria-label="Export"
+              title="Export"
+              data-testid="results-export-menu-btn"
+            >
+              <ExportIcon />
+            </button>
+            <button
+              className="screenIconAction missionResultsIconButton"
+              type="button"
+              onClick={() => void startDiffJob()}
+              disabled={isStarting}
+              aria-label={isStarting ? 'Starting diff' : 'Run diff'}
+              title={isStarting ? 'Starting diff' : 'Run diff'}
+              data-testid="results-run-btn"
+            >
+              <RunIcon />
+            </button>
           </div>
-          <button
-            className="screenIconAction"
-            type="button"
-            onClick={() => {
-              setChainUploadError(null);
-              setChainUploadDialogOpen(true);
-            }}
-            disabled={!sessionId || chainUploadBusy}
-            aria-label="Upload next revision"
-            title={!sessionId ? 'Current session is unavailable' : chainUploadBusy ? 'Uploading next revision' : 'Upload next revision'}
-            data-testid="results-upload-next-btn"
-          >
-            <UploadTrayIcon />
-          </button>
-          <button
-            className="screenIconAction"
-            type="button"
-            onClick={() => {
-              setHistoryError(null);
-              setHistoryFeedback(null);
-              setHistoryDialogOpen(true);
-            }}
-            disabled={!sessionId}
-            aria-label="Previous comparisons"
-            title={!sessionId ? 'Current session is unavailable' : 'Previous comparisons'}
-            data-testid="results-session-history-btn"
-          >
-            <HistoryIcon />
-          </button>
-          <button
-            className={`screenIconAction ${viewMode === 'flat' ? 'screenIconActionActive' : ''}`}
-            type="button"
-            onClick={() => void toggleView('flat')}
-            disabled={viewMode === 'flat'}
-            aria-label="Flat view"
-            title="Flat view"
-            data-testid="results-view-flat-btn"
-          >
-            <FlatViewIcon />
-          </button>
-          <button
-            className={`screenIconAction ${viewMode === 'tree' ? 'screenIconActionActive' : ''}`}
-            type="button"
-            onClick={() => void toggleView('tree')}
-            disabled={!resultsTreeViewEnabled || viewMode === 'tree'}
-            aria-label="Tree view"
-            title="Tree view"
-            data-testid="results-view-tree-btn"
-          >
-            <TreeViewIcon />
-          </button>
-          <button
-            className="screenIconAction"
-            type="button"
-            onClick={() => setShareDialogOpen(true)}
-            disabled={!activeComparisonId}
-            aria-label="Share"
-            title="Share"
-            data-testid="results-share-btn"
-          >
-            <ShareIcon />
-          </button>
-          <button
-            className="screenIconAction"
-            type="button"
-            onClick={() => setExportDialogOpen(true)}
-            disabled={!activeComparisonId}
-            aria-label="Export"
-            title="Export"
-            data-testid="results-export-menu-btn"
-          >
-            <ExportIcon />
-          </button>
-          <button
-            className="screenIconAction"
-            type="button"
-            onClick={() => void startDiffJob()}
-            disabled={isStarting}
-            aria-label={isStarting ? 'Starting diff' : 'Run diff'}
-            title={isStarting ? 'Starting diff' : 'Run diff'}
-            data-testid="results-run-btn"
-          >
-            <RunIcon />
-          </button>
+        </div>
+        <div className="missionResultsToolbarGridRow">
+          <div className="missionResultsToolbarLeft">
+            {status && status.status === 'running' && (
+              <div className="resultsProgressBadge missionResultsProgressBadge" data-testid="results-partial-badge">
+                <span className="resultsProgressLabel">Running</span>
+                <div className="resultsProgressTrack" aria-hidden="true">
+                  <span className="resultsProgressFill" style={{ width: `${status.percentComplete}%` }} />
+                </div>
+                <span className="resultsProgressMeta">
+                  {status.phase} {status.percentComplete}%
+                </span>
+              </div>
+            )}
+            {status && status.status === 'completed' && !status.errorCode && !status.errorMessage && (
+              <div
+                className="resultsProgressBadge resultsProgressBadgeComplete missionResultsProgressBadge"
+                data-testid="results-complete-badge"
+              >
+                <CheckCircleIcon />
+                <div className="resultsProgressTrack" aria-hidden="true">
+                  <span className="resultsProgressFill" style={{ width: '100%' }} />
+                </div>
+                <span className="resultsProgressMeta">{status.loadedRows}/{status.totalRows}</span>
+              </div>
+            )}
+            <div className="resultsInlineFilters resultsFilters resultsFiltersMain missionResultsFiltersStrip">
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search text..."
+                disabled={!resultsDynamicFiltersEnabled}
+                data-testid="results-search-input"
+              />
+              <input
+                value={partFilter}
+                onChange={(event) => setPartFilter(event.target.value)}
+                placeholder="Part number filter..."
+                disabled={!resultsDynamicFiltersEnabled}
+                data-testid="results-part-filter-input"
+              />
+              <select
+                value={changeFilter}
+                onChange={(event) => setChangeFilter(event.target.value as 'all' | ChangeType)}
+                disabled={!resultsDynamicFiltersEnabled}
+                data-testid="results-change-filter"
+              >
+                {CHANGE_FILTERS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={sortMode}
+                onChange={(event) => setSortMode(event.target.value as 'source' | 'part' | 'change')}
+                disabled={!resultsDynamicFiltersEnabled}
+                data-testid="results-sort-select"
+              >
+                <option value="source">Sort: Source Order</option>
+                <option value="part">Sort: Part Number</option>
+                <option value="change">Sort: Change Type</option>
+              </select>
+            </div>
+          </div>
+          <div className="resultsPagination missionResultsPagination" data-testid="results-pagination-controls">
+            <div className="resultsPaginationGroup missionResultsPaginationGroup">
+              <span className="resultsPaginationSummary missionResultsPaginationSummary">
+                Showing {pageStart}-{pageEnd} of {filteredTotalRows}
+              </span>
+              <select
+                className="resultsPaginationPageSize missionResultsPageSize"
+                value={pageSize}
+                onChange={(event) => setPageSize(Number(event.target.value) as PageSize)}
+                data-testid="results-page-size-select"
+              >
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>
+                    {size} rows
+                  </option>
+                ))}
+              </select>
+              <button
+                className="screenIconAction screenIconActionCompact missionResultsIconButton"
+                type="button"
+                onClick={() => void goToPreviousPage()}
+                disabled={cursorHistory.length === 0 || !jobId}
+                aria-label="Previous page"
+                title="Previous page"
+                data-testid="results-page-prev"
+              >
+                <ChevronLeftIcon />
+              </button>
+              <button
+                className="screenIconAction screenIconActionCompact missionResultsIconButton"
+                type="button"
+                onClick={() => void goToNextPage()}
+                disabled={!nextCursor || !jobId}
+                aria-label="Next page"
+                title="Next page"
+                data-testid="results-page-next"
+              >
+                <ChevronRightIcon />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {error && (
-        <div className="alertError" data-testid="results-error">
+        <div className="alertError missionResultsInlineAlert" data-testid="results-error">
           {error}
         </div>
       )}
 
       {!resultsTreeViewEnabled && (
-        <div className="alertWarning" data-testid="results-tree-feature-disabled">
+        <div className="alertWarning missionResultsInlineAlert" data-testid="results-tree-feature-disabled">
           RESULTS_TREE_VIEW_DISABLED: Tree view is currently disabled by feature flag.
         </div>
       )}
       {!resultsDynamicFiltersEnabled && (
-        <div className="alertWarning" data-testid="results-dynamic-filters-disabled">
+        <div className="alertWarning missionResultsInlineAlert" data-testid="results-dynamic-filters-disabled">
           RESULTS_DYNAMIC_FILTERS_DISABLED: Dynamic search/sort/filter controls are disabled by feature flag.
         </div>
       )}
 
-      <div className="resultsPagination" data-testid="results-pagination-controls">
-        <div className="resultsPaginationGroup">
-          <span className="resultsPaginationSummary">
-            Showing {pageStart}-{pageEnd} of {filteredTotalRows}
-          </span>
-          <select
-            className="resultsPaginationPageSize"
-            value={pageSize}
-            onChange={(event) => setPageSize(Number(event.target.value) as PageSize)}
-            data-testid="results-page-size-select"
-          >
-            {PAGE_SIZE_OPTIONS.map((size) => (
-              <option key={size} value={size}>
-                {size} rows
-              </option>
-            ))}
-          </select>
-          <button
-            className="screenIconAction screenIconActionCompact"
-            type="button"
-            onClick={() => void goToPreviousPage()}
-            disabled={cursorHistory.length === 0 || !jobId}
-            aria-label="Previous page"
-            title="Previous page"
-            data-testid="results-page-prev"
-          >
-            <ChevronLeftIcon />
-          </button>
-          <button
-            className="screenIconAction screenIconActionCompact"
-            type="button"
-            onClick={() => void goToNextPage()}
-            disabled={!nextCursor || !jobId}
-            aria-label="Next page"
-            title="Next page"
-            data-testid="results-page-next"
-          >
-            <ChevronRightIcon />
-          </button>
-        </div>
-      </div>
-
       {viewMode === 'flat' && (
-        <div className="mappingTableWrap">
-          <table className="mappingTable" data-testid="results-grid-table">
+        <div className="mappingTableWrap missionResultsTableWrap">
+          <table className="mappingTable missionGridTable missionResultsTable missionGridTableDense" data-testid="results-grid-table">
             <thead>
               <tr>
                 <th>Change</th>
@@ -1036,30 +1064,38 @@ export function ResultsGrid() {
             </thead>
             <tbody>
               {visibleRows.map((row) => (
-                <tr key={row.rowId} className={`diffRow diffRow-${row.changeType}`} data-testid={`results-row-${row.rowId}`}>
+                <tr
+                  key={row.rowId}
+                  className={`diffRow diffRow-${row.changeType} missionResultsRow missionResultsRow-${changeTone(row.changeType)}`}
+                  data-testid={`results-row-${row.rowId}`}
+                >
                   <td>
-                    <span className={`chip chip-${row.changeType}`}>{row.changeType}</span>
+                    <span className={`missionStatusTag missionResultsChangePill missionResultsChangePill-${changeTone(row.changeType)}`}>
+                      {row.changeType}
+                    </span>
                   </td>
-                  <td>{row.keyFields.partNumber || '-'}</td>
-                  <td>{row.keyFields.revision || '-'}</td>
+                  <td className="missionResultsMono">{row.keyFields.partNumber || '-'}</td>
+                  <td className="missionResultsMono">{row.keyFields.revision || '-'}</td>
                   <td>{row.keyFields.description || '-'}</td>
                   <td>
-                    <div className="resultsImpactCell">
+                    <div className="resultsImpactCell missionResultsImpactCell">
                       <span
-                        className={`chip ${impactCriticalityClass(row.impactClassification?.impactCriticality)}`}
+                        className={`missionPill missionResultsImpactPill ${impactCriticalityClass(row.impactClassification?.impactCriticality)}`}
                         data-testid={`results-impact-${row.rowId}`}
                       >
                         {row.impactClassification?.impactCriticality || 'None'}
                       </span>
-                      <span className="resultsImpactLabel">{summarizeImpact(row)}</span>
+                      <span className="resultsImpactLabel missionResultsImpactLabel">{summarizeImpact(row)}</span>
                     </div>
                   </td>
-                  <td>{row.rationale.classificationReason}</td>
+                  <td className="missionResultsMono">{row.rationale.classificationReason}</td>
                   <td>
-                    <div className="cellChips">
-                      {row.rationale.changedFields.length === 0 && <span className="chip">none</span>}
+                    <div className="cellChips missionResultsChangedFields">
+                      {row.rationale.changedFields.length === 0 && (
+                        <span className="missionPill missionResultsFieldChip missionResultsFieldChipMuted">none</span>
+                      )}
                       {row.rationale.changedFields.map((field) => (
-                        <span className="chip" key={`${row.rowId}-${field}`}>
+                        <span className="missionPill missionResultsFieldChip" key={`${row.rowId}-${field}`}>
                           {field}
                         </span>
                       ))}
@@ -1067,10 +1103,11 @@ export function ResultsGrid() {
                   </td>
                   <td>
                     <button
-                      className="btn"
+                      className={`missionTableAction ${row.impactClassification?.categories.length ? 'missionTableActionActive' : ''}`}
                       type="button"
                       onClick={() => setImpactDialogRow(row)}
                       disabled={!row.impactClassification?.categories.length}
+                      title={row.impactClassification?.categories.length ? 'View impact classification' : 'No impact classification'}
                       data-testid={`results-impact-detail-${row.rowId}`}
                     >
                       {row.impactClassification?.categories.length ? 'View Impact' : 'No Impact'}
@@ -1089,13 +1126,13 @@ export function ResultsGrid() {
       )}
 
       {viewMode === 'tree' && (
-        <div className="mappingTableWrap">
+        <div className="mappingTableWrap missionResultsTableWrap">
           {status?.status === 'running' && (
-            <div className="alertWarning" data-testid="results-tree-loading-badge">
+            <div className="alertWarning missionResultsInlineAlert" data-testid="results-tree-loading-badge">
               Loading hierarchy...
             </div>
           )}
-          <table className="mappingTable" data-testid="results-tree-table">
+          <table className="mappingTable missionGridTable missionResultsTable missionGridTableDense" data-testid="results-tree-table">
             <thead>
               <tr>
                 <th>Hierarchy</th>
@@ -1112,14 +1149,14 @@ export function ResultsGrid() {
                 return (
                   <tr
                     key={node.nodeId}
-                    className={`diffRow diffRow-${node.changeType}`}
+                    className={`diffRow diffRow-${node.changeType} missionResultsRow missionResultsRow-${changeTone(node.changeType)}`}
                     data-testid={`tree-node-${node.nodeId}`}
                   >
                     <td>
-                      <div style={{ paddingLeft: `${Math.max(0, node.depth) * 16}px`, display: 'flex', gap: '8px' }}>
+                      <div className="missionResultsTreeCell" style={{ paddingLeft: `${Math.max(0, node.depth) * 16}px` }}>
                         {node.hasChildren ? (
                           <button
-                            className="btn"
+                            className="missionTreeToggle"
                             type="button"
                             onClick={() => void toggleTreeNode(node.nodeId)}
                             data-testid={`tree-toggle-${node.nodeId}`}
@@ -1127,20 +1164,22 @@ export function ResultsGrid() {
                             {expanded ? '-' : '+'}
                           </button>
                         ) : (
-                          <span style={{ width: '36px', display: 'inline-block' }} />
+                          <span className="missionTreeTogglePlaceholder" />
                         )}
-                        <span>{node.rowId}</span>
+                        <span className="missionResultsMono">{node.rowId}</span>
                       </div>
                     </td>
                     <td>
-                      <span className={`chip chip-${node.changeType}`}>{node.changeType}</span>
+                      <span className={`missionStatusTag missionResultsChangePill missionResultsChangePill-${changeTone(node.changeType)}`}>
+                        {node.changeType}
+                      </span>
                     </td>
-                    <td>{node.keyFields.partNumber || '-'}</td>
-                    <td>{node.keyFields.revision || '-'}</td>
+                    <td className="missionResultsMono">{node.keyFields.partNumber || '-'}</td>
+                    <td className="missionResultsMono">{node.keyFields.revision || '-'}</td>
                     <td>
                       {node.keyFields.description || '-'}
                       {node.fromParent && node.toParent && (
-                        <div data-testid={`tree-moved-context-${node.nodeId}`}>
+                        <div className="missionResultsTreeContext" data-testid={`tree-moved-context-${node.nodeId}`}>
                           {node.fromParent}
                           {' -> '}
                           {node.toParent}
@@ -1148,10 +1187,12 @@ export function ResultsGrid() {
                       )}
                     </td>
                     <td>
-                      <div className="cellChips">
-                        {node.changedFields.length === 0 && <span className="chip">none</span>}
+                      <div className="cellChips missionResultsChangedFields">
+                        {node.changedFields.length === 0 && (
+                          <span className="missionPill missionResultsFieldChip missionResultsFieldChipMuted">none</span>
+                        )}
                         {node.changedFields.map((field) => (
-                          <span className="chip" key={`${node.nodeId}-${field}`}>
+                          <span className="missionPill missionResultsFieldChip" key={`${node.nodeId}-${field}`}>
                             {field}
                           </span>
                         ))}

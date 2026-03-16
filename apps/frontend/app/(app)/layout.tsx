@@ -15,11 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <AppShell
-      userEmail={sessionUser.email}
-      tenantId={sessionUser.tenantId}
-      actions={<Link className="btn" href="/login">Switch account</Link>}
-    >
+    <AppShell userEmail={sessionUser.email} tenantId={sessionUser.tenantId}>
       {children}
     </AppShell>
   );

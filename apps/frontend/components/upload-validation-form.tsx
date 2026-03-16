@@ -51,7 +51,11 @@ interface UploadFeedbackDialog {
   details: string[];
 }
 
-function bytesToMb(value: number): string {
+type RevisionSlot = 'a' | 'b';
+
+function formatFileSize(value: number): string {
+  if (value < 1024) return `${value} Bytes`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(2)} KB`;
   return `${(value / (1024 * 1024)).toFixed(2)} MB`;
 }
 
@@ -59,7 +63,8 @@ export function UploadValidationForm() {
   const router = useRouter();
   const [fileA, setFileA] = useState<File | null>(null);
   const [fileB, setFileB] = useState<File | null>(null);
-  const [isDragActive, setIsDragActive] = useState(false);
+  const [isMasterDragActive, setIsMasterDragActive] = useState(false);
+  const [activeRevisionDrop, setActiveRevisionDrop] = useState<RevisionSlot | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isQueueing, setIsQueueing] = useState(false);
   const [error, setError] = useState<ValidationError | null>(null);
@@ -75,6 +80,14 @@ export function UploadValidationForm() {
     () => !!fileA && !!fileB && !isSubmitting && !isQueueing && !isBlocked,
     [fileA, fileB, isSubmitting, isQueueing, isBlocked]
   );
+
+  function applyFileToSlot(slot: RevisionSlot, nextFile: File | null) {
+    if (slot === 'a') {
+      applyPickedFiles(nextFile, fileB);
+      return;
+    }
+    applyPickedFiles(fileA, nextFile);
+  }
 
   function applyPickedFiles(nextFileA: File | null, nextFileB: File | null) {
     setFileA(nextFileA);
@@ -130,6 +143,12 @@ export function UploadValidationForm() {
       return;
     }
     applyPickedFiles(fileA, one);
+  }
+
+  function applyDroppedFileToSlot(slot: RevisionSlot, dropped: FileList | null) {
+    const droppedFiles = Array.from(dropped || []);
+    if (droppedFiles.length === 0) return;
+    applyFileToSlot(slot, droppedFiles[0]);
   }
 
   async function validateFiles(): Promise<boolean> {
@@ -267,6 +286,27 @@ export function UploadValidationForm() {
         : isBlocked
           ? 'Comparison is blocked during the cooldown window'
           : 'Validate and start comparison';
+  const showActionRow = isBusy || isTransitioningToResults || shouldHighlightCompare || Boolean(openResultsHref);
+
+  function renderStatus(slot: RevisionSlot): { label: string; className: string } {
+    const file = slot === 'a' ? fileA : fileB;
+    if (isBlocked) {
+      return {
+        label: 'Blocked by policy',
+        className: 'missionComparePill missionComparePillWarning'
+      };
+    }
+    if (file) {
+      return {
+        label: 'Ready for comparison',
+        className: 'missionComparePill missionComparePillReady'
+      };
+    }
+    return {
+      label: 'Waiting for source',
+      className: 'missionComparePill missionComparePillWaiting'
+    };
+  }
 
   useEffect(() => {
     if (!openResultsHref || resultsLinkAcknowledged) return;
@@ -281,70 +321,72 @@ export function UploadValidationForm() {
   return (
     <form onSubmit={onSubmit} className="missionComparePage" data-testid="upload-validation-form">
       <section className="missionCompareTopRail">
-        <div className="missionCompareTopActionsRow">
-          <div className="missionCompareTopActions">
-            {isBusy ? (
-              <div className="missionCompareStateBadge missionCompareStateBadgeBusy" data-testid="upload-progress-indicator">
-                <span className="missionCompareBusyTrack" aria-hidden="true">
-                  <span className="missionCompareBusyFill" />
-                </span>
-                <span>{isSubmitting ? 'Validating' : 'Starting comparison'}</span>
-              </div>
-            ) : isTransitioningToResults ? (
-              <div className="missionCompareStateBadge missionCompareStateBadgeBusy" data-testid="upload-open-results-indicator">
-                <span className="missionCompareBusyTrack" aria-hidden="true">
-                  <span className="missionCompareBusyFill" />
-                </span>
-                <span>Opening results...</span>
-              </div>
-            ) : success ? (
-              <div className="missionCompareStateBadge" data-testid="upload-validation-success-indicator">
-                <CheckCircleIcon />
-                <span>Validated</span>
-              </div>
-            ) : null}
-            <span className="missionCompareActionWrap" title={compareTooltip}>
-              <button
-                className={`screenIconAction ${shouldHighlightCompare ? 'missionCompareRunPulse' : ''}`}
-                type="submit"
-                disabled={!canSubmit}
-                aria-label={compareTooltip}
-                data-testid="compare-upload-btn"
-              >
-                <RunIcon />
-              </button>
-            </span>
-            {openResultsHref ? (
-              <a
-                className={`screenIconAction ${resultsLinkAcknowledged ? '' : 'missionCompareOpenResultsPulse'}`}
-                href={openResultsHref}
-                aria-label="Open results workspace"
-                title="Open results workspace"
-                data-testid="upload-view-results-link"
-                onClick={() => setResultsLinkAcknowledged(true)}
-              >
-                <OpenIcon />
-              </a>
-            ) : null}
+        {showActionRow ? (
+          <div className="missionCompareTopActionsRow">
+            <div className="missionCompareTopActions">
+              {isBusy ? (
+                <div className="missionCompareStateBadge missionCompareStateBadgeBusy" data-testid="upload-progress-indicator">
+                  <span className="missionCompareBusyTrack" aria-hidden="true">
+                    <span className="missionCompareBusyFill" />
+                  </span>
+                  <span>{isSubmitting ? 'Validating' : 'Starting comparison'}</span>
+                </div>
+              ) : isTransitioningToResults ? (
+                <div className="missionCompareStateBadge missionCompareStateBadgeBusy" data-testid="upload-open-results-indicator">
+                  <span className="missionCompareBusyTrack" aria-hidden="true">
+                    <span className="missionCompareBusyFill" />
+                  </span>
+                  <span>Opening results...</span>
+                </div>
+              ) : success ? (
+                <div className="missionCompareStateBadge missionCompareStateBadgeReady" data-testid="upload-validation-success-indicator">
+                  <CheckCircleIcon />
+                  <span>Validated</span>
+                </div>
+              ) : null}
+              <span className="missionCompareActionWrap" title={compareTooltip}>
+                <button
+                  className={`screenIconAction missionCompareActionButton ${shouldHighlightCompare ? 'missionCompareRunPulse' : ''}`}
+                  type="submit"
+                  disabled={!canSubmit}
+                  aria-label={compareTooltip}
+                  data-testid="compare-upload-btn"
+                >
+                  <RunIcon />
+                </button>
+              </span>
+              {openResultsHref ? (
+                <a
+                  className={`screenIconAction missionCompareActionButton ${resultsLinkAcknowledged ? '' : 'missionCompareOpenResultsPulse'}`}
+                  href={openResultsHref}
+                  aria-label="Open results workspace"
+                  title="Open results workspace"
+                  data-testid="upload-view-results-link"
+                  onClick={() => setResultsLinkAcknowledged(true)}
+                >
+                  <OpenIcon />
+                </a>
+              ) : null}
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <section
-          className={`dropzone missionCompareDropzone ${isDragActive ? 'dropzoneActive' : ''}`}
+          className={`dropzone missionCompareDropzone ${isMasterDragActive ? 'dropzoneActive' : ''}`}
           data-testid="upload-dropzone"
           onDragOver={(e) => {
             e.preventDefault();
             if (!isBlocked) {
-              setIsDragActive(true);
+              setIsMasterDragActive(true);
             }
           }}
           onDragLeave={(e) => {
             e.preventDefault();
-            setIsDragActive(false);
+            setIsMasterDragActive(false);
           }}
           onDrop={(e) => {
             e.preventDefault();
-            setIsDragActive(false);
+            setIsMasterDragActive(false);
             if (isBlocked) return;
             applyDroppedFiles(e.dataTransfer.files);
           }}
@@ -360,13 +402,34 @@ export function UploadValidationForm() {
       </section>
 
       <section className="missionCompareGrid">
-        <article className="missionCompareCard">
+        <article
+          className={`missionCompareCard missionCompareCardDropzone ${
+            activeRevisionDrop === 'a' ? 'missionCompareCardDropzoneActive' : ''
+          }`}
+          data-testid="upload-card-a"
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (!isBlocked) {
+              setActiveRevisionDrop('a');
+            }
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setActiveRevisionDrop((current) => (current === 'a' ? null : current));
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setActiveRevisionDrop((current) => (current === 'a' ? null : current));
+            if (isBlocked) return;
+            applyDroppedFileToSlot('a', e.dataTransfer.files);
+          }}
+        >
           <div className="missionCompareCardHeader">
             <div>
               <p className="missionCompareEyebrow">Revision A</p>
               <h2 className="h2">Primary source revision</h2>
             </div>
-            <label className="btn" htmlFor="fileA">
+            <label className="btn missionCompareSelectButton" htmlFor="fileA">
               Select file
             </label>
             <input
@@ -375,38 +438,67 @@ export function UploadValidationForm() {
               type="file"
               className="missionCompareInput"
               disabled={isBlocked}
-              onChange={(e) => applyPickedFiles(e.currentTarget.files?.[0] || null, fileB)}
+              onChange={(e) => applyFileToSlot('a', e.currentTarget.files?.[0] || null)}
               data-testid="file-input-a"
             />
           </div>
 
           <div className="missionCompareMetaGrid">
             <div>
-              <span>Source A</span>
-              <strong>{fileA ? fileA.name : 'No file selected'}</strong>
+              <span className="missionCompareMetaLabel">Source A</span>
+              <strong className="missionCompareMetaValue" data-testid="upload-source-a">
+                {fileA ? fileA.name : 'Drag file here or select'}
+              </strong>
             </div>
             <div>
-              <span>Size</span>
-              <strong>{fileA ? bytesToMb(fileA.size) : 'Pending'}</strong>
+              <span className="missionCompareMetaLabel">Size</span>
+              <strong className="missionCompareMetaValue" data-testid="upload-size-a">
+                {fileA ? formatFileSize(fileA.size) : 'Pending'}
+              </strong>
             </div>
             <div>
-              <span>Status</span>
-              <strong>{fileA ? 'Ready for validation' : 'Waiting for source'}</strong>
+              <span className="missionCompareMetaLabel">Status</span>
+              <strong className="missionCompareMetaValue" data-testid="upload-status-a">
+                <span className={renderStatus('a').className}>{renderStatus('a').label}</span>
+              </strong>
             </div>
             <div>
-              <span>Role</span>
-              <strong>Baseline BOM</strong>
+              <span className="missionCompareMetaLabel">Role</span>
+              <strong className="missionCompareMetaValue">
+                <span className="missionComparePill missionComparePillBaseline">Baseline BOM</span>
+              </strong>
             </div>
           </div>
         </article>
 
-        <article className="missionCompareCard">
+        <article
+          className={`missionCompareCard missionCompareCardDropzone ${
+            activeRevisionDrop === 'b' ? 'missionCompareCardDropzoneActive' : ''
+          }`}
+          data-testid="upload-card-b"
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (!isBlocked) {
+              setActiveRevisionDrop('b');
+            }
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setActiveRevisionDrop((current) => (current === 'b' ? null : current));
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setActiveRevisionDrop((current) => (current === 'b' ? null : current));
+            if (isBlocked) return;
+            applyDroppedFileToSlot('b', e.dataTransfer.files);
+          }}
+        >
           <div className="missionCompareCardHeader">
             <div>
               <p className="missionCompareEyebrow">Revision B</p>
               <h2 className="h2">Candidate comparison revision</h2>
             </div>
-            <label className="btn" htmlFor="fileB">
+            <label className="btn missionCompareSelectButton" htmlFor="fileB">
               Select file
             </label>
             <input
@@ -415,27 +507,35 @@ export function UploadValidationForm() {
               type="file"
               className="missionCompareInput"
               disabled={isBlocked}
-              onChange={(e) => applyPickedFiles(fileA, e.currentTarget.files?.[0] || null)}
+              onChange={(e) => applyFileToSlot('b', e.currentTarget.files?.[0] || null)}
               data-testid="file-input-b"
             />
           </div>
 
           <div className="missionCompareMetaGrid">
             <div>
-              <span>Source B</span>
-              <strong>{fileB ? fileB.name : 'No file selected'}</strong>
+              <span className="missionCompareMetaLabel">Source B</span>
+              <strong className="missionCompareMetaValue" data-testid="upload-source-b">
+                {fileB ? fileB.name : 'Drag file here or select'}
+              </strong>
             </div>
             <div>
-              <span>Size</span>
-              <strong>{fileB ? bytesToMb(fileB.size) : 'Pending'}</strong>
+              <span className="missionCompareMetaLabel">Size</span>
+              <strong className="missionCompareMetaValue" data-testid="upload-size-b">
+                {fileB ? formatFileSize(fileB.size) : 'Pending'}
+              </strong>
             </div>
             <div>
-              <span>Status</span>
-              <strong>{fileB ? 'Ready for validation' : 'Waiting for source'}</strong>
+              <span className="missionCompareMetaLabel">Status</span>
+              <strong className="missionCompareMetaValue" data-testid="upload-status-b">
+                <span className={renderStatus('b').className}>{renderStatus('b').label}</span>
+              </strong>
             </div>
             <div>
-              <span>Role</span>
-              <strong>Candidate BOM</strong>
+              <span className="missionCompareMetaLabel">Role</span>
+              <strong className="missionCompareMetaValue">
+                <span className="missionComparePill missionComparePillCandidate">Candidate BOM</span>
+              </strong>
             </div>
           </div>
         </article>

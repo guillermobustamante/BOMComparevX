@@ -15,15 +15,15 @@ export default defineConfig({
   },
   webServer: [
     {
-      command:
-        'npm --prefix apps/backend run start:test:e2e',
+      command: 'npm run start:test:e2e',
+      cwd: './apps/backend',
       port: 4100,
       reuseExistingServer: false,
       timeout: 120000
     },
     {
-      command:
-        'npm --prefix apps/frontend run start:e2e',
+      command: 'npm run start:e2e',
+      cwd: './apps/frontend',
       port: 3100,
       reuseExistingServer: false,
       timeout: 120000,

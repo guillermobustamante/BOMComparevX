@@ -2,9 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type ThemeMode = 'light' | 'dark';
+type PageTitleConfig = {
+  title: string;
+  eyebrow?: string;
+};
 
 const navItems = [
   { href: '/upload', label: 'Compare BOMs', shortLabel: 'Compare', subtitle: 'Revision intake', icon: <CompareIcon /> },
@@ -15,29 +19,56 @@ const navItems = [
   { href: '/admin', label: 'Admin', shortLabel: 'Admin', subtitle: 'Policy controls', icon: <AdminIcon /> }
 ];
 
-const titleMap: Record<string, { title: string; eyebrow: string }> = {
-  '/upload': { title: 'Compare BOMs', eyebrow: 'Mission Control' },
-  '/results': { title: 'Results', eyebrow: 'Mission Control' },
-  '/history': { title: 'History', eyebrow: 'Mission Control' },
-  '/notifications': { title: 'Notifications', eyebrow: 'Mission Control' },
-  '/admin': { title: 'Governance Command Center', eyebrow: 'Mission Control' }
+const titleMap: Record<string, PageTitleConfig> = {
+  '/upload': { title: 'Compare BOMs' },
+  '/results': { title: 'Results' },
+  '/history': { title: 'History' },
+  '/notifications': { title: 'Notifications' },
+  '/admin': { title: 'Governance Command Center' }
 };
 
 export function AppShell(props: {
   userEmail: string;
   tenantId: string;
   children: React.ReactNode;
-  actions?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [theme, setTheme] = useState<ThemeMode>('light');
-  const [navExpanded, setNavExpanded] = useState(false);
+  const [navExpanded, setNavExpanded] = useState(true);
+  const [compactViewport, setCompactViewport] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem('bomcomparevx-theme');
     if (savedTheme === 'dark' || savedTheme === 'light') {
       setTheme(savedTheme);
     }
+
+    const isCompact = window.innerWidth <= 1100;
+    setCompactViewport(isCompact);
+
+    const savedNavState = window.localStorage.getItem('bomcomparevx-nav');
+    if (savedNavState === 'expanded' || savedNavState === 'collapsed') {
+      setNavExpanded(isCompact ? false : savedNavState === 'expanded');
+      return;
+    }
+
+    setNavExpanded(!isCompact);
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => {
+      const isCompact = window.innerWidth <= 1100;
+      setCompactViewport(isCompact);
+      setNavExpanded((current) => {
+        if (isCompact) return false;
+        return current;
+      });
+    };
+
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   useEffect(() => {
@@ -45,16 +76,44 @@ export function AppShell(props: {
   }, [theme]);
 
   useEffect(() => {
-    setNavExpanded(false);
+    window.localStorage.setItem('bomcomparevx-nav', navExpanded ? 'expanded' : 'collapsed');
+  }, [navExpanded]);
+
+  useEffect(() => {
+    if (window.innerWidth <= 1100) {
+      setNavExpanded(false);
+    }
+    setAccountMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (!profileMenuRef.current) return;
+      if (profileMenuRef.current.contains(event.target as Node)) return;
+      setAccountMenuOpen(false);
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, []);
+
+  const isResultsPage = pathname === '/results';
+  const isUploadPage = pathname === '/upload';
   const currentPage = pathname.startsWith('/mappings')
-    ? { title: 'Mapping Check', eyebrow: 'Mission Control' }
-    : titleMap[pathname] || { title: 'BOM Compare VX', eyebrow: 'Mission Control' };
+    ? { title: 'Mapping Check' }
+    : titleMap[pathname] || { title: 'BOM Compare VX' };
 
   return (
-    <div className="page shell missionShellRoot" data-theme={theme} data-nav={navExpanded ? 'expanded' : 'collapsed'}>
-      {navExpanded ? <button type="button" className="missionShellBackdrop" aria-label="Close navigation" onClick={() => setNavExpanded(false)} /> : null}
+    <div
+      className={`page shell missionShellRoot ${isUploadPage ? 'missionShellRootUpload' : ''} ${
+        isResultsPage ? 'missionShellRootResults' : ''
+      }`}
+      data-theme={theme}
+      data-nav={navExpanded ? 'expanded' : 'collapsed'}
+    >
+      {navExpanded && compactViewport ? (
+        <button type="button" className="missionShellBackdrop" aria-label="Close navigation" onClick={() => setNavExpanded(false)} />
+      ) : null}
 
       <aside className={`missionShellRail ${navExpanded ? 'missionShellRailExpanded' : ''}`}>
         <div className="missionShellRailTop">
@@ -62,12 +121,13 @@ export function AppShell(props: {
             type="button"
             className="btn missionShellRailToggle"
             aria-label={navExpanded ? 'Collapse navigation' : 'Expand navigation'}
+            title={navExpanded ? 'Collapse navigation' : 'Expand navigation'}
+            data-testid="nav-toggle-btn"
             onClick={() => setNavExpanded((value) => !value)}
           >
             <RailToggleIcon expanded={navExpanded} />
           </button>
           <div className="missionShellBrand">
-            <span className="missionShellEyebrow">Mission Control</span>
             <strong>BOM Compare VX</strong>
           </div>
         </div>
@@ -84,6 +144,9 @@ export function AppShell(props: {
                 href={item.href}
                 className={`missionShellNavItem ${isActive ? 'missionShellNavItemActive' : ''}`}
                 aria-current={isActive ? 'page' : undefined}
+                aria-label={item.label}
+                title={`${item.shortLabel}: ${item.subtitle}`}
+                data-testid={`nav-link-${item.shortLabel.toLowerCase()}`}
               >
                 <span className="missionShellNavIcon">{item.icon}</span>
                 <span className="missionShellNavText">
@@ -96,73 +159,108 @@ export function AppShell(props: {
         </nav>
 
         <div className="missionShellRailMeta">
-          <span className="chip">{props.userEmail}</span>
-          <span className="chip">tenant: {props.tenantId}</span>
+          <div className="missionShellProfileMenu" ref={profileMenuRef}>
+            <div className="missionShellProfile" data-testid="nav-profile">
+              <button
+                type="button"
+                className="missionShellProfileAvatar"
+                aria-label={`Signed in as ${props.userEmail}`}
+                aria-expanded={accountMenuOpen}
+                aria-haspopup="menu"
+                title={props.userEmail}
+                data-testid="nav-profile-toggle"
+                onClick={() => setAccountMenuOpen((value) => !value)}
+              >
+                <ProfileIcon />
+              </button>
+              <div className="missionShellProfileText">
+                <span className="missionShellProfileEmail">{props.userEmail}</span>
+                <span className="missionShellProfileTenant">tenant: {props.tenantId}</span>
+              </div>
+            </div>
+            {accountMenuOpen ? (
+              <div className="missionShellProfilePopover" role="menu" aria-label="Account menu" data-testid="nav-profile-menu">
+                <Link
+                  href="/login"
+                  className="missionShellProfileMenuItem"
+                  role="menuitem"
+                  data-testid="nav-switch-account-link"
+                  onClick={() => setAccountMenuOpen(false)}
+                >
+                  Switch account
+                </Link>
+              </div>
+            ) : null}
+          </div>
         </div>
       </aside>
 
-      <main className="missionShellContent">
-        <header className="missionShellHeader">
-          <div>
-            <p className="missionShellEyebrow">{currentPage.eyebrow}</p>
+      <main className={`missionShellContent ${isResultsPage ? 'missionShellContentResults' : ''}`}>
+        <header
+          className={`missionShellHeader ${isResultsPage ? 'missionShellHeaderResults' : ''} ${
+            isUploadPage ? 'missionShellHeaderUpload' : ''
+          }`}
+        >
+          <div
+            className={`missionShellTitleGroup ${isResultsPage ? 'missionShellTitleGroupResults' : ''} ${
+              isUploadPage ? 'missionShellTitleGroupUpload' : ''
+            }`}
+          >
+            {currentPage.eyebrow ? <p className="missionShellEyebrow">{currentPage.eyebrow}</p> : null}
             <h1 className="missionShellTitle">{currentPage.title}</h1>
           </div>
 
           <div className="missionShellHeaderActions">
-            <div className="missionShellThemeToggle" role="group" aria-label="Theme mode">
-              <button
-                type="button"
-                className={`missionShellThemeButton ${theme === 'light' ? 'missionShellThemeButtonActive' : ''}`}
-                aria-pressed={theme === 'light'}
-                onClick={() => setTheme('light')}
-              >
-                <ThemeSunIcon />
-                <span>Light</span>
-              </button>
-              <button
-                type="button"
-                className={`missionShellThemeButton ${theme === 'dark' ? 'missionShellThemeButtonActive' : ''}`}
-                aria-pressed={theme === 'dark'}
-                onClick={() => setTheme('dark')}
-              >
-                <ThemeMoonIcon />
-                <span>Dark</span>
-              </button>
-            </div>
-            {props.actions}
+            <label className="missionShellThemeSwitch" title="Toggle Theme" data-testid="theme-toggle-switch">
+              <input
+                type="checkbox"
+                checked={theme === 'light'}
+                aria-label="Toggle Theme"
+                title="Toggle Theme"
+                data-testid="theme-toggle-btn"
+                onChange={() => setTheme((value) => (value === 'light' ? 'dark' : 'light'))}
+              />
+              <span className="missionShellThemeSwitchSlider" aria-hidden="true">
+                <span className="missionShellThemeSwitchKnob" />
+                <span className="missionShellThemeSwitchIcon missionShellThemeSwitchIconMoon">
+                  <ThemeMoonIcon />
+                </span>
+                <span className="missionShellThemeSwitchIcon missionShellThemeSwitchIconSun">
+                  <ThemeSunIcon />
+                </span>
+              </span>
+            </label>
           </div>
         </header>
 
-        <div className="missionShellBody">{props.children}</div>
+        <div className={`missionShellBody ${isResultsPage ? 'missionShellBodyResults' : ''}`}>{props.children}</div>
       </main>
     </div>
   );
 }
 
-function RailToggleIcon({ expanded }: { expanded: boolean }) {
+function RailToggleIcon(_: { expanded: boolean }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      {expanded ? (
-        <path d="M4 6.5h16v11H4zM9 6.5v11M14 12h-4M12 10l-2 2 2 2" />
-      ) : (
-        <path d="M4 6.5h16v11H4zM9 6.5v11M11 12h4M13 10l2 2-2 2" />
-      )}
+      <path d="M4 4.5h16a1.5 1.5 0 0 1 1.5 1.5v12A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18V6A1.5 1.5 0 0 1 4 4.5z" />
+      <path d="M9 4.5v15" />
     </svg>
   );
 }
 
 function ThemeSunIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 3v3M12 18v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M3 12h3M18 12h3M4.9 19.1 7 17M17 7l2.1-2.1M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" />
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5" />
+      <path d="M12 1.5v2.5M12 20v2.5M4.22 4.22l1.77 1.77M18.01 18.01l1.77 1.77M1.5 12H4M20 12h2.5M4.22 19.78l1.77-1.77M18.01 5.99l1.77-1.77" />
     </svg>
   );
 }
 
 function ThemeMoonIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M14.5 3.5A8 8 0 1 0 20.5 15 7 7 0 0 1 14.5 3.5z" />
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
     </svg>
   );
 }
@@ -170,7 +268,10 @@ function ThemeMoonIcon() {
 function CompareIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 6.5h16M4 12h16M4 17.5h16M6 4v16" />
+      <path d="M8 6.5h12M8 12h12M8 17.5h12" />
+      <circle cx="4.5" cy="6.5" r="0.75" fill="currentColor" stroke="none" />
+      <circle cx="4.5" cy="12" r="0.75" fill="currentColor" stroke="none" />
+      <circle cx="4.5" cy="17.5" r="0.75" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -178,7 +279,8 @@ function CompareIcon() {
 function MappingIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M5 7h14M5 12h8M5 17h10M17 11l2 2 4-4" />
+      <path d="M9 11.5 12 14.5 20.5 6" />
+      <path d="M20.5 12v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 18V6A1.5 1.5 0 0 1 5 4.5h9.5" />
     </svg>
   );
 }
@@ -211,6 +313,14 @@ function AdminIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4zM9.5 12l1.5 1.5 3.5-3.5" />
+    </svg>
+  );
+}
+
+function ProfileIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
     </svg>
   );
 }
