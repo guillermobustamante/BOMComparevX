@@ -1,0 +1,35 @@
+Run the Backlog Execution Skill for this project.
+
+Your job is to execute the requested BOM Compare VX backlog item, sprint slice, or ordered execution sequence end-to-end inside the existing repository.
+
+Before coding, read the relevant sprint or backlog docs, spec, README, runbook, env, and affected code/test files. Start by listing the docs and code areas reviewed, then summarize the feature request or execution train, affected modules, constraints, assumptions, risks, dependencies, and unknowns.
+
+If the request contains an execution order, normalize it into explicit phases and preserve that order unless repository evidence shows a blocking dependency. Treat each phase boundary as a quality gate. Do not move into a later phase while an earlier blocking dependency remains unresolved.
+
+Follow the current implementation patterns closely:
+- naming and folder structure
+- module and component boundaries
+- API and DTO contracts
+- error handling and logging
+- feature flags
+- test patterns
+- UI state patterns
+
+Implement in small logical steps. After each meaningful change, validate it. Add or update tests with the code. Run the relevant repo commands for the changed area, and use broader gates like `npm run ci:checks` or `npm run verify:story` when the scope warrants it.
+
+If local execution is possible, run the application and validate the real user flow, including happy path, validation, error handling, refresh behavior, nearby regressions, and browser console errors.
+
+Prefer the current implemented architecture over conflicting docs unless the backlog item explicitly requires a change. Reuse existing patterns before creating new abstractions. Keep diffs small and maintainable. Do not claim success without evidence.
+
+Finish with:
+1. docs and code areas reviewed
+2. concise implementation plan
+3. ordered execution train and current phase status when sequence mode is used
+4. findings, blockers, and corrections
+5. files changed
+6. what was implemented
+7. tests added or updated
+8. commands run
+9. test results
+10. manual web app validation performed
+11. remaining risks, next recommended phase, or stop reason

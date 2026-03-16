@@ -3,12 +3,16 @@
 ## 1. Sprint metadata
 - Sprint: `S12.1`
 - Theme: `Results Chain Hardening`
-- Scope type: `Backlog / follow-up sprint definition`
+- Scope type: `Merged follow-up sprint definition`
 - Owner: `Product + Engineering`
-- Status: `Backlog`
+- Status: `Merged into S20`
 
 ## 2. Goal
 Close the workflow-integrity gaps left after Sprint 12 so session comparison history behaves like a true auditable comparison chain across all authorized users.
+
+Disposition:
+- Merged into `Sprint S20 - Results Session Workspace Continuity` on `2026-03-15`.
+- The stories below are mandatory `S20` foundation stories and should not be scheduled as a standalone sprint.
 
 ## 3. Backlog stories
 
