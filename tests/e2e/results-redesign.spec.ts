@@ -56,6 +56,10 @@ test('results redesign preserves toolbar tooltips and action dialogs', async ({ 
   await expect(shell).toHaveAttribute('data-theme', 'light');
 
   await expect(page.getByTestId('results-upload-next-btn')).toHaveAttribute('title', 'Current session is unavailable');
+  await expect(page.getByTestId('results-current-comparison-btn')).toHaveAttribute(
+    'title',
+    'Current session is unavailable'
+  );
   await expect(page.getByTestId('results-session-history-btn')).toHaveAttribute('title', 'Current session is unavailable');
   await expect(page.getByTestId('results-view-flat-btn')).toHaveAttribute('title', 'Flat view');
   await expect(page.getByTestId('results-view-tree-btn')).toHaveAttribute('title', 'Tree view');

@@ -14,7 +14,7 @@ const navItems = [
   { href: '/upload', label: 'Compare BOMs', shortLabel: 'Compare', subtitle: 'Revision intake', icon: <CompareIcon /> },
   { href: '/mappings', label: 'Mapping Check', shortLabel: 'Mapping', subtitle: 'Governance and review', icon: <MappingIcon /> },
   { href: '/results', label: 'Results', shortLabel: 'Results', subtitle: 'Diff workspace', icon: <ResultsIcon /> },
-  { href: '/history', label: 'History', shortLabel: 'History', subtitle: 'Session archive', icon: <HistoryIcon /> },
+  { href: '/history', label: 'Revision Chains', shortLabel: 'Chains', subtitle: 'BOM session history', icon: <HistoryIcon /> },
   { href: '/notifications', label: 'Notifications', shortLabel: 'Notices', subtitle: 'Event log', icon: <NotificationsIcon /> },
   { href: '/admin', label: 'Admin', shortLabel: 'Admin', subtitle: 'Policy controls', icon: <AdminIcon /> }
 ];
@@ -22,9 +22,9 @@ const navItems = [
 const titleMap: Record<string, PageTitleConfig> = {
   '/upload': { title: 'Compare BOMs' },
   '/results': { title: 'Results' },
-  '/history': { title: 'History' },
+  '/history': { title: 'Revision Chains' },
   '/notifications': { title: 'Notifications' },
-  '/admin': { title: 'Governance Command Center' }
+  '/admin': { title: 'Admin' }
 };
 
 export function AppShell(props: {
@@ -99,6 +99,17 @@ export function AppShell(props: {
 
   const isResultsPage = pathname === '/results';
   const isUploadPage = pathname === '/upload';
+  const useUploadHeaderTreatment =
+    pathname === '/upload' ||
+    pathname === '/admin' ||
+    pathname === '/history' ||
+    pathname === '/notifications' ||
+    pathname.startsWith('/mappings');
+  const isWorkspacePage =
+    pathname === '/history' ||
+    pathname === '/notifications' ||
+    pathname === '/admin' ||
+    pathname.startsWith('/mappings');
   const currentPage = pathname.startsWith('/mappings')
     ? { title: 'Mapping Check' }
     : titleMap[pathname] || { title: 'BOM Compare VX' };
@@ -107,9 +118,26 @@ export function AppShell(props: {
     <div
       className={`page shell missionShellRoot ${isUploadPage ? 'missionShellRootUpload' : ''} ${
         isResultsPage ? 'missionShellRootResults' : ''
-      }`}
+      } ${isWorkspacePage ? 'missionShellRootWorkspace' : ''}`}
+      data-page={
+        pathname.startsWith('/mappings')
+          ? 'mappings'
+          : pathname === '/history'
+            ? 'history'
+            : pathname === '/notifications'
+              ? 'notifications'
+              : pathname === '/admin'
+                ? 'admin'
+                : pathname === '/results'
+                  ? 'results'
+                  : pathname === '/upload'
+                    ? 'upload'
+                    : 'shell'
+      }
       data-theme={theme}
       data-nav={navExpanded ? 'expanded' : 'collapsed'}
+      data-user-email={props.userEmail}
+      data-tenant-id={props.tenantId}
     >
       {navExpanded && compactViewport ? (
         <button type="button" className="missionShellBackdrop" aria-label="Close navigation" onClick={() => setNavExpanded(false)} />
@@ -195,16 +223,20 @@ export function AppShell(props: {
         </div>
       </aside>
 
-      <main className={`missionShellContent ${isResultsPage ? 'missionShellContentResults' : ''}`}>
+      <main
+        className={`missionShellContent ${isResultsPage ? 'missionShellContentResults' : ''} ${
+          isWorkspacePage ? 'missionShellContentWorkspace' : ''
+        }`}
+      >
         <header
           className={`missionShellHeader ${isResultsPage ? 'missionShellHeaderResults' : ''} ${
-            isUploadPage ? 'missionShellHeaderUpload' : ''
-          }`}
+            useUploadHeaderTreatment ? 'missionShellHeaderUpload' : ''
+          } ${isWorkspacePage ? 'missionShellHeaderWorkspace' : ''}`}
         >
           <div
             className={`missionShellTitleGroup ${isResultsPage ? 'missionShellTitleGroupResults' : ''} ${
-              isUploadPage ? 'missionShellTitleGroupUpload' : ''
-            }`}
+              useUploadHeaderTreatment ? 'missionShellTitleGroupUpload' : ''
+            } ${isWorkspacePage ? 'missionShellTitleGroupWorkspace' : ''}`}
           >
             {currentPage.eyebrow ? <p className="missionShellEyebrow">{currentPage.eyebrow}</p> : null}
             <h1 className="missionShellTitle">{currentPage.title}</h1>
@@ -233,7 +265,13 @@ export function AppShell(props: {
           </div>
         </header>
 
-        <div className={`missionShellBody ${isResultsPage ? 'missionShellBodyResults' : ''}`}>{props.children}</div>
+        <div
+          className={`missionShellBody ${isResultsPage ? 'missionShellBodyResults' : ''} ${
+            isWorkspacePage ? 'missionShellBodyWorkspace' : ''
+          }`}
+        >
+          {props.children}
+        </div>
       </main>
     </div>
   );

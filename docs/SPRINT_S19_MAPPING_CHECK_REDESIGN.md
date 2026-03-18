@@ -5,7 +5,7 @@
 - Theme: `Mapping Check Redesign`
 - Scope type: `Execution-ready sprint record`
 - Owner: `Product + Engineering`
-- Status: `Backlog`
+- Status: `Completed`
 
 ## 2. Sprint goal
 Redesign `Mapping Check` as a business-friendly `Field Understanding Workspace` that helps purchasing, sales, managers, and engineering reviewers understand whether a BOM is safe to compare, which columns matter most, what improves impact classification, and what action should be taken next.
@@ -44,43 +44,43 @@ Planning evidence reviewed:
 As the Mapping Check workspace, I need a richer preview contract and UI-facing presenter so that the frontend can explain BOM understanding in business terms without coupling directly to raw detection internals.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S19-02 - Business-readable field understanding metadata
 As a reviewer, I want each source column to include business labels, sample values, field roles, consequence level, and plain-language guidance so that I can understand why the system cares about that field.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S19-03 - Taxonomy and impact-readiness enrichment
 As a reviewer deciding whether the BOM is fully understood, I want semantic-family and taxonomy-readiness signals surfaced in the preview so that impact classification strength is visible before comparison proceeds.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S19-04 - Summary-first Field Understanding Workspace UI
 As a business-facing user, I want Mapping Check to open as a summary-first grouped workspace instead of a raw mapping table so that I can understand the BOM without engineering jargon.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S19-05 - Progressive disclosure and safer proceed states
 As an expert reviewer, I want evidence, low-confidence diagnostics, and proceed risk states to remain available but secondary so that detail is accessible without overwhelming business users.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S19-06 - Confirmation intent and alias-learning suggestion capture
 As governance-aware product logic, I need confirmation to capture whether the reviewer accepted suggestions, acknowledged partial impact coverage, and proposed learned aliases so that future tenant learning can be controlled cleanly.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S19-07 - Regression coverage and persona QA
 As the delivery team, we need automated regression checks and role-based walkthroughs for purchasing, sales, managers, and engineering reviewers so that the redesign improves usability without degrading comparison safety.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ## 6. Acceptance bar
 - The redesigned Mapping Check experience must clearly answer:
@@ -118,5 +118,7 @@ Status:
 - role walkthroughs for purchasing, sales/account review, manager readiness review, and engineering/admin review
 
 ## 10. Residual notes
+- Completion note:
+  - Implemented and validated in repo, including backend/frontend typecheck and build plus focused mapping workflow regression coverage.
 - Follow-on analytics for unresolved fields, overrides, and alias candidates remain a separate future stage after this redesign lands.
 - Tenant-governed alias approval workflows may still warrant a dedicated governance sprint after S19.

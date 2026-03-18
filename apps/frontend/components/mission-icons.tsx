@@ -95,3 +95,13 @@ export function CheckCircleIcon() {
 export function UploadTrayIcon() {
   return wrap(<path d="M12 4v9M8.5 8 12 4.5 15.5 8M5 16.5v2h14v-2" />);
 }
+
+export function FileDetailsIcon() {
+  return wrap(
+    <>
+      <path d="M7 3.5h7l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 20V5A1.5 1.5 0 0 1 7.5 3.5z" />
+      <path d="M14 3.5V8h4" />
+      <path d="M9 11.5h6M9 15h6M9 18.5h4" />
+    </>
+  );
+}

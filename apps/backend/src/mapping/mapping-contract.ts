@@ -1,4 +1,4 @@
-export const MAPPING_CONTRACT_VERSION = 'v1';
+export const MAPPING_CONTRACT_VERSION = 'v2';
 
 export const CONFIDENCE_BANDS = {
   autoMapMin: 0.9,
@@ -7,6 +7,18 @@ export const CONFIDENCE_BANDS = {
 
 export type MappingReviewState = 'AUTO' | 'REVIEW_REQUIRED' | 'LOW_CONFIDENCE_WARNING';
 export type MappingFieldClass = 'identity' | 'comparable' | 'display' | 'business_impact';
+export type MappingPreviewGroupId =
+  | 'required_compare'
+  | 'recommended_matching'
+  | 'impact_classification'
+  | 'preserved_unclassified';
+export type MappingConsequenceLevel = 'critical' | 'important' | 'helpful' | 'informational';
+export type MappingComparisonReadiness = 'ready' | 'warning' | 'blocked';
+export type MappingImpactReadiness = 'strong' | 'partial' | 'weak';
+export type MappingConfirmationMode =
+  | 'accepted_as_suggested'
+  | 'accepted_with_overrides'
+  | 'accepted_with_warnings';
 
 export const REQUIRED_CANONICAL_FIELDS = ['part_number', 'description', 'quantity'] as const;
 export const CONDITIONAL_CANONICAL_FIELDS = ['revision'] as const;
@@ -128,7 +140,46 @@ export interface DetectedColumnCandidate {
 export interface MappingPreviewContract {
   contractVersion: string;
   revisionId: string;
-  columns: DetectedColumnCandidate[];
+  summary: {
+    comparisonReadiness: MappingComparisonReadiness;
+    impactReadiness: MappingImpactReadiness;
+    unresolvedCount: number;
+    lowConfidenceCriticalCount: number;
+    canProceed: boolean;
+    proceedLabel: string;
+  };
+  groups: Array<{
+    id: MappingPreviewGroupId;
+    label: string;
+    description: string;
+    counts: {
+      total: number;
+      unresolved: number;
+      lowConfidence: number;
+    };
+  }>;
+  columns: Array<
+    DetectedColumnCandidate & {
+      displayLabel: string;
+      sampleValues: string[];
+      canonicalFieldLabel: string | null;
+      suggestedBusinessMeaning: string | null;
+      fieldRoles: string[];
+      groupId: MappingPreviewGroupId;
+      consequenceLevel: MappingConsequenceLevel;
+      whyItMatters: string;
+      proceedImpact: string;
+      semanticFamily: string | null;
+      classificationTags: string[];
+      likelyCategories: string[];
+    }
+  >;
+  impactReadiness: {
+    recognizedTriggerColumns: number;
+    semanticallyUnclassifiedColumns: string[];
+    likelyCoverageNotes: string[];
+  };
+  recommendedActions: string[];
   sampleRows: Array<Record<string, string | number | null>>;
   requiredFieldsStatus: {
     field: CanonicalField;
@@ -143,6 +194,14 @@ export interface MappingConfirmationContract {
   revisionId: string;
   actor: string;
   explicitWarningAcknowledged: boolean;
+  confirmationMode?: MappingConfirmationMode;
+  acceptedAsSuggested?: boolean;
+  impactCoverageAcknowledged?: boolean;
+  learnedAliasSuggestions?: Array<{
+    sourceColumn: string;
+    canonicalField: CanonicalField;
+    suggestedAlias: string;
+  }>;
   mappings: Array<{
     sourceColumn: string;
     canonicalField: CanonicalField | null;

@@ -96,6 +96,26 @@ export class UploadHistoryService {
     return this.historyByJobId.get(jobId) || null;
   }
 
+  async findByHistoryId(tenantId: string, historyId: string): Promise<UploadHistoryEntry | null> {
+    const inMemory = this.historyById.get(historyId);
+    if (inMemory && inMemory.tenantId === tenantId) {
+      return inMemory;
+    }
+
+    if (!this.databaseService.enabled) return null;
+    const row = await this.databaseService.client.historyEntry.findFirst({
+      where: {
+        tenantId,
+        historyId
+      }
+    });
+    if (!row) return null;
+    const mapped = this.mapRow(row);
+    this.historyById.set(mapped.historyId, mapped);
+    this.historyByJobId.set(mapped.jobId, mapped);
+    return mapped;
+  }
+
   async listByUser(
     tenantId: string,
     initiatorEmail: string,
@@ -127,6 +147,28 @@ export class UploadHistoryService {
       .sort((a, b) => b.createdAtUtc.localeCompare(a.createdAtUtc));
   }
 
+  async listBySession(tenantId: string, sessionId: string): Promise<UploadHistoryEntry[]> {
+    if (this.databaseService.enabled) {
+      const rows = await this.databaseService.client.historyEntry.findMany({
+        where: {
+          tenantId,
+          sessionId,
+          deletedAtUtc: null
+        },
+        orderBy: {
+          createdAtUtc: 'desc'
+        }
+      });
+      return rows.map((row: Parameters<typeof this.mapRow>[0]) => this.mapRow(row));
+    }
+
+    return [...this.historyById.values()]
+      .filter(
+        (entry) => entry.tenantId === tenantId && entry.sessionId === sessionId && !entry.deletedAtUtc
+      )
+      .sort((a, b) => b.createdAtUtc.localeCompare(a.createdAtUtc));
+  }
+
   async renameSession(
     tenantId: string,
     initiatorEmail: string,
@@ -144,16 +186,32 @@ export class UploadHistoryService {
         }
       });
       if (!existing) return null;
-      const updated = await this.databaseService.client.historyEntry.update({
-        where: { historyId },
+
+      await this.databaseService.client.historyEntry.updateMany({
+        where: {
+          tenantId,
+          sessionId: existing.sessionId
+        },
         data: {
           sessionName: trimmed || null,
           updatedAtUtc: new Date()
         }
       });
+      const updated = await this.databaseService.client.historyEntry.findUnique({
+        where: { historyId }
+      });
+      if (!updated) return null;
       const mapped = this.mapRow(updated);
-      this.historyById.set(mapped.historyId, mapped);
-      this.historyByJobId.set(mapped.jobId, mapped);
+      for (const entry of this.historyById.values()) {
+        if (entry.tenantId !== tenantId || entry.sessionId !== existing.sessionId) continue;
+        const nextEntry: UploadHistoryEntry = {
+          ...entry,
+          sessionName: trimmed || null,
+          updatedAtUtc: mapped.updatedAtUtc
+        };
+        this.historyById.set(nextEntry.historyId, nextEntry);
+        this.historyByJobId.set(nextEntry.jobId, nextEntry);
+      }
       return mapped;
     }
 
@@ -166,13 +224,22 @@ export class UploadHistoryService {
     ) {
       return null;
     }
+    const updatedAtUtc = new Date().toISOString();
     const updated: UploadHistoryEntry = {
       ...existing,
       sessionName: trimmed || null,
-      updatedAtUtc: new Date().toISOString()
+      updatedAtUtc
     };
-    this.historyById.set(updated.historyId, updated);
-    this.historyByJobId.set(updated.jobId, updated);
+    for (const entry of this.historyById.values()) {
+      if (entry.tenantId !== tenantId || entry.sessionId !== existing.sessionId) continue;
+      const nextEntry: UploadHistoryEntry = {
+        ...entry,
+        sessionName: trimmed || null,
+        updatedAtUtc
+      };
+      this.historyById.set(nextEntry.historyId, nextEntry);
+      this.historyByJobId.set(nextEntry.jobId, nextEntry);
+    }
     return updated;
   }
 

@@ -785,24 +785,10 @@ export function AdminGovernanceConsole() {
       {error ? <div className="alertError">{error}</div> : null}
       {feedback ? <div className="alertSuccess" data-testid="admin-feedback">{feedback}</div> : null}
 
-      {isAdmin && (
-        <section className="adminMissionDeck" data-testid="admin-mission-deck">
-          <div className="adminMissionDeckMain">
-            <p className="missionShellEyebrow">Tenant Governance</p>
-            <p className="p">Manage access, policy, audit, retention, taxonomy, and learned aliases from one mission control surface.</p>
-          </div>
-          <div className="cellChips adminMissionDeckPills">
-            <span className="missionPill">{activeAdminCount} active admins</span>
-            <span className="missionPill">{taxonomyCategoryCount} taxonomy categories</span>
-            <span className="missionPill">{aliases.length} learned aliases</span>
-          </div>
-        </section>
-      )}
-
       {isAdmin === false && canBootstrapAdmin && (
-        <section className="panel adminSectionCard adminSectionCardCompact adminMissionSection">
-          <div className="adminSectionHeader adminMissionSectionHeader">
-            <div className="adminSectionTitleGroup adminMissionSectionCopy">
+        <section className="panel adminSectionCard adminSectionCardCompact">
+          <div className="adminSectionHeader">
+            <div className="adminSectionTitleGroup">
               <h2 className="adminSectionTitle">Bootstrap the first tenant administrator</h2>
             </div>
           </div>
@@ -822,14 +808,14 @@ export function AdminGovernanceConsole() {
       )}
 
       {isAdmin && (
-        <div className="screenStack adminSectionStack adminMissionSectionStack">
-          <section className={`panel adminSectionCard adminMissionSection ${collapsedSections.accessRoles ? 'adminSectionCardCollapsed' : ''}`}>
-            <div className="adminSectionHeader adminMissionSectionHeader">
-              <div className="adminSectionTitleGroup adminMissionSectionCopy">
+        <div className="screenStack adminSectionStack">
+          <section className={`panel adminSectionCard ${collapsedSections.accessRoles ? 'adminSectionCardCollapsed' : ''}`}>
+            <div className="adminSectionHeader">
+              <div className="adminSectionTitleGroup">
                 <h2 className="adminSectionTitle">Access &amp; Roles</h2>
                 <p className="p">Grant or revoke tenant admin access while keeping upload policy controls in the same operating view.</p>
               </div>
-              <div className="adminSectionHeaderActions adminMissionSectionActions">
+              <div className="adminSectionHeaderActions">
                 <button
                   className="adminIconButton"
                   type="button"
@@ -843,7 +829,7 @@ export function AdminGovernanceConsole() {
               </div>
             </div>
             <div className="adminSectionPanelContent">
-              <div className="adminSectionPanelInner adminMissionSectionBody">
+              <div className="adminSectionPanelInner">
                 <div className="screenInlineForm adminFormRow adminFormRowDense">
                   <input
                     value={query}
@@ -921,14 +907,14 @@ export function AdminGovernanceConsole() {
             </div>
           </section>
 
-          <section className={`panel adminSectionCard adminMissionSection ${collapsedSections.auditArchive ? 'adminSectionCardCollapsed' : ''}`}>
-            <div className="adminSectionHeader adminMissionSectionHeader">
-              <div className="adminSectionTitleGroup adminMissionSectionCopy">
+          <section className={`panel adminSectionCard ${collapsedSections.auditArchive ? 'adminSectionCardCollapsed' : ''}`}>
+            <div className="adminSectionHeader">
+              <div className="adminSectionTitleGroup">
                 <h2 className="adminSectionTitle">Audit Export &amp; Archive</h2>
                 <p className="p">Export tenant audit evidence and manage append-only archive runs from one place.</p>
               </div>
-              <div className="adminSectionHeaderActions adminMissionSectionActions">
-                <div className="adminChipCluster adminMissionMetaStrip">
+              <div className="adminSectionHeaderActions">
+                <div className="adminChipCluster">
                   <span className="chip">{archiveRuns.length} archive runs</span>
                   <span className="chip">Format: {auditFormat.toUpperCase()}</span>
                 </div>
@@ -945,7 +931,7 @@ export function AdminGovernanceConsole() {
               </div>
             </div>
             <div className="adminSectionPanelContent">
-              <div className="adminSectionPanelInner adminMissionSectionBody">
+              <div className="adminSectionPanelInner">
                 <div className="screenInlineForm adminFormRow">
                   <select value={auditFormat} onChange={(event) => setAuditFormat(event.target.value as 'csv' | 'ndjson')}>
                     <option value="csv">CSV</option>
@@ -996,13 +982,13 @@ export function AdminGovernanceConsole() {
             </div>
           </section>
 
-          <section className={`panel adminSectionCard adminMissionSection ${collapsedSections.retentionSweep ? 'adminSectionCardCollapsed' : ''}`}>
-            <div className="adminSectionHeader adminMissionSectionHeader">
-              <div className="adminSectionTitleGroup adminMissionSectionCopy">
+          <section className={`panel adminSectionCard ${collapsedSections.retentionSweep ? 'adminSectionCardCollapsed' : ''}`}>
+            <div className="adminSectionHeader">
+              <div className="adminSectionTitleGroup">
                 <h2 className="adminSectionTitle">Retention Sweep</h2>
                 <p className="p">Run a manual retention sweep and review what was removed.</p>
               </div>
-              <div className="adminSectionHeaderActions adminMissionSectionActions">
+              <div className="adminSectionHeaderActions">
                 <button
                   className="adminIconButton"
                   type="button"
@@ -1016,7 +1002,7 @@ export function AdminGovernanceConsole() {
               </div>
             </div>
             <div className="adminSectionPanelContent">
-              <div className="adminSectionPanelInner adminMissionSectionBody">
+              <div className="adminSectionPanelInner">
                 <div className="screenInlineForm adminFormRow adminFormRowDense">
                   <input
                     value={retentionNowUtcIso}
@@ -1055,17 +1041,17 @@ export function AdminGovernanceConsole() {
           </section>
 
           <section
-            className={`panel adminSectionCard adminTaxonomySection adminMissionSection ${
+            className={`panel adminSectionCard adminTaxonomySection ${
               collapsedSections.taxonomyImpacts ? 'adminSectionCardCollapsed' : ''
             }`}
           >
-            <div className="adminSectionHeader adminMissionSectionHeader">
-              <div className="adminSectionTitleGroup adminMissionSectionCopy">
+            <div className="adminSectionHeader">
+              <div className="adminSectionTitleGroup">
                 <h2 className="adminSectionTitle">Change Taxonomy &amp; Impacts</h2>
                 <p className="p">All changed BOM properties roll into this tenant-owned taxonomy. Exact property matches win, high-confidence fuzzy matches are accepted automatically for now, and edits save without explicit save buttons.</p>
               </div>
-              <div className="adminSectionHeaderActions adminMissionSectionActions">
-                <div className="taxonomySummaryStrip adminChipCluster adminMissionMetaStrip">
+              <div className="adminSectionHeaderActions">
+                <div className="taxonomySummaryStrip adminChipCluster">
                   <span className="chip">{taxonomyCategoryCount} categories</span>
                   <span className="chip">Default: {defaultIndustry}</span>
                   {taxonomyDirty ? <span className="chip chipReview">Pending</span> : null}
@@ -1083,7 +1069,7 @@ export function AdminGovernanceConsole() {
               </div>
             </div>
             <div className="adminSectionPanelContent">
-              <div className="adminSectionPanelInner adminMissionSectionBody">
+              <div className="adminSectionPanelInner">
                 {taxonomyError ? <div className="alertError">{taxonomyError}</div> : null}
                 {taxonomyFeedback ? <div className="alertSuccess">{taxonomyFeedback}</div> : null}
 
@@ -1137,10 +1123,10 @@ export function AdminGovernanceConsole() {
                   <div className="taxonomyCardGrid" data-testid="taxonomy-editor">
                     {taxonomyDraft.categories.map((category, index) => (
                       <article
-                        className={`taxonomyCard adminMissionTaxonomyCard ${(collapsedCategories[index] ?? true) ? 'taxonomyCardCollapsed' : ''}`}
+                        className={`taxonomyCard ${(collapsedCategories[index] ?? true) ? 'taxonomyCardCollapsed' : ''}`}
                         key={`${category.category || 'new'}-${index}`}
                       >
-                        <div className="taxonomyCardHeader adminMissionTaxonomyCardHeader">
+                        <div className="taxonomyCardHeader">
                           <div className="taxonomyCardTitleRow">
                             <button
                               className="adminIconButton taxonomyCollapseButton"
@@ -1281,14 +1267,14 @@ export function AdminGovernanceConsole() {
             </div>
           </section>
 
-          <section className={`panel adminSectionCard adminMissionSection ${collapsedSections.learnedAliases ? 'adminSectionCardCollapsed' : ''}`}>
-            <div className="adminSectionHeader adminMissionSectionHeader">
-              <div className="adminSectionTitleGroup adminMissionSectionCopy">
+          <section className={`panel adminSectionCard ${collapsedSections.learnedAliases ? 'adminSectionCardCollapsed' : ''}`}>
+            <div className="adminSectionHeader">
+              <div className="adminSectionTitleGroup">
                 <h2 className="adminSectionTitle">Learned alias moderation</h2>
                 <p className="p">Review tenant-learned aliases, keep the good ones enabled, and suppress noisy ones.</p>
               </div>
-              <div className="adminSectionHeaderActions adminMissionSectionActions">
-                <div className="adminChipCluster adminMissionMetaStrip">
+              <div className="adminSectionHeaderActions">
+                <div className="adminChipCluster">
                   <span className="chip">{enabledAliasCount} enabled</span>
                   <span className="chip">{aliases.length} total</span>
                 </div>
@@ -1305,7 +1291,7 @@ export function AdminGovernanceConsole() {
               </div>
             </div>
             <div className="adminSectionPanelContent">
-              <div className="adminSectionPanelInner adminMissionSectionBody">
+              <div className="adminSectionPanelInner">
                 <div className="screenInlineForm adminFormRow adminFormRowDense">
                   <input
                     value={aliasQuery}

@@ -159,6 +159,9 @@ export interface DiffJobCounters {
 export interface DiffJobStatusPayload {
   contractVersion: string;
   jobId: string;
+  sessionId: string | null;
+  leftRevisionId: string | null;
+  rightRevisionId: string | null;
   phase: 'matching' | 'classifying' | 'finalizing' | 'completed';
   percentComplete: number;
   counters: DiffJobCounters;

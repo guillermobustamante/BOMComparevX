@@ -273,6 +273,9 @@ export class DiffJobService {
     return {
       contractVersion: job.contractVersion,
       jobId: job.jobId,
+      sessionId: job.sessionId || null,
+      leftRevisionId: job.leftRevisionId || null,
+      rightRevisionId: job.rightRevisionId || null,
       phase: progress.phase,
       percentComplete: progress.percentComplete,
       counters: job.counters,
@@ -287,6 +290,72 @@ export class DiffJobService {
           }
         : {})
     };
+  }
+
+  async findComparisonByRevisionPair(input: {
+    tenantId: string;
+    sessionId?: string;
+    leftRevisionId: string;
+    rightRevisionId: string;
+  }): Promise<{
+    comparisonId: string;
+    createdAtUtc: string;
+    requestedBy: string;
+    sessionId: string | null;
+    leftRevisionId: string;
+    rightRevisionId: string;
+    status: 'running' | 'completed' | 'failed';
+  } | null> {
+    const inMemoryMatches = [...this.jobs.values()]
+      .filter(
+        (job) =>
+          job.tenantId === input.tenantId &&
+          job.leftRevisionId === input.leftRevisionId &&
+          job.rightRevisionId === input.rightRevisionId &&
+          (!input.sessionId || job.sessionId === input.sessionId)
+      )
+      .map((job) => ({
+        comparisonId: job.jobId,
+        createdAtUtc: job.createdAtUtc,
+        requestedBy: job.requestedBy,
+        sessionId: job.sessionId || null,
+        leftRevisionId: job.leftRevisionId || input.leftRevisionId,
+        rightRevisionId: job.rightRevisionId || input.rightRevisionId,
+        status: job.executionState === 'failed' ? ('failed' as const) : this.progress(job).status
+      }));
+
+    const persistedMatches = this.databaseService.enabled
+      ? (
+          await this.databaseService.client.diffSnapshot.findMany({
+            where: {
+              tenantId: input.tenantId,
+              leftRevisionId: input.leftRevisionId,
+              rightRevisionId: input.rightRevisionId,
+              ...(input.sessionId ? { sessionId: input.sessionId } : {})
+            },
+            orderBy: {
+              createdAtUtc: 'asc'
+            }
+          })
+        ).map((snapshot) => ({
+          comparisonId: snapshot.comparisonId,
+          createdAtUtc: snapshot.createdAtUtc.toISOString(),
+          requestedBy: snapshot.requestedBy,
+          sessionId: snapshot.sessionId || null,
+          leftRevisionId: snapshot.leftRevisionId || input.leftRevisionId,
+          rightRevisionId: snapshot.rightRevisionId || input.rightRevisionId,
+          status: 'completed' as const
+        }))
+      : [];
+
+    const candidates = [...inMemoryMatches, ...persistedMatches]
+      .filter(
+        (candidate, index, all) =>
+          all.findIndex((entry) => entry.comparisonId === candidate.comparisonId) === index
+      )
+      .sort((a, b) => a.createdAtUtc.localeCompare(b.createdAtUtc));
+
+    return candidates[0] || null;
   }
 
   async getRows(

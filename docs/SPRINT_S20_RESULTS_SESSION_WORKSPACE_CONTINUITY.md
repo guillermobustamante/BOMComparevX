@@ -5,7 +5,7 @@
 - Theme: `Results Session Workspace Continuity`
 - Scope type: `Execution-ready sprint record with merged S12.1 foundation`
 - Owner: `Product + Engineering`
-- Status: `Backlog`
+- Status: `Completed`
 
 ## 2. Sprint goal
 Make `/results` behave like a true session workspace across comparison chains and app navigation while preserving stable comparison identity, authorized session visibility, predictable delete-latest rollback behavior, and lightweight navigation-performance improvements.
@@ -53,61 +53,61 @@ Planning evidence reviewed:
 As a user reviewing a previous step in a BOM session, I want `Open` to reopen the original comparison record instead of recomputing it so that history, exports, shares, and audit lineage remain stable.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S20-02 - Authorized session-chain visibility for shared viewers
 As an authorized same-tenant viewer of an active comparison session, I want to see the full comparison chain so that shared review workflows work beyond the original initiator.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S20-03 - Real comparison status in session-chain surfaces
 As a user navigating prior comparisons, I want modal and rail entries to show real comparison lifecycle state so that I can distinguish running, completed, and failed work without inference.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S20-04 - Session metadata and chain contract cleanup
 As the session workspace domain, I need shared session naming, read-only comparison labels, and current/latest/delete markers modeled explicitly so that frontend behavior no longer depends on row-oriented history semantics.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S20-05 - Session-first results header and rename workflow
 As a user working inside `/results`, I want the session title and current comparison label presented clearly in the header so that the page feels like a long-lived workspace instead of a one-off comparison screen.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S20-06 - Session chain browser in modal and persistent rail
 As a user reviewing revision history, I want both a session-chain modal and a lightweight persistent rail so that I can reopen prior comparisons quickly without losing my place.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S20-07 - Delete-latest rollback behavior
 As a user correcting a session chain, I want deleting the latest comparison to reopen the previous comparison automatically so that the session rolls back cleanly instead of ending in a dead state.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S20-08 - Active workspace restore across app pages
 As a user moving between results-adjacent pages, I want the active session to be remembered and restorable so that I can return to the same working context without rebuilding the URL manually.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S20-09 - Lightweight performance pass for same-session navigation
 As a user moving around one active session, I want navigation and reload behavior to feel lighter so that the workspace no longer refetches or resets more than necessary.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ### S20-10 - Regression coverage and UX QA for session continuity
 As the delivery team, we need automated regression coverage and session-workspace QA so that rename, reopen, delete-latest, restore, and authorization behavior remain stable.
 
 Status:
-- `Backlog`
+- `Completed`
 
 ## 7. Acceptance bar
 - Opening a prior comparison must not generate a new comparison identity.
@@ -155,6 +155,8 @@ Status:
   - active-session cues on `History`, `Mappings`, and `Notifications`
 
 ## 11. Residual notes
+- Completion note:
+  - Implemented and validated in repo, including contract, UI, rollback, active-workspace, backend regression, and focused browser coverage for reopen, restore, and delete-latest flows.
 - Server-persisted recent workspace remains parked until the client-memory approach proves valuable.
 - Broader session authorization and policy modeling remains a follow-on hardening stage after this sprint.
 - Deeper performance budgeting and instrumentation remain a separate future stage after lightweight S20 improvements land.

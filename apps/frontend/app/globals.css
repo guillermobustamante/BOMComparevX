@@ -257,6 +257,272 @@ a {
   color: #6a4a00;
 }
 
+.mappingWorkspace {
+  display: grid;
+  gap: 20px;
+}
+
+.mappingWorkspaceHeader {
+  margin-bottom: 0;
+}
+
+.mappingWorkspaceHeaderActions {
+  align-items: center;
+}
+
+.mappingReadinessBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mappingReadinessBadge-ready {
+  border-color: #9bd1ad;
+  background: #edf9f1;
+  color: #205133;
+}
+
+.mappingReadinessBadge-warning {
+  border-color: #f1cf7e;
+  background: #fff8e6;
+  color: #6a4a00;
+}
+
+.mappingReadinessBadge-blocked {
+  border-color: #e7a5a5;
+  background: #fff1f1;
+  color: #7e2020;
+}
+
+.mappingSummaryGrid,
+.mappingInsightGrid,
+.mappingColumnGrid {
+  display: grid;
+  gap: 16px;
+}
+
+.mappingSummaryGrid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.mappingInsightGrid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.mappingSummaryCard,
+.mappingInsightCard,
+.mappingGroupSection,
+.mappingColumnCard,
+.mappingAliasSuggestions {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.mappingSummaryCard,
+.mappingInsightCard,
+.mappingAliasSuggestions {
+  padding: 18px;
+}
+
+.mappingSummaryCard strong {
+  display: block;
+  font-size: 28px;
+  line-height: 1.1;
+  margin: 8px 0 6px;
+}
+
+.mappingSummaryCard p,
+.mappingInsightCard p,
+.mappingAliasSuggestions p {
+  margin: 0;
+}
+
+.mappingSummaryLabel {
+  display: inline-flex;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mappingActionList {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+}
+
+.mappingGroupStack {
+  display: grid;
+  gap: 20px;
+}
+
+.mappingGroupSection {
+  padding: 20px;
+}
+
+.mappingGroupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.mappingGroupCounts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.mappingColumnGrid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.mappingColumnCard {
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.mappingColumnCard-critical {
+  border-color: #e7a5a5;
+  background: linear-gradient(180deg, #fff8f8 0%, #ffffff 42%);
+}
+
+.mappingColumnCard-important {
+  border-color: #d6deec;
+  background: linear-gradient(180deg, #fbfcff 0%, #ffffff 42%);
+}
+
+.mappingColumnCard-helpful {
+  border-color: #c7dfd0;
+  background: linear-gradient(180deg, #f5fbf7 0%, #ffffff 42%);
+}
+
+.mappingColumnCard-informational {
+  border-color: #d8dde6;
+  background: linear-gradient(180deg, #fafbfc 0%, #ffffff 42%);
+}
+
+.mappingColumnCardTop,
+.mappingColumnStatus,
+.mappingColumnRoles,
+.mappingEvidenceBody {
+  display: flex;
+  gap: 10px;
+}
+
+.mappingColumnCardTop,
+.mappingEvidenceBody {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.mappingColumnStatus,
+.mappingColumnRoles {
+  flex-wrap: wrap;
+}
+
+.chip-critical {
+  border-color: #e7a5a5;
+  background: #fff1f1;
+  color: #7e2020;
+}
+
+.chip-important {
+  border-color: #d9d7f7;
+  background: #f4f1ff;
+  color: #3a3173;
+}
+
+.chip-helpful {
+  border-color: #c7dfd0;
+  background: #eef9f2;
+  color: #205133;
+}
+
+.chip-informational {
+  border-color: #d8dde6;
+  background: #f6f8fb;
+  color: #4f627c;
+}
+
+.mappingColumnMeta {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.mappingColumnMeta p,
+.mappingColumnExplanation p,
+.mappingColumnSamples p,
+.mappingTaxonomyPanel p {
+  margin: 4px 0 0;
+}
+
+.mappingColumnSelectWrap {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.mappingColumnSelectWrap select {
+  min-width: 0;
+  width: 100%;
+}
+
+.mappingTaxonomyPanel,
+.mappingEvidencePanel {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.mappingEvidencePanel summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.mappingEvidenceBody {
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.mappingEvidenceBody > div {
+  min-width: 220px;
+  flex: 1 1 220px;
+}
+
+.mappingConfirmBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fbfcff 0%, #ffffff 100%);
+}
+
+@media (max-width: 900px) {
+  .mappingGroupHeader,
+  .mappingColumnCardTop,
+  .mappingEvidenceBody,
+  .mappingConfirmBar {
+    flex-direction: column;
+  }
+}
+
 .resultsHeader {
   display: flex;
   justify-content: space-between;
@@ -444,29 +710,43 @@ a {
 .resultsProgressBadge {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  min-width: 170px;
-  max-width: 220px;
-  padding: 8px 12px;
+  gap: 8px;
+  min-width: 0;
+  max-width: 180px;
+  padding: 6px 10px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: #fbfdff;
   color: var(--muted);
 }
 
-.resultsProgressBadgeComplete {
-  background: #f7fbf8;
-}
-
-.resultsProgressBadgeComplete svg {
-  width: 16px;
-  height: 16px;
+.resultsProgressBadge svg {
+  width: 15px;
+  height: 15px;
   flex: 0 0 auto;
   fill: none;
-  stroke: #2d8a57;
+  stroke: #5f8f9c;
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.resultsProgressBadgeRunning {
+  background: #f5fbfc;
+  color: #2f7688;
+}
+
+.resultsProgressBadgeRunning svg {
+  stroke: #2f7688;
+}
+
+.resultsProgressBadgeComplete {
+  background: #f7fbf8;
+  color: #2d8a57;
+}
+
+.resultsProgressBadgeComplete svg {
+  stroke: #2d8a57;
 }
 
 .resultsProgressLabel {
@@ -500,6 +780,7 @@ a {
 
 .resultsHistoryLabelCell {
   display: grid;
+  gap: 6px;
 }
 
 .resultsHistoryLabelCell input {
@@ -509,6 +790,144 @@ a {
   background: var(--mission-panel);
   color: var(--mission-ink);
   padding: 0 12px;
+}
+
+.resultsActiveWorkspaceNotice {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.resultsSessionTitleBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+  padding: 16px 24px 18px;
+  border-bottom: 1px solid var(--results-border);
+  background: var(--results-surface);
+}
+
+.resultsSessionTitleBarMain,
+.resultsSessionTitleBarMeta {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.resultsSessionTitleBarMeta {
+  justify-items: end;
+  align-self: start;
+  padding-top: 2px;
+}
+
+.resultsSessionWorkspace {
+  margin-bottom: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.resultsSessionWorkspaceHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.resultsSessionWorkspaceGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
+}
+
+.resultsSessionTitleBlock,
+.resultsSessionCurrentCard {
+  border: 1px solid var(--mission-line);
+  border-radius: 16px;
+  padding: 16px;
+  background: var(--mission-panel);
+  display: grid;
+  gap: 10px;
+}
+
+.resultsSessionTitleEditor {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.resultsSessionTitleEditor input {
+  flex: 1 1 auto;
+  min-height: 42px;
+  border: 1px solid var(--mission-line);
+  border-radius: 12px;
+  background: var(--mission-canvas);
+  color: var(--mission-ink);
+  padding: 0 12px;
+}
+
+.resultsSessionComparisonLabel {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--results-muted);
+}
+
+.resultsCurrentComparisonCard {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--mission-line);
+  border-radius: 16px;
+  background: var(--mission-panel);
+}
+
+.resultsCurrentComparisonDetails {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.resultsCurrentComparisonDetails div {
+  display: grid;
+  gap: 4px;
+}
+
+.resultsCurrentComparisonDetails dt {
+  color: var(--results-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.resultsCurrentComparisonDetails dd {
+  margin: 0;
+}
+
+.resultsSessionRail {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.resultsSessionRailCard {
+  border: 1px solid var(--mission-line);
+  border-radius: 16px;
+  padding: 14px;
+  background: var(--mission-panel);
+  display: grid;
+  gap: 10px;
+}
+
+.resultsSessionRailCardCurrent {
+  border-color: var(--mission-accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--mission-accent) 30%, transparent);
+}
+
+.resultsSessionRailCardLatest {
+  background: color-mix(in srgb, var(--mission-panel) 86%, var(--mission-accent-soft) 14%);
 }
 
 .uploadDropzoneCompact {
@@ -667,6 +1086,380 @@ a {
   flex-wrap: wrap;
 }
 
+.historyChainsPanel {
+  display: grid;
+  gap: 18px;
+}
+
+.historyChainsToolbar {
+  align-items: center;
+}
+
+.historyChainsToolbarPill {
+  background: #eef7fb;
+  border: 1px solid #b7d1d6;
+}
+
+.historySessionList {
+  display: grid;
+  gap: 16px;
+}
+
+.historySessionCard {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 251, 252, 0.96) 100%);
+  overflow: hidden;
+}
+
+.historySessionCardActive {
+  border-color: #b7d1d6;
+  box-shadow: 0 0 0 1px rgba(183, 209, 214, 0.45);
+}
+
+.historySessionCard summary {
+  list-style: none;
+}
+
+.historySessionCard summary::-webkit-details-marker {
+  display: none;
+}
+
+.historySessionSummary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 16px;
+  align-items: center;
+  padding: 22px 24px;
+  cursor: pointer;
+}
+
+.historySessionMain {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.historySessionNameRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.historySessionName {
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.historySessionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.historySessionMetric {
+  min-width: 112px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  text-align: center;
+}
+
+.historySessionMetric strong {
+  display: block;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.historySessionMetric span {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.historySessionToggle {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.historySessionToggle::before,
+.historySessionToggle::after {
+  content: "";
+  position: absolute;
+  top: 19px;
+  left: 12px;
+  width: 14px;
+  height: 2px;
+  background: var(--muted);
+  border-radius: 999px;
+  transition: transform 140ms ease;
+}
+
+.historySessionToggle::after {
+  transform: rotate(90deg);
+}
+
+.historySessionCard[open] .historySessionToggle::after {
+  transform: rotate(0deg);
+}
+
+.historySessionBody {
+  border-top: 1px solid var(--line);
+  padding: 0 24px 24px;
+  display: grid;
+  gap: 16px;
+}
+
+.historySessionEditorCard {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  display: grid;
+  gap: 10px;
+}
+
+.historySessionEditorRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.historySessionInput {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0 14px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.historySessionInput:focus {
+  outline: 2px solid rgba(86, 145, 165, 0.18);
+  outline-offset: 1px;
+  border-color: #9bc0cb;
+}
+
+.historySessionEditorHint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.historyComparisonTimeline {
+  display: grid;
+  gap: 14px;
+}
+
+.historyComparisonCard {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.94);
+  display: grid;
+  gap: 14px;
+}
+
+.historyComparisonCardCurrent {
+  border-color: #b7d1d6;
+  background: #f8fbff;
+}
+
+.historyComparisonTop {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+}
+
+.historyComparisonStep {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.historyComparisonMain {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.historyComparisonTitle {
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.historyComparisonMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.historyComparisonState {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.historyComparisonActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.historyDeleteAction,
+.historyDeleteButton {
+  color: #b42318;
+}
+
+.historyPillActive {
+  background: #eef7fb;
+  border: 1px solid #b7d1d6;
+  color: #245c6b;
+}
+
+.historyPillLatest {
+  background: #fff3e6;
+  border: 1px solid #ecd2ab;
+  color: #8c5f1a;
+}
+
+.historyEmptyState {
+  padding: 24px;
+  border: 1px dashed var(--line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--muted);
+}
+
+.historyDetailsDialog {
+  display: grid;
+  gap: 16px;
+}
+
+.historyDetailsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.historyDetailsItem {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  display: grid;
+  gap: 6px;
+}
+
+.historyDetailsItem span {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.historyDetailsItem strong {
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.historyDetailsLabelCard {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  display: grid;
+  gap: 12px;
+}
+
+.historyDetailsInlineForm {
+  margin-top: 0;
+}
+
+.historyDetailsActions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 960px) {
+  .historySessionSummary,
+  .historyComparisonTop {
+    grid-template-columns: 1fr;
+  }
+
+  .historySessionMetric,
+  .historyComparisonState,
+  .historyComparisonActions,
+  .historyDetailsActions {
+    justify-self: start;
+    justify-content: flex-start;
+  }
+
+  .historyDetailsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .historySessionSummary,
+  .historySessionBody {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .historySessionSummary {
+    padding-top: 18px;
+    padding-bottom: 18px;
+  }
+
+  .historySessionName {
+    font-size: 19px;
+  }
+
+  .historySessionEditorCard,
+  .historyComparisonCard,
+  .historyDetailsLabelCard {
+    padding: 14px;
+  }
+
+  .historySessionEditorRow,
+  .historyDetailsInlineForm {
+    grid-template-columns: 1fr;
+  }
+
+  .historySessionEditorRow .btn,
+  .historyDetailsInlineForm .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .diffRow-added {
   background: #eaf7ee;
 }
@@ -696,6 +1489,15 @@ a {
 }
 
 @media (max-width: 960px) {
+  .resultsSessionTitleBar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .resultsSessionTitleBarMeta {
+    justify-items: start;
+  }
+
   .screenToolbar,
   .resultsToolbar {
     flex-direction: column;
@@ -2464,7 +3266,7 @@ a {
 .missionResultsToolbar {
   display: grid;
   gap: 10px;
-  padding: 10px 0 8px;
+  padding: 10px 24px 8px;
   background: var(--results-surface);
   border-bottom: 1px solid var(--results-border);
 }
@@ -2488,6 +3290,7 @@ a {
 
 .missionResultsToolbarTop {
   justify-content: flex-end;
+  width: 100%;
   min-height: 36px;
 }
 
@@ -2499,6 +3302,10 @@ a {
 
 .missionResultsToolbarLeft {
   flex-wrap: nowrap;
+}
+
+.missionResultsActionStrip {
+  margin-left: auto;
 }
 
 .missionResultsToolbarRight {
@@ -2606,7 +3413,7 @@ a {
 
 .missionResultsTableWrap {
   margin-top: 0;
-  padding: 12px 0 24px;
+  padding: 12px 24px 24px;
   background: var(--results-band);
   overflow: auto;
 }
@@ -3426,7 +4233,7 @@ a {
 
 .missionShellRootResults .missionShellBodyResults {
   min-width: 0;
-  padding: 0 32px 24px;
+  padding: 0 0 24px;
   background: #f6f8fa;
 }
 
@@ -4074,6 +4881,13 @@ a {
 }
 
 @media (max-width: 720px) {
+  .resultsSessionTitleBar,
+  .missionResultsToolbar,
+  .missionResultsTableWrap {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
   .missionShellRoot.shell {
     grid-template-columns: 68px minmax(0, 1fr);
     gap: 8px;
@@ -4751,5 +5565,1940 @@ a {
 
   .missionApprovalRoot .missionHeroBand {
     padding: 10px 12px;
+  }
+}
+
+.missionShellRootWorkspace {
+  --workspace-bg: var(--bg);
+  --workspace-surface: var(--card);
+  --workspace-border: var(--line);
+  --workspace-text: var(--text);
+  --workspace-muted: var(--muted);
+  --workspace-shadow: 0 22px 60px rgba(15, 23, 42, 0.08);
+}
+
+.missionShellRootWorkspace .missionShellContentWorkspace {
+  gap: 0;
+  padding: 0 32px 32px 0;
+}
+
+.missionShellRootWorkspace .missionShellHeaderWorkspace {
+  border-bottom: 1px solid var(--workspace-border);
+  background:
+    radial-gradient(circle at top left, rgba(86, 145, 165, 0.1), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.78));
+}
+
+.missionShellRoot[data-theme='dark'].missionShellRootWorkspace .missionShellHeaderWorkspace {
+  background:
+    radial-gradient(circle at top left, rgba(86, 145, 165, 0.16), transparent 32%),
+    linear-gradient(180deg, rgba(22, 27, 34, 0.96), rgba(22, 27, 34, 0.9));
+}
+
+.missionShellRootWorkspace .missionShellTitleGroupWorkspace {
+  gap: 4px;
+}
+
+.missionShellRootWorkspace .missionShellBodyWorkspace {
+  min-width: 0;
+  padding: 0;
+  background:
+    radial-gradient(circle at top left, rgba(86, 145, 165, 0.08), transparent 24%),
+    var(--workspace-bg);
+}
+
+.missionWorkspacePage {
+  width: min(100%, 1400px);
+  margin: 0 auto;
+  padding: 24px 8px 32px;
+  display: grid;
+  gap: 24px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.missionWorkspaceHero {
+  padding: 24px 28px;
+  border: 1px solid var(--workspace-border);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
+  box-shadow: var(--workspace-shadow);
+}
+
+.missionShellRoot[data-theme='dark'] .missionWorkspaceHero {
+  background:
+    linear-gradient(180deg, rgba(22, 27, 34, 0.98), rgba(13, 17, 23, 0.94));
+}
+
+.missionWorkspaceHeroMeta {
+  gap: 6px;
+}
+
+.missionWorkspaceHeroActions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.missionWorkspaceSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.missionWorkspaceSummaryCard,
+.missionWorkspaceCard,
+.missionWorkspacePage .mappingTableWrap,
+.missionWorkspacePage .historyDetailsLabelCard {
+  position: relative;
+  border: 1px solid var(--workspace-border);
+  border-radius: 24px;
+  background: var(--workspace-surface);
+  box-shadow: var(--workspace-shadow);
+}
+
+.missionWorkspaceSummaryCard {
+  padding: 18px 20px;
+  display: grid;
+  gap: 6px;
+}
+
+.missionWorkspaceSummaryCard span,
+.missionWorkspaceSummaryCard small {
+  color: var(--workspace-muted);
+}
+
+.missionWorkspaceSummaryCard strong {
+  font-size: clamp(24px, 2vw, 32px);
+  line-height: 1;
+  color: var(--workspace-text);
+}
+
+.missionWorkspaceCard {
+  padding: 24px;
+}
+
+.missionWorkspaceCardHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.missionWorkspaceCardTitleGroup {
+  display: grid;
+  gap: 6px;
+}
+
+.missionWorkspaceEmptyState {
+  margin: 0;
+  padding: 24px;
+  border: 1px dashed var(--workspace-border);
+  border-radius: 24px;
+  background: var(--workspace-surface);
+}
+
+.missionWorkspaceDialog {
+  border-radius: 28px;
+  border-color: var(--workspace-border);
+  box-shadow: 0 26px 70px rgba(15, 23, 42, 0.22);
+}
+
+.missionWorkspacePage .screenInlineForm input,
+.missionWorkspacePage .screenInlineForm select,
+.missionWorkspacePage .screenInlineForm textarea,
+.missionWorkspacePage input,
+.missionWorkspacePage select,
+.missionWorkspacePage textarea {
+  border-radius: 16px;
+}
+
+.missionWorkspacePage .mappingTableWrap {
+  padding: 0;
+  overflow: hidden;
+}
+
+.missionWorkspacePage .mappingTable {
+  margin: 0;
+}
+
+.notificationsList {
+  display: grid;
+  gap: 16px;
+}
+
+.notificationCard {
+  padding: 22px 24px;
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--workspace-border);
+  border-radius: 24px;
+  background: var(--workspace-surface);
+  box-shadow: var(--workspace-shadow);
+}
+
+.notificationCardUnread {
+  border-color: rgba(86, 145, 165, 0.42);
+  box-shadow: 0 0 0 1px rgba(86, 145, 165, 0.18), var(--workspace-shadow);
+}
+
+.notificationCardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.notificationCardTitleGroup,
+.notificationCardPills {
+  display: grid;
+  gap: 10px;
+}
+
+.notificationCardTitleGroup .h3,
+.notificationCardTitleGroup h2 {
+  margin: 0;
+}
+
+.notificationCardTimestamp,
+.notificationCardMeta {
+  color: var(--workspace-muted);
+  font-size: 13px;
+}
+
+.notificationCardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+}
+
+.notificationCardMessage {
+  margin: 0;
+}
+
+.notificationCardActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.notificationPillComplete {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.notificationPillFailed {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.mappingCenterGrid {
+  display: grid;
+  gap: 20px;
+}
+
+.mappingCenterActionCard {
+  display: grid;
+  gap: 14px;
+}
+
+.mappingCenterInlineForm {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.mappingCenterPrimary,
+.mappingCenterDetailCard {
+  padding: 0;
+}
+
+.mappingCenterPrimary .missionWorkspaceCardHeader,
+.mappingCenterDetailCard .missionWorkspaceCardHeader {
+  padding: 24px 24px 0;
+}
+
+.mappingCenterDetailCard .mappingTableWrap,
+.mappingCenterPrimary .mappingTableWrap {
+  border: 0;
+  border-radius: 0 0 24px 24px;
+  box-shadow: none;
+}
+
+.missionWorkspacePageMappingPreview.mappingWorkspace {
+  gap: 24px;
+}
+
+.missionWorkspacePageMappingPreview .mappingSummaryCard,
+.missionWorkspacePageMappingPreview .mappingInsightCard,
+.missionWorkspacePageMappingPreview .mappingGroupSection,
+.missionWorkspacePageMappingPreview .mappingSampleRows,
+.missionWorkspacePageMappingPreview .mappingAliasSuggestions,
+.missionWorkspacePageMappingPreview .mappingConfirmBar {
+  border-radius: 24px;
+  border: 1px solid var(--workspace-border);
+  box-shadow: var(--workspace-shadow);
+}
+
+.missionWorkspacePageHistory .historyChainsToolbar {
+  margin-bottom: 0;
+}
+
+.missionWorkspacePageHistory .historySessionCard,
+.missionWorkspacePageHistory .historyComparisonCard {
+  box-shadow: var(--workspace-shadow);
+}
+
+.missionWorkspacePageAdmin.adminConsole {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+}
+
+.adminConsoleHero {
+  margin-bottom: 0;
+}
+
+.missionWorkspacePageAdmin .adminSectionStack {
+  gap: 20px;
+}
+
+.missionWorkspacePageAdmin .adminSectionCard,
+.missionWorkspacePageAdmin .taxonomyCard {
+  border: 1px solid var(--workspace-border);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
+  box-shadow: var(--workspace-shadow);
+}
+
+.missionShellRoot[data-theme='dark'] .missionWorkspacePageAdmin .adminSectionCard,
+.missionShellRoot[data-theme='dark'] .missionWorkspacePageAdmin .taxonomyCard {
+  background:
+    linear-gradient(180deg, rgba(22, 27, 34, 0.98), rgba(13, 17, 23, 0.94));
+}
+
+.missionWorkspacePageAdmin .adminSectionHeader {
+  padding: 22px 24px;
+}
+
+.missionWorkspacePageAdmin .adminSectionPanelContent {
+  border-top: 1px solid var(--workspace-border);
+}
+
+.missionWorkspacePageAdmin .adminSectionPanelInner {
+  padding: 22px 24px 24px;
+}
+
+.missionWorkspacePageAdmin .adminTableWrap,
+.missionWorkspacePageAdmin .taxonomyPanelContent,
+.missionWorkspacePageAdmin .taxonomyPopover {
+  border-color: var(--workspace-border);
+  box-shadow: none;
+}
+
+.missionWorkspacePageAdmin .taxonomyPopover {
+  border-radius: 20px;
+  background: var(--workspace-surface);
+  box-shadow: var(--workspace-shadow);
+}
+
+.missionWorkspacePageAdmin .taxonomyPanelContent {
+  border-top-color: var(--workspace-border);
+}
+
+.missionWorkspacePageAdmin .adminIconButton,
+.missionWorkspacePageAdmin .taxonomyAddButton {
+  border-radius: 14px;
+}
+
+@media (max-width: 1120px) {
+  .missionWorkspaceSummary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .missionShellRootWorkspace .missionShellContentWorkspace {
+    padding-right: 20px;
+  }
+}
+
+@media (max-width: 900px) {
+  .missionWorkspaceHero,
+  .missionWorkspaceCard,
+  .notificationCard {
+    padding: 20px;
+  }
+
+  .missionWorkspaceSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .notificationCardTop,
+  .missionWorkspaceCardHeader {
+    flex-direction: column;
+  }
+
+  .mappingCenterInlineForm {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .missionShellRootWorkspace .missionShellContentWorkspace {
+    padding: 0 12px 24px 0;
+  }
+
+  .missionWorkspacePage {
+    padding: 20px 0 24px;
+    gap: 18px;
+  }
+
+  .missionWorkspaceHero {
+    padding: 18px 16px;
+    border-radius: 22px;
+  }
+
+  .missionWorkspacePageAdmin .adminSectionHeader,
+  .missionWorkspacePageAdmin .adminSectionPanelInner,
+  .mappingCenterPrimary .missionWorkspaceCardHeader,
+  .mappingCenterDetailCard .missionWorkspaceCardHeader {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .notificationCardActions,
+  .missionWorkspaceHeroActions {
+    justify-content: flex-start;
+  }
+
+  .notificationCardMeta {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* S23 strict Mission Control parity override */
+.missionShellRootWorkspace {
+  --workspace-bg: #f4f5f7;
+  --workspace-surface: #ffffff;
+  --workspace-border: #dadce0;
+  --workspace-text: #202124;
+  --workspace-muted: #5f6368;
+  --workspace-focus: rgba(168, 199, 250, 0.38);
+  --workspace-blue-bg: #eef4ff;
+  --workspace-blue-border: #a8c7fa;
+  --workspace-blue-text: #2457a6;
+  --workspace-green-bg: #eef7f0;
+  --workspace-green-border: #b7d6bd;
+  --workspace-green-text: #2d6a3f;
+  --workspace-amber-bg: #fff7e6;
+  --workspace-amber-border: #e4c98a;
+  --workspace-amber-text: #8a621b;
+  --workspace-purple-bg: #f4efff;
+  --workspace-purple-border: #c8b8ee;
+  --workspace-purple-text: #5d4296;
+}
+
+.missionShellRoot[data-theme='dark'].missionShellRootWorkspace {
+  --workspace-bg: var(--bg);
+  --workspace-surface: var(--card);
+  --workspace-border: var(--line);
+  --workspace-text: var(--text);
+  --workspace-muted: var(--muted);
+}
+
+.missionShellRootWorkspace .missionShellContentWorkspace {
+  gap: 0;
+  padding: 0 28px 28px 0;
+  background: var(--workspace-bg);
+}
+
+.missionShellRootWorkspace .missionShellHeaderWorkspace {
+  border-bottom: 1px solid var(--workspace-border);
+  background: var(--workspace-surface);
+}
+
+.missionShellRootWorkspace .missionShellTitleGroupWorkspace {
+  gap: 2px;
+}
+
+.missionShellRootWorkspace .missionShellBodyWorkspace {
+  min-width: 0;
+  padding: 0;
+  background: var(--workspace-bg);
+}
+
+.missionWorkspacePage {
+  width: min(100%, 1400px);
+  margin: 0 auto;
+  padding: 20px 0 32px;
+  display: grid;
+  gap: 16px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--workspace-text);
+}
+
+.missionWorkspaceHero {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.missionWorkspaceHeroMeta,
+.missionWorkspaceCardTitleGroup {
+  gap: 4px;
+}
+
+.missionWorkspaceHeroMeta .p,
+.missionWorkspaceCardTitleGroup .p,
+.historyChainsToolbar .p {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--workspace-muted);
+}
+
+.missionWorkspaceHeroActions {
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.missionWorkspacePage .missionShellEyebrow,
+.missionWorkspacePage .historyComparisonStep,
+.missionWorkspacePage .historyDetailsItem span,
+.missionWorkspacePage .historySessionMetric span,
+.missionWorkspacePage .mappingSummaryLabel,
+.missionWorkspacePage .notificationCardTimestamp,
+.missionWorkspacePage .notificationCardMeta,
+.missionWorkspacePage .historySessionMeta,
+.missionWorkspacePage .historyComparisonMeta,
+.missionWorkspacePage code {
+  font-family: "Consolas", "SFMono-Regular", "Menlo", monospace;
+}
+
+.missionWorkspacePage .missionShellEyebrow,
+.missionWorkspacePage .historyComparisonStep,
+.missionWorkspacePage .historyDetailsItem span,
+.missionWorkspacePage .historySessionMetric span,
+.missionWorkspacePage .mappingSummaryLabel {
+  color: var(--workspace-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.missionWorkspacePage .h2,
+.missionWorkspacePage .h3,
+.missionWorkspacePage h2,
+.missionWorkspacePage h3,
+.missionWorkspacePage h4,
+.missionWorkspacePage .historySessionName,
+.missionWorkspacePage .historyComparisonTitle,
+.missionWorkspacePage .adminSectionTitle {
+  color: var(--workspace-text);
+}
+
+.missionWorkspacePage .p,
+.missionWorkspacePage .missionSubtle,
+.missionWorkspacePage .notificationCardMessage,
+.missionWorkspacePage .historySessionEditorHint,
+.missionWorkspacePage .historySessionMeta,
+.missionWorkspacePage .historyComparisonMeta,
+.missionWorkspacePage .notificationCardMeta,
+.missionWorkspacePage .notificationCardTimestamp {
+  color: var(--workspace-muted);
+}
+
+.missionWorkspacePage .resultsActiveWorkspaceNotice {
+  margin: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--workspace-border);
+  border-radius: 6px;
+  background: var(--workspace-surface);
+}
+
+.missionWorkspacePage .resultsActiveWorkspaceNotice strong {
+  display: block;
+  margin: 2px 0 4px;
+  color: var(--workspace-text);
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.missionWorkspacePage .missionWorkspaceCard,
+.missionWorkspacePage .notificationCard,
+.missionWorkspacePage .historySessionCard,
+.missionWorkspacePage .historyComparisonCard,
+.missionWorkspacePage .historySessionEditorCard,
+.missionWorkspacePage .historyDetailsItem,
+.missionWorkspacePage .historyDetailsLabelCard,
+.missionWorkspacePage .adminSectionCard,
+.missionWorkspacePage .adminTableWrap,
+.missionWorkspacePage .taxonomyCard,
+.missionWorkspacePage .taxonomyPopover,
+.missionWorkspacePage .mappingSummaryCard,
+.missionWorkspacePage .mappingInsightCard,
+.missionWorkspacePage .mappingGroupSection,
+.missionWorkspacePage .mappingColumnCard,
+.missionWorkspacePage .mappingAliasSuggestions,
+.missionWorkspacePage .mappingSampleRows,
+.missionWorkspacePage .mappingConfirmBar,
+.missionWorkspacePage .taxonomySectionBlock,
+.missionWorkspacePage .taxonomySwimlane,
+.missionWorkspacePage .missionWorkspaceDialog,
+.missionWorkspacePage .mappingTableWrap,
+.screenModalCard.missionWorkspaceDialog {
+  border: 1px solid var(--workspace-border);
+  border-radius: 6px;
+  background: var(--workspace-surface);
+  box-shadow: none;
+}
+
+.missionWorkspacePage .missionWorkspaceCard,
+.missionWorkspacePage .mappingSummaryCard,
+.missionWorkspacePage .mappingInsightCard,
+.missionWorkspacePage .mappingAliasSuggestions,
+.missionWorkspacePage .mappingGroupSection,
+.missionWorkspacePage .mappingConfirmBar,
+.missionWorkspacePage .notificationCard,
+.missionWorkspacePage .historySessionEditorCard,
+.missionWorkspacePage .historyComparisonCard,
+.missionWorkspacePage .historyDetailsLabelCard,
+.missionWorkspacePage .taxonomySectionBlock {
+  padding: 18px;
+}
+
+.missionWorkspacePage .mappingSampleRows {
+  padding: 14px 16px;
+}
+
+.missionWorkspacePage .missionWorkspaceDialog,
+.screenModalCard.missionWorkspaceDialog,
+.missionWorkspacePage .taxonomyPopover {
+  box-shadow: none;
+  border-radius: 6px;
+}
+
+.missionWorkspacePage .missionWorkspaceEmptyState,
+.missionWorkspacePage .historyEmptyState,
+.missionWorkspacePage .adminEmptyState {
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed var(--workspace-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--workspace-muted);
+}
+
+.missionWorkspacePage .btn,
+.missionWorkspacePage .screenIconAction,
+.missionWorkspacePage .adminIconButton,
+.missionWorkspacePage .taxonomyAddButton,
+.missionWorkspacePage .historySessionToggle,
+.missionShellRootWorkspace .resultsActiveWorkspaceNotice .btn {
+  border: 1px solid var(--workspace-border);
+  border-radius: 6px;
+  background: var(--workspace-surface);
+  color: var(--workspace-text);
+  box-shadow: none;
+}
+
+.missionWorkspacePage .btn:hover:not(:disabled),
+.missionWorkspacePage .screenIconAction:hover:not(:disabled),
+.missionWorkspacePage .adminIconButton:hover:not(:disabled),
+.missionWorkspacePage .taxonomyAddButton:hover:not(:disabled),
+.missionShellRootWorkspace .resultsActiveWorkspaceNotice .btn:hover:not(:disabled) {
+  background: #f7f8fa;
+}
+
+.missionWorkspacePage .btnPrimary,
+.missionShellRootWorkspace .resultsActiveWorkspaceNotice .btnPrimary {
+  border-color: var(--workspace-blue-border);
+  background: var(--workspace-blue-bg);
+  color: var(--workspace-blue-text);
+}
+
+.missionWorkspacePage .screenIconAction,
+.missionWorkspacePage .adminIconButton {
+  width: 48px;
+  height: 48px;
+}
+
+.missionWorkspacePage .screenIconActionCompact {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+}
+
+.missionWorkspacePage input,
+.missionWorkspacePage select,
+.missionWorkspacePage textarea {
+  border: 1px solid var(--workspace-border);
+  border-radius: 6px;
+  background: var(--workspace-surface);
+  color: var(--workspace-text);
+  box-shadow: none;
+}
+
+.missionWorkspacePage input:focus,
+.missionWorkspacePage select:focus,
+.missionWorkspacePage textarea:focus {
+  outline: 2px solid var(--workspace-focus);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.missionWorkspacePage .missionPill,
+.missionWorkspacePage .chip {
+  border: 1px solid var(--workspace-border);
+  background: var(--workspace-surface);
+  color: var(--workspace-muted);
+}
+
+.missionWorkspacePage .notificationPillComplete,
+.missionWorkspacePage .mappingReadinessBadge-ready,
+.missionWorkspacePage .chip-helpful,
+.missionWorkspacePage .chipAuto {
+  border-color: var(--workspace-green-border);
+  background: var(--workspace-green-bg);
+  color: var(--workspace-green-text);
+}
+
+.missionWorkspacePage .notificationPillFailed,
+.missionWorkspacePage .historyPillLatest,
+.missionWorkspacePage .chip-important {
+  border-color: var(--workspace-purple-border);
+  background: var(--workspace-purple-bg);
+  color: var(--workspace-purple-text);
+}
+
+.missionWorkspacePage .historyPillActive,
+.missionWorkspacePage .screenIconActionActive {
+  border-color: var(--workspace-blue-border);
+  background: var(--workspace-blue-bg);
+  color: var(--workspace-blue-text);
+}
+
+.missionWorkspacePage .mappingReadinessBadge-warning,
+.missionWorkspacePage .chipReview {
+  border-color: var(--workspace-amber-border);
+  background: var(--workspace-amber-bg);
+  color: var(--workspace-amber-text);
+}
+
+.missionWorkspacePage .mappingReadinessBadge-blocked,
+.missionWorkspacePage .chip-critical,
+.missionWorkspacePage .chipWarn,
+.missionWorkspacePage .historyDeleteAction {
+  border-color: #dfb0c3;
+  background: #fff1f7;
+  color: #a13f6b;
+}
+
+.missionWorkspacePage .mappingReadinessBadge {
+  min-height: 40px;
+  border-radius: 999px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.missionWorkspacePage .mappingCenterGrid,
+.missionWorkspacePage .notificationsList,
+.missionWorkspacePage .mappingSummaryGrid,
+.missionWorkspacePage .mappingInsightGrid,
+.missionWorkspacePage .mappingGroupStack,
+.missionWorkspacePage .historySessionList {
+  gap: 16px;
+}
+
+.missionWorkspacePage .mappingCenterActionCard,
+.missionWorkspacePage .mappingCenterPrimary,
+.missionWorkspacePage .mappingCenterDetailCard {
+  display: grid;
+  gap: 14px;
+}
+
+.missionWorkspacePage .mappingCenterPrimary,
+.missionWorkspacePage .mappingCenterDetailCard {
+  padding: 0;
+}
+
+.missionWorkspacePage .mappingCenterPrimary .missionWorkspaceCardHeader,
+.missionWorkspacePage .mappingCenterDetailCard .missionWorkspaceCardHeader {
+  margin-bottom: 0;
+  padding: 18px 18px 0;
+}
+
+.missionWorkspacePage .mappingCenterInlineForm {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.missionWorkspacePage .mappingTableWrap,
+.missionWorkspacePage .adminTableWrap {
+  margin-top: 0;
+  padding: 0;
+  overflow: auto;
+}
+
+.missionWorkspacePage .mappingTable,
+.missionWorkspacePage .adminTable {
+  margin: 0;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.missionWorkspacePage .mappingTable thead th,
+.missionWorkspacePage .adminTable thead th {
+  background: transparent;
+  color: var(--workspace-muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.missionWorkspacePage .mappingTable th,
+.missionWorkspacePage .mappingTable td,
+.missionWorkspacePage .adminTable th,
+.missionWorkspacePage .adminTable td {
+  border-bottom: 1px solid var(--workspace-border);
+  padding: 14px 12px;
+  text-align: left;
+}
+
+.missionWorkspacePage .mappingTable tbody tr:last-child td,
+.missionWorkspacePage .adminTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.missionWorkspacePage .mappingSummaryCard strong {
+  margin: 6px 0 4px;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.missionWorkspacePage .mappingColumnCard-critical,
+.missionWorkspacePage .mappingColumnCard-important,
+.missionWorkspacePage .mappingColumnCard-helpful,
+.missionWorkspacePage .mappingColumnCard-informational {
+  background: var(--workspace-surface);
+}
+
+.missionWorkspacePage .mappingColumnCard-critical {
+  border-color: #dfb0c3;
+}
+
+.missionWorkspacePage .mappingColumnCard-important {
+  border-color: var(--workspace-purple-border);
+}
+
+.missionWorkspacePage .mappingColumnCard-helpful {
+  border-color: var(--workspace-green-border);
+}
+
+.missionWorkspacePage .mappingColumnCard-informational {
+  border-color: var(--workspace-border);
+}
+
+.missionWorkspacePage .notificationCardUnread,
+.missionWorkspacePage .historySessionCardActive,
+.missionWorkspacePage .historyComparisonCardCurrent {
+  border-color: var(--workspace-blue-border);
+  box-shadow: none;
+}
+
+.missionWorkspacePage .notificationCardTop,
+.missionWorkspacePage .missionWorkspaceCardHeader,
+.missionWorkspacePage .adminSectionHeader,
+.missionWorkspacePage .taxonomyCardHeader,
+.missionWorkspacePage .mappingGroupHeader {
+  gap: 16px;
+}
+
+.missionWorkspacePage .notificationCardTitleGroup,
+.missionWorkspacePage .notificationCardPills,
+.missionWorkspacePage .historySessionMain,
+.missionWorkspacePage .historyComparisonMain {
+  gap: 8px;
+}
+
+.missionWorkspacePage .historySessionCard {
+  overflow: hidden;
+}
+
+.missionWorkspacePage .historySessionSummary,
+.missionWorkspacePage .historySessionBody {
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+.missionWorkspacePage .historySessionSummary {
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+
+.missionWorkspacePage .historySessionBody,
+.missionWorkspacePage .adminSectionPanelContent,
+.missionWorkspacePage .taxonomyPanelContent {
+  border-top: 1px solid var(--workspace-border);
+}
+
+.missionWorkspacePage .taxonomyPanelContent {
+  overflow: hidden;
+}
+
+.missionWorkspacePage .historySessionMetric,
+.missionWorkspacePage .historySessionToggle {
+  border-color: var(--workspace-border);
+  background: var(--workspace-surface);
+}
+
+.missionWorkspacePage .historySessionMetric {
+  min-width: 108px;
+  border-radius: 6px;
+}
+
+.missionWorkspacePage .historySessionToggle::before,
+.missionWorkspacePage .historySessionToggle::after {
+  background: var(--workspace-muted);
+}
+
+.missionWorkspacePage .historySessionEditorCard {
+  margin-top: 0;
+}
+
+.missionWorkspacePage .historyDetailsItem,
+.missionWorkspacePage .historyDetailsLabelCard {
+  background: var(--workspace-surface);
+}
+
+.missionWorkspacePageAdmin.adminConsole {
+  padding: 0;
+}
+
+.missionWorkspacePage .adminSectionCard,
+.missionWorkspacePage .taxonomyCard {
+  position: relative;
+  padding: 0;
+  background: var(--workspace-surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.missionWorkspacePage .adminSectionCard::before,
+.missionWorkspacePage .taxonomyCard::before {
+  display: none;
+}
+
+.missionWorkspacePage .adminSectionHeader,
+.missionWorkspacePage .taxonomyCardHeader {
+  margin-bottom: 0;
+  padding: 18px;
+}
+
+.missionWorkspacePage .adminSectionPanelInner,
+.missionWorkspacePage .taxonomyPanelContentInner {
+  padding: 18px;
+}
+
+.missionWorkspacePage .adminSectionCardCollapsed .adminSectionHeader,
+.missionWorkspacePage .taxonomyCardCollapsed .taxonomyCardHeader {
+  margin-bottom: 0;
+}
+
+.missionWorkspacePage .adminSectionStack::before,
+.missionWorkspacePage .adminConsole::before,
+.missionWorkspacePage .taxonomySectionTitle::before,
+.missionWorkspacePage .taxonomyCriticalityBadge::before {
+  display: none;
+}
+
+.missionWorkspacePage .adminSectionTitle {
+  font-size: clamp(18px, 1.6vw, 22px);
+  line-height: 1.16;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+.missionWorkspacePage .adminSectionTitleGroup {
+  gap: 6px;
+  max-width: 76ch;
+}
+
+.missionWorkspacePage .adminSectionHeaderActions {
+  gap: 8px;
+}
+
+.missionWorkspacePage .adminChipCluster,
+.missionWorkspacePage .adminButtonRow {
+  gap: 8px;
+}
+
+.missionWorkspacePage .adminIconButtonDanger {
+  color: #a13f6b;
+}
+
+.missionWorkspacePage .adminTable thead th,
+.missionWorkspacePage .adminFormField span,
+.missionWorkspacePage .taxonomyField span,
+.missionWorkspacePage .taxonomyControl span,
+.missionWorkspacePage .adminRetentionMetric span,
+.missionWorkspacePage .taxonomySectionTitle {
+  font-family: "Consolas", "SFMono-Regular", "Menlo", monospace;
+  color: var(--workspace-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.missionWorkspacePage .adminRetentionGrid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.missionWorkspacePage .adminRetentionMetric {
+  padding: 16px;
+  border: 1px solid var(--workspace-border);
+  border-radius: 6px;
+  background: var(--workspace-surface);
+  box-shadow: none;
+}
+
+.missionWorkspacePage .adminRetentionMetric strong {
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--workspace-text);
+}
+
+.missionWorkspacePage .taxonomyCriticalityBadge {
+  gap: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.missionWorkspacePage .taxonomyCriticalityBadgeHigh {
+  border-color: #dfb0c3;
+  background: #fff1f7;
+  color: #a13f6b;
+}
+
+.missionWorkspacePage .taxonomyCriticalityBadgeMedium {
+  border-color: var(--workspace-amber-border);
+  background: var(--workspace-amber-bg);
+  color: var(--workspace-amber-text);
+}
+
+.missionWorkspacePage .taxonomyCriticalityBadgeLow {
+  border-color: var(--workspace-green-border);
+  background: var(--workspace-green-bg);
+  color: var(--workspace-green-text);
+}
+
+.missionWorkspacePage .taxonomyAddButton {
+  padding: 0 14px;
+  min-height: 40px;
+  border-style: solid;
+  border-radius: 6px;
+  background: var(--workspace-surface);
+  font-weight: 500;
+}
+
+.missionWorkspacePage .taxonomyTitleInput {
+  font-size: clamp(18px, 1.5vw, 20px);
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: var(--workspace-text);
+}
+
+.missionWorkspacePage .taxonomySectionBlock + .taxonomySectionBlock {
+  margin-top: 14px;
+}
+
+.missionWorkspacePage .taxonomySwimlane {
+  gap: 12px;
+  border-radius: 6px;
+  background: transparent;
+}
+
+.missionWorkspacePage .taxonomyTokenBlue {
+  border-color: var(--workspace-blue-border);
+  background: var(--workspace-blue-bg);
+  color: var(--workspace-blue-text);
+}
+
+.missionWorkspacePage .taxonomyTokenGreen {
+  border-color: var(--workspace-green-border);
+  background: var(--workspace-green-bg);
+  color: var(--workspace-green-text);
+}
+
+.missionWorkspacePage .taxonomyTokenAmber {
+  border-color: var(--workspace-amber-border);
+  background: var(--workspace-amber-bg);
+  color: var(--workspace-amber-text);
+}
+
+.missionWorkspacePage .taxonomyCardCollapsed .taxonomyPanelContentInner,
+.missionWorkspacePage .adminSectionCardCollapsed .adminSectionPanelInner {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.missionWorkspacePage .taxonomyCardCollapsed .taxonomyPanelContent {
+  border-top-color: transparent;
+  max-height: 0;
+  visibility: hidden;
+}
+
+.missionWorkspacePage .taxonomyCard:not(.taxonomyCardCollapsed) .taxonomyPanelContent {
+  max-height: none;
+  visibility: visible;
+}
+
+.missionWorkspacePage .adminFormField span,
+.missionWorkspacePage .taxonomyCriticalityBadge,
+.missionWorkspacePage .taxonomyTitleInput,
+.missionWorkspacePage .taxonomySectionTitle,
+.missionWorkspacePage .taxonomyPopoverActions {
+  box-shadow: none;
+}
+
+.missionWorkspacePage .taxonomyCriticalityBadge {
+  border-radius: 999px;
+}
+
+.missionWorkspacePage .taxonomySectionBlock {
+  box-shadow: none;
+}
+
+.missionWorkspacePage .taxonomySectionTitle {
+  color: var(--workspace-text);
+  font-size: 13px;
+}
+
+.missionWorkspacePage .taxonomySectionTitle::before {
+  background: var(--workspace-blue-border);
+}
+
+.missionWorkspacePage .taxonomySwimlane {
+  padding: 16px;
+  border-style: dashed;
+}
+
+.missionWorkspacePage .taxonomySwimlaneBlue:hover,
+.missionWorkspacePage .taxonomySwimlaneGreen:hover,
+.missionWorkspacePage .taxonomySwimlaneAmber:hover {
+  border-style: solid;
+}
+
+.missionWorkspacePage .taxonomyPopoverActions {
+  margin-top: 12px;
+}
+
+.missionShellRoot[data-page='admin'] .missionShellHeaderWorkspace {
+  background: var(--workspace-surface);
+}
+
+.missionShellRoot[data-page='admin'] .missionShellHeaderWorkspace.missionShellHeaderUpload {
+  border-bottom: 1px solid var(--workspace-border);
+  background: var(--workspace-surface);
+}
+
+.missionShellRoot[data-page='admin'] .missionShellTitleGroupWorkspace.missionShellTitleGroupUpload {
+  align-self: end;
+  gap: 0;
+}
+
+.missionShellRoot[data-page='admin'] .missionShellTitle {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--workspace-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.missionShellRoot[data-page='admin'] .missionShellHeaderActions {
+  align-self: start;
+  justify-self: end;
+  margin-top: 0;
+}
+
+.missionWorkspacePageAdmin.adminConsole {
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.missionWorkspacePageAdmin .adminSectionStack {
+  gap: 12px;
+}
+
+.missionWorkspacePageAdmin .adminSectionStack::before,
+.missionWorkspacePageAdmin.adminConsole::before,
+.missionWorkspacePageAdmin .adminSectionCard::before,
+.missionWorkspacePageAdmin .taxonomyCard::before,
+.missionWorkspacePageAdmin .taxonomySectionTitle::before,
+.missionWorkspacePageAdmin .taxonomyCriticalityBadge::before {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+
+.missionWorkspacePageAdmin .adminSectionCard,
+.missionWorkspacePageAdmin .taxonomyCard,
+.missionWorkspacePageAdmin .adminTableWrap,
+.missionWorkspacePageAdmin .taxonomySectionBlock,
+.missionWorkspacePageAdmin .taxonomySwimlane,
+.missionWorkspacePageAdmin .taxonomyPopover,
+.missionWorkspacePageAdmin .adminRetentionMetric {
+  border: 1px solid var(--workspace-border);
+  border-radius: 6px;
+  background: var(--workspace-surface);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.missionWorkspacePageAdmin .adminSectionHeader,
+.missionWorkspacePageAdmin .taxonomyCardHeader {
+  gap: 16px;
+  align-items: center;
+  padding: 16px 18px;
+}
+
+.missionWorkspacePageAdmin .adminSectionPanelInner,
+.missionWorkspacePageAdmin .taxonomyPanelContentInner {
+  padding: 16px 18px 18px;
+}
+
+.missionWorkspacePageAdmin .adminSectionTitle {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--workspace-text);
+}
+
+.missionWorkspacePageAdmin .adminSectionTitleGroup > .p {
+  margin: 0;
+  max-width: 74ch;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--workspace-muted);
+}
+
+.missionWorkspacePageAdmin .adminSectionHeaderActions {
+  gap: 10px;
+  align-self: start;
+}
+
+.missionWorkspacePageAdmin .adminChipCluster,
+.missionWorkspacePageAdmin .adminButtonRow,
+.missionWorkspacePageAdmin .taxonomyCardActions {
+  gap: 8px;
+}
+
+.missionWorkspacePageAdmin .chip,
+.missionWorkspacePageAdmin .taxonomyCriticalityBadge {
+  min-height: 32px;
+  padding: 4px 12px;
+}
+
+.missionWorkspacePageAdmin .adminIconButton,
+.missionWorkspacePageAdmin .taxonomyCollapseButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+}
+
+.missionWorkspacePageAdmin .adminFormRow,
+.missionWorkspacePageAdmin .taxonomyControls {
+  gap: 12px;
+}
+
+.missionWorkspacePageAdmin .adminFormRow > input,
+.missionWorkspacePageAdmin .adminFormRow > select,
+.missionWorkspacePageAdmin .adminFormRow > button {
+  min-height: 40px;
+}
+
+.missionWorkspacePageAdmin .taxonomyControls {
+  margin-bottom: 16px;
+  align-items: end;
+}
+
+.missionWorkspacePageAdmin .taxonomyCardGrid {
+  gap: 14px;
+}
+
+.missionWorkspacePageAdmin .taxonomyCardHeader {
+  border-bottom: 1px solid var(--workspace-border);
+}
+
+.missionWorkspacePageAdmin .taxonomyCardCollapsed .taxonomyCardHeader {
+  border-bottom-color: transparent;
+}
+
+.missionWorkspacePageAdmin .taxonomyTitleInput {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.missionWorkspacePageAdmin .taxonomySectionTitle,
+.missionWorkspacePageAdmin .adminFormField span,
+.missionWorkspacePageAdmin .taxonomyField span,
+.missionWorkspacePageAdmin .taxonomyControl span,
+.missionWorkspacePageAdmin .adminTable thead th,
+.missionWorkspacePageAdmin .adminRetentionMetric span {
+  font-family: "Consolas", "SFMono-Regular", "Menlo", monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--workspace-muted);
+}
+
+.missionWorkspacePageAdmin .taxonomySectionTitle {
+  margin: 0 0 14px;
+}
+
+.missionWorkspacePageAdmin .taxonomySectionBlock {
+  padding: 16px;
+}
+
+.missionWorkspacePageAdmin .taxonomySectionBlock + .taxonomySectionBlock {
+  margin-top: 12px;
+}
+
+.missionWorkspacePageAdmin .taxonomyFieldGrid {
+  gap: 14px 16px;
+}
+
+.missionWorkspacePageAdmin .taxonomySwimlane {
+  gap: 10px;
+  padding: 14px 16px;
+  border-style: dashed;
+  background: transparent;
+}
+
+.missionWorkspacePageAdmin .adminRetentionMetric strong {
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.missionWorkspacePageAdmin .adminTable th,
+.missionWorkspacePageAdmin .adminTable td {
+  padding: 12px 10px;
+}
+
+.missionWorkspacePageAdmin .adminTable thead th {
+  letter-spacing: 0.06em;
+}
+
+.missionWorkspacePageAdmin .btnPrimary {
+  border-color: var(--workspace-border);
+  background: var(--workspace-surface);
+  color: var(--workspace-text);
+}
+
+@media (max-width: 1120px) {
+  .missionShellRootWorkspace .missionShellContentWorkspace {
+    padding-right: 20px;
+  }
+}
+
+@media (max-width: 960px) {
+  .missionWorkspacePage .historySessionSummary,
+  .missionWorkspacePage .historyComparisonTop {
+    grid-template-columns: 1fr;
+  }
+
+  .missionWorkspacePage .historySessionMetric,
+  .missionWorkspacePage .historyComparisonState,
+  .missionWorkspacePage .historyComparisonActions,
+  .missionWorkspacePage .historyDetailsActions {
+    justify-self: start;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 900px) {
+  .missionWorkspaceHero,
+  .missionWorkspacePage .notificationCard,
+  .missionWorkspacePage .missionWorkspaceCard,
+  .missionWorkspacePage .adminSectionHeader,
+  .missionWorkspacePage .taxonomyCardHeader,
+  .missionWorkspacePage .adminSectionPanelInner,
+  .missionWorkspacePage .taxonomyPanelContentInner {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .missionWorkspacePage .notificationCardTop,
+  .missionWorkspacePage .missionWorkspaceCardHeader,
+  .missionWorkspacePage .adminSectionHeader,
+  .missionWorkspacePage .mappingGroupHeader {
+    flex-direction: column;
+  }
+
+  .missionWorkspacePage .mappingCenterInlineForm {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .missionShellRootWorkspace .missionShellContentWorkspace {
+    padding: 0 12px 24px 0;
+  }
+
+  .missionWorkspacePage {
+    padding: 16px 0 24px;
+  }
+
+  .missionWorkspaceHeroActions,
+  .missionWorkspacePage .notificationCardActions {
+    justify-content: flex-start;
+  }
+
+  .missionWorkspacePage .resultsActiveWorkspaceNotice,
+  .missionWorkspacePage .historySessionSummary,
+  .missionWorkspacePage .historySessionBody,
+  .missionWorkspacePage .missionWorkspaceCard,
+  .missionWorkspacePage .notificationCard,
+  .missionWorkspacePage .historyComparisonCard,
+  .missionWorkspacePage .historyDetailsLabelCard,
+  .missionWorkspacePage .mappingSummaryCard,
+  .missionWorkspacePage .mappingInsightCard,
+  .missionWorkspacePage .mappingGroupSection,
+  .missionWorkspacePage .mappingConfirmBar,
+  .missionWorkspacePage .taxonomySectionBlock {
+    padding: 14px;
+  }
+
+  .missionWorkspacePage .notificationCardMeta,
+  .missionWorkspacePage .historySessionMeta,
+  .missionWorkspacePage .historyComparisonMeta {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .missionWorkspacePage .resultsActiveWorkspaceNotice {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .missionWorkspacePageAdmin .adminSectionHeader,
+  .missionWorkspacePageAdmin .taxonomyCardHeader,
+  .missionWorkspacePageAdmin .adminSectionPanelInner,
+  .missionWorkspacePageAdmin .taxonomyPanelContentInner {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}
+
+/* Admin rebuild */
+.missionWorkspacePageAdmin .adminMissionDeck {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+  padding: 16px 18px;
+  border: 1px solid var(--workspace-border);
+  border-radius: 6px;
+  background: var(--workspace-surface);
+}
+
+.missionWorkspacePageAdmin .adminMissionDeckMain {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.missionWorkspacePageAdmin .adminMissionDeckMain .p {
+  margin: 0;
+  max-width: 76ch;
+  color: var(--workspace-muted);
+}
+
+.missionWorkspacePageAdmin .adminMissionDeckPills {
+  justify-content: flex-end;
+  align-self: start;
+}
+
+.missionWorkspacePageAdmin .adminMissionSectionStack {
+  gap: 12px;
+}
+
+.missionWorkspacePageAdmin .adminMissionSection,
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--workspace-border);
+  border-radius: 6px;
+  background: var(--workspace-surface) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border-inline-start: 0 !important;
+}
+
+.missionWorkspacePageAdmin .adminMissionSection::before,
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard::before,
+.missionWorkspacePageAdmin .adminMissionSectionStack::before,
+.missionWorkspacePageAdmin.adminConsole::before {
+  content: none !important;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: none !important;
+}
+
+.missionWorkspacePageAdmin .adminMissionSectionHeader,
+.missionWorkspacePageAdmin .adminMissionTaxonomyCardHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+  padding: 16px 18px;
+  margin: 0;
+}
+
+.missionWorkspacePageAdmin .adminMissionSectionCopy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  max-width: 76ch;
+}
+
+.missionWorkspacePageAdmin .adminMissionSectionCopy > .p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--workspace-muted);
+}
+
+.missionWorkspacePageAdmin .adminMissionSectionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.missionWorkspacePageAdmin .adminMissionMetaStrip {
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.missionWorkspacePageAdmin .adminMissionSection .adminSectionTitle,
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .taxonomyTitleInput {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--workspace-text);
+}
+
+.missionWorkspacePageAdmin .adminMissionSection .adminSectionPanelContent,
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .taxonomyPanelContent {
+  border-top: 1px solid var(--workspace-border);
+}
+
+.missionWorkspacePageAdmin .adminMissionSectionBody {
+  padding: 16px 18px 18px;
+}
+
+.missionWorkspacePageAdmin .adminMissionSection .adminIconButton,
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .adminIconButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+}
+
+.missionWorkspacePageAdmin .adminMissionSection .btn,
+.missionWorkspacePageAdmin .adminMissionSection .btnPrimary,
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .btn,
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .btnPrimary {
+  min-height: 40px;
+}
+
+.missionWorkspacePageAdmin .adminMissionTaxonomyCardHeader {
+  border-bottom: 0;
+}
+
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .taxonomyCardTitleRow {
+  gap: 12px;
+}
+
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .taxonomyCardActions {
+  gap: 8px;
+}
+
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .taxonomySectionBlock {
+  padding: 16px;
+  border: 1px solid var(--workspace-border);
+  border-radius: 6px;
+  background: var(--workspace-surface);
+  box-shadow: none;
+}
+
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .taxonomySectionBlock + .taxonomySectionBlock {
+  margin-top: 12px;
+}
+
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .taxonomySectionTitle {
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--workspace-muted);
+}
+
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .taxonomySwimlane {
+  padding: 14px 16px;
+  border: 1px dashed var(--workspace-border);
+  border-radius: 6px;
+  background: transparent;
+}
+
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .taxonomyControls {
+  margin-bottom: 16px;
+}
+
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .taxonomyCardGrid {
+  gap: 14px;
+}
+
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .taxonomyPanelContentInner {
+  padding: 16px 18px 18px;
+}
+
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard .taxonomyTitleInput {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+@media (max-width: 900px) {
+  .missionWorkspacePageAdmin .adminMissionDeck,
+  .missionWorkspacePageAdmin .adminMissionSectionHeader,
+  .missionWorkspacePageAdmin .adminMissionTaxonomyCardHeader {
+    grid-template-columns: 1fr;
+  }
+
+  .missionWorkspacePageAdmin .adminMissionDeckPills,
+  .missionWorkspacePageAdmin .adminMissionSectionActions,
+  .missionWorkspacePageAdmin .adminMissionMetaStrip {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .missionWorkspacePageAdmin .adminMissionDeck,
+  .missionWorkspacePageAdmin .adminMissionSectionHeader,
+  .missionWorkspacePageAdmin .adminMissionTaxonomyCardHeader,
+  .missionWorkspacePageAdmin .adminMissionSectionBody,
+  .missionWorkspacePageAdmin .adminMissionTaxonomyCard .taxonomyPanelContentInner {
+    padding: 14px;
+  }
+}
+
+/* Secondary mission pages: align body surfaces to Results / Upload baseline */
+.missionWorkspacePageAdmin,
+.missionWorkspacePageMapping,
+.missionWorkspacePageHistory,
+.missionWorkspacePageStream {
+  gap: 14px;
+}
+
+.missionWorkspacePageAdmin .adminMissionDeck,
+.missionWorkspacePageMapping .missionWorkspaceCard,
+.missionWorkspacePageHistory .historySessionCard,
+.missionWorkspacePageHistory .historyComparisonCard,
+.missionWorkspacePageHistory .historySessionEditorCard,
+.missionWorkspacePageStream .notificationCard {
+  border: 1px solid var(--workspace-border) !important;
+  border-radius: 6px !important;
+  background: var(--workspace-surface) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.missionWorkspacePageAdmin .adminMissionDeck {
+  padding: 18px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.missionWorkspacePageAdmin .adminMissionDeckMain,
+.missionWorkspacePageAdmin .adminMissionSectionCopy,
+.missionWorkspacePageMapping .missionWorkspaceCardTitleGroup,
+.missionWorkspacePageStream .notificationCardTitleGroup,
+.missionWorkspacePageHistory .historySessionMain,
+.missionWorkspacePageHistory .historyComparisonMain {
+  gap: 6px;
+}
+
+.missionWorkspacePageAdmin .adminMissionDeckMain .p,
+.missionWorkspacePageAdmin .adminMissionSectionCopy > .p,
+.missionWorkspacePageMapping .missionWorkspaceCardTitleGroup .p,
+.missionWorkspacePageStream .notificationCardMessage,
+.missionWorkspacePageHistory .historySessionEditorHint {
+  margin: 0;
+  max-width: 74ch;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--workspace-muted);
+}
+
+.missionWorkspacePageMapping .mappingCenterGrid,
+.missionWorkspacePageHistory .historySessionList,
+.missionWorkspacePageStream .notificationsList,
+.missionWorkspacePageAdmin .adminMissionSectionStack,
+.missionWorkspacePageAdmin .taxonomyCardGrid {
+  gap: 14px;
+}
+
+.missionWorkspacePageMapping .mappingCenterActionCard,
+.missionWorkspacePageMapping .mappingCenterPrimary,
+.missionWorkspacePageMapping .mappingCenterDetailCard,
+.missionWorkspacePageAdmin .adminMissionSection,
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard {
+  overflow: hidden;
+}
+
+.missionWorkspacePageMapping .mappingCenterActionCard {
+  padding: 18px;
+}
+
+.missionWorkspacePageMapping .mappingCenterPrimary .missionWorkspaceCardHeader,
+.missionWorkspacePageMapping .mappingCenterDetailCard .missionWorkspaceCardHeader,
+.missionWorkspacePageAdmin .adminSectionHeader,
+.missionWorkspacePageAdmin .taxonomyCardHeader {
+  margin: 0;
+  padding: 18px;
+  border-bottom: 1px solid var(--workspace-border);
+}
+
+.missionWorkspacePageAdmin .adminSectionCardCollapsed .adminSectionHeader,
+.missionWorkspacePageAdmin .taxonomyCardCollapsed .taxonomyCardHeader {
+  border-bottom-color: transparent;
+}
+
+.missionWorkspacePageMapping .mappingTableWrap,
+.missionWorkspacePageAdmin .adminTableWrap {
+  border: 0 !important;
+  border-top: 1px solid var(--workspace-border) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.missionWorkspacePageAdmin .adminSectionPanelInner,
+.missionWorkspacePageAdmin .taxonomyPanelContentInner {
+  padding: 18px;
+}
+
+.missionWorkspacePageAdmin .adminMissionSection,
+.missionWorkspacePageAdmin .adminMissionTaxonomyCard,
+.missionWorkspacePageAdmin .adminTableWrap,
+.missionWorkspacePageAdmin .taxonomySectionBlock,
+.missionWorkspacePageAdmin .taxonomySwimlane,
+.missionWorkspacePageAdmin .taxonomyPopover,
+.missionWorkspacePageAdmin .adminRetentionMetric {
+  border: 1px solid var(--workspace-border) !important;
+  border-radius: 6px !important;
+  background: var(--workspace-surface) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.missionWorkspacePageAdmin .adminSectionStack::before,
+.missionWorkspacePageAdmin.adminConsole::before,
+.missionWorkspacePageAdmin .adminSectionCard::before,
+.missionWorkspacePageAdmin .taxonomyCard::before,
+.missionWorkspacePageAdmin .taxonomySectionTitle::before,
+.missionWorkspacePageAdmin .taxonomyCriticalityBadge::before {
+  content: none !important;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  border: 0 !important;
+  background: none !important;
+}
+
+.missionWorkspacePageAdmin .taxonomySectionBlock {
+  padding: 16px;
+}
+
+.missionWorkspacePageAdmin .taxonomySwimlane {
+  padding: 14px 16px;
+  border-style: dashed !important;
+  background: transparent !important;
+}
+
+.missionWorkspacePageAdmin .adminSectionTitle,
+.missionWorkspacePageAdmin .taxonomyTitleInput,
+.missionWorkspacePageMapping .missionWorkspaceCardHeader .h2,
+.missionWorkspacePageStream .notificationCardTitleGroup .h3,
+.missionWorkspacePageHistory .historySessionName,
+.missionWorkspacePageHistory .historyComparisonTitle {
+  margin: 0;
+  font-size: clamp(18px, 1.45vw, 20px);
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--workspace-text);
+}
+
+.missionWorkspacePageAdmin .taxonomyTitleInput {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.missionWorkspacePageHistory .historySessionSummary,
+.missionWorkspacePageHistory .historySessionBody,
+.missionWorkspacePageHistory .historyDetailsLabelCard,
+.missionWorkspacePageHistory .historyComparisonCard,
+.missionWorkspacePageStream .notificationCard {
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+.missionWorkspacePageHistory .historySessionSummary {
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+
+.missionWorkspacePageHistory .historySessionBody {
+  padding-bottom: 18px;
+}
+
+.missionWorkspacePageHistory .historySessionMetric {
+  min-width: 96px;
+  padding: 10px 12px;
+  border-radius: 6px;
+}
+
+.missionWorkspacePageHistory .historySessionMetric strong {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.missionWorkspacePageHistory .historySessionMetric span,
+.missionWorkspacePageHistory .historyComparisonStep,
+.missionWorkspacePageStream .notificationCardTimestamp,
+.missionWorkspacePageStream .notificationCardMeta,
+.missionWorkspacePageMapping .mappingTable td,
+.missionWorkspacePageAdmin .adminTable td,
+.missionWorkspacePageHistory .historyComparisonMeta,
+.missionWorkspacePageHistory .historyDetailsItem strong {
+  font-family: "Consolas", "SFMono-Regular", "Menlo", monospace;
+}
+
+.missionWorkspacePageMapping .mappingTable td,
+.missionWorkspacePageAdmin .adminTable td {
+  color: var(--workspace-text);
+}
+
+.missionWorkspacePageMapping .mappingTable th,
+.missionWorkspacePageMapping .mappingTable td,
+.missionWorkspacePageAdmin .adminTable th,
+.missionWorkspacePageAdmin .adminTable td {
+  padding: 14px 16px;
+}
+
+.missionWorkspacePageMapping .mappingTable thead th,
+.missionWorkspacePageAdmin .adminTable thead th {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.missionWorkspacePageMapping .btn,
+.missionWorkspacePageMapping .btnPrimary,
+.missionWorkspacePageHistory .btn,
+.missionWorkspacePageHistory .btnPrimary,
+.missionWorkspacePageStream .btn,
+.missionWorkspacePageStream .btnPrimary,
+.missionWorkspacePageAdmin .btn,
+.missionWorkspacePageAdmin .btnPrimary {
+  min-height: 40px;
+  border-radius: 6px;
+  border-color: var(--workspace-border);
+  background: var(--workspace-surface);
+  color: var(--workspace-text);
+  box-shadow: none;
+}
+
+.missionWorkspacePageMapping .screenIconAction,
+.missionWorkspacePageHistory .screenIconAction,
+.missionWorkspacePageStream .screenIconAction,
+.missionWorkspacePageAdmin .adminIconButton,
+.missionWorkspacePageAdmin .taxonomyCollapseButton {
+  border-radius: 6px;
+}
+
+.missionWorkspacePageAdmin .adminButtonRow,
+.missionWorkspacePageAdmin .adminActionCluster,
+.missionWorkspacePageHistory .historyComparisonActions,
+.missionWorkspacePageStream .notificationCardActions,
+.missionWorkspacePageMapping .cellChips {
+  gap: 8px;
+}
+
+.missionWorkspacePageStream .notificationCardTop,
+.missionWorkspacePageHistory .historyComparisonTop,
+.missionWorkspacePageAdmin .adminMissionSectionHeader,
+.missionWorkspacePageAdmin .adminMissionTaxonomyCardHeader {
+  gap: 16px;
+}
+
+.missionWorkspacePageStream .notificationCardActions {
+  justify-content: flex-end;
+}
+
+.missionWorkspacePageAdmin .chip,
+.missionWorkspacePageAdmin .taxonomyCriticalityBadge,
+.missionWorkspacePageHistory .missionPill,
+.missionWorkspacePageMapping .missionPill,
+.missionWorkspacePageStream .missionPill {
+  min-height: 32px;
+  padding: 4px 12px;
+}
+
+@media (max-width: 900px) {
+  .missionWorkspacePageAdmin .adminMissionDeck,
+  .missionWorkspacePageAdmin .adminMissionSectionHeader,
+  .missionWorkspacePageAdmin .adminMissionTaxonomyCardHeader,
+  .missionWorkspacePageHistory .historySessionSummary,
+  .missionWorkspacePageHistory .historyComparisonTop,
+  .missionWorkspacePageStream .notificationCardTop {
+    grid-template-columns: 1fr;
   }
 }

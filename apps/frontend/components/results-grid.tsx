@@ -8,8 +8,8 @@ import {
   ChevronRightIcon,
   CloseIcon,
   DeleteIcon,
-  EditIcon,
   ExportIcon,
+  FileDetailsIcon,
   FlatViewIcon,
   HistoryIcon,
   OpenIcon,
@@ -20,6 +20,12 @@ import {
 } from '@/components/mission-icons';
 import { ResultsImpactDialog } from './results-impact-dialog';
 import { ChangeType, DiffRow, ImpactCriticality } from './results-grid-contract';
+import {
+  buildResultsUrlFromWorkspace,
+  clearActiveWorkspace,
+  readActiveWorkspace,
+  writeActiveWorkspace
+} from '@/lib/active-workspace';
 
 type PageSize = 50 | 100 | 200;
 type ResultsViewMode = 'flat' | 'tree';
@@ -27,6 +33,9 @@ type ResultsViewMode = 'flat' | 'tree';
 interface DiffStatus {
   contractVersion: string;
   jobId: string;
+  sessionId: string | null;
+  leftRevisionId: string | null;
+  rightRevisionId: string | null;
   phase: 'matching' | 'classifying' | 'finalizing' | 'completed';
   percentComplete: number;
   counters: Record<ChangeType | 'total', number>;
@@ -73,8 +82,13 @@ interface SessionComparisonEntry {
   initiatorEmail: string;
   leftRevisionId: string | null;
   rightRevisionId: string | null;
+  comparisonId: string | null;
   comparisonLabel: string;
+  comparisonDateLabel: string;
+  current: boolean;
   latest: boolean;
+  canRename: boolean;
+  canDelete: boolean;
 }
 
 const CHANGE_FILTERS: Array<{ value: 'all' | ChangeType; label: string }> = [
@@ -90,6 +104,32 @@ const CHANGE_FILTERS: Array<{ value: 'all' | ChangeType; label: string }> = [
 
 const PAGE_SIZE_OPTIONS: PageSize[] = [50, 100, 200];
 
+function formatComparisonDateHuman(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}) UTC$/.exec((value || '').trim());
+  if (!match) return value;
+  const [, year, month, day, hours, minutes] = match;
+  const parsed = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes)));
+  const formatted = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'UTC'
+  }).format(parsed);
+  return `${formatted} UTC`;
+}
+
+function formatComparisonLabelHuman(entry: Pick<SessionComparisonEntry, 'comparisonLabel' | 'comparisonDateLabel'>): string {
+  const rawLabel = entry.comparisonLabel || '';
+  const rawDate = entry.comparisonDateLabel || '';
+  const humanDate = formatComparisonDateHuman(rawDate);
+  if (!rawLabel || !rawDate || !humanDate) return rawLabel;
+  const suffix = ` (${rawDate})`;
+  return rawLabel.endsWith(suffix) ? `${rawLabel.slice(0, -suffix.length)} (${humanDate})` : rawLabel;
+}
+
 export function ResultsGrid() {
   const resultsGridEnabled =
     (process.env.NEXT_PUBLIC_RESULTS_GRID_STAGE4_V1 || 'true').trim().toLowerCase() !== 'false';
@@ -104,6 +144,7 @@ export function ResultsGrid() {
   const sessionId = searchParams.get('sessionId');
   const leftRevisionId = searchParams.get('leftRevisionId');
   const rightRevisionId = searchParams.get('rightRevisionId');
+  const hasExplicitWorkspaceParams = Boolean(comparisonIdParam || sessionId || leftRevisionId || rightRevisionId);
 
   const [jobId, setJobId] = useState<string | null>(null);
   const [status, setStatus] = useState<DiffStatus | null>(null);
@@ -129,7 +170,10 @@ export function ResultsGrid() {
   const statusPollInFlightRef = useRef(false);
   const latestStatusRef = useRef<DiffStatus | null>(null);
 
-  const activeComparisonId = jobId || comparisonIdParam;
+  const activeComparisonId = comparisonIdParam || jobId;
+  const activeSessionId = sessionId || status?.sessionId || null;
+  const activeLeftRevisionId = leftRevisionId || status?.leftRevisionId || null;
+  const activeRightRevisionId = rightRevisionId || status?.rightRevisionId || null;
   const [shareInput, setShareInput] = useState('');
   const [shareRecipients, setShareRecipients] = useState<ShareRecipient[]>([]);
   const [shareError, setShareError] = useState<string | null>(null);
@@ -137,12 +181,16 @@ export function ResultsGrid() {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [chainUploadDialogOpen, setChainUploadDialogOpen] = useState(false);
+  const [currentComparisonDialogOpen, setCurrentComparisonDialogOpen] = useState(false);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [impactDialogRow, setImpactDialogRow] = useState<DiffRow | null>(null);
   const [historySessions, setHistorySessions] = useState<SessionComparisonEntry[]>([]);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historyFeedback, setHistoryFeedback] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState<Record<string, string>>({});
+  const [sessionNameDraft, setSessionNameDraft] = useState('');
+  const [sessionRenameBusy, setSessionRenameBusy] = useState(false);
+  const [workspaceRestoreResolved, setWorkspaceRestoreResolved] = useState(false);
   const [nextRevisionFile, setNextRevisionFile] = useState<File | null>(null);
   const [chainUploadError, setChainUploadError] = useState<string | null>(null);
   const [chainUploadBusy, setChainUploadBusy] = useState(false);
@@ -203,11 +251,35 @@ export function ResultsGrid() {
     }
   }, [resultsTreeViewEnabled, viewMode]);
 
+  useEffect(() => {
+    if (workspaceRestoreResolved) return;
+    if (hasExplicitWorkspaceParams) {
+      setWorkspaceRestoreResolved(true);
+      return;
+    }
+    const restored = readActiveWorkspace();
+    const nextUrl = restored ? buildResultsUrlFromWorkspace(restored) : null;
+    if (nextUrl) {
+      router.replace(nextUrl, { scroll: false });
+      return;
+    }
+    setWorkspaceRestoreResolved(true);
+  }, [workspaceRestoreResolved, hasExplicitWorkspaceParams, router]);
+
   function resetPagination(): void {
     setCurrentCursor('0');
     setNextCursor(null);
     setCursorHistory([]);
     setFilteredTotalRows(0);
+  }
+
+  function buildResultsUrl(input: {
+    comparisonId: string | null;
+    sessionId: string | null;
+    leftRevisionId: string | null;
+    rightRevisionId: string | null;
+  }): string | null {
+    return buildResultsUrlFromWorkspace(input);
   }
 
   async function loadShareRecipients(comparisonId: string) {
@@ -300,7 +372,11 @@ export function ResultsGrid() {
   async function loadSessionHistory(activeSessionId: string) {
     setHistoryError(null);
     try {
-      const response = await fetch(`/api/history/sessions?sessionId=${encodeURIComponent(activeSessionId)}`, {
+      const query = new URLSearchParams({ sessionId: activeSessionId });
+      if (activeComparisonId) {
+        query.set('currentComparisonId', activeComparisonId);
+      }
+      const response = await fetch(`/api/history/sessions?${query.toString()}`, {
         method: 'GET',
         cache: 'no-store'
       });
@@ -330,8 +406,8 @@ export function ResultsGrid() {
     }
   }
 
-  async function renameComparison(historyId: string) {
-    const sessionName = (renameDraft[historyId] || '').trim();
+  async function renameComparison(historyId: string, nextSessionName?: string) {
+    const sessionName = (nextSessionName ?? renameDraft[historyId] ?? '').trim();
     setHistoryError(null);
     setHistoryFeedback(null);
     try {
@@ -345,12 +421,28 @@ export function ResultsGrid() {
         setHistoryError(`${payload.code || 'HISTORY_RENAME_FAILED'}: ${payload.message || 'Rename failed.'}`);
         return;
       }
-      setHistoryFeedback('Comparison label updated.');
-      if (sessionId) {
-        await loadSessionHistory(sessionId);
+      setHistoryFeedback('Session name updated.');
+      if (activeSessionId) {
+        await loadSessionHistory(activeSessionId);
       }
     } catch {
       setHistoryError('HISTORY_RENAME_FAILED: Rename failed.');
+    }
+  }
+
+  async function saveSessionName() {
+    const currentSessionEntry = historySessions.find((entry) => entry.current) || historySessions[0] || null;
+    if (!currentSessionEntry) return;
+    const normalizedDraft = sessionNameDraft.trim();
+    if (normalizedDraft === (currentSessionEntry.sessionName || '')) return;
+
+    setSessionRenameBusy(true);
+    setHistoryError(null);
+    setHistoryFeedback(null);
+    try {
+      await renameComparison(currentSessionEntry.historyId, sessionNameDraft);
+    } finally {
+      setSessionRenameBusy(false);
     }
   }
 
@@ -361,14 +453,34 @@ export function ResultsGrid() {
       const response = await fetch(`/api/history/sessions/${encodeURIComponent(historyId)}/delete`, {
         method: 'POST'
       });
-      const payload = (await response.json()) as { code?: string; message?: string };
+      const payload = (await response.json()) as {
+        code?: string;
+        message?: string;
+        sessionId?: string;
+        nextActiveComparisonId?: string | null;
+        nextActiveLeftRevisionId?: string | null;
+        nextActiveRightRevisionId?: string | null;
+      };
       if (!response.ok) {
         setHistoryError(`${payload.code || 'HISTORY_DELETE_FAILED'}: ${payload.message || 'Delete failed.'}`);
         return;
       }
+      const nextUrl = buildResultsUrl({
+        comparisonId: payload.nextActiveComparisonId || null,
+        sessionId: payload.sessionId || activeSessionId,
+        leftRevisionId: payload.nextActiveLeftRevisionId || null,
+        rightRevisionId: payload.nextActiveRightRevisionId || null
+      });
       setHistoryFeedback('Comparison deleted.');
-      if (sessionId) {
-        await loadSessionHistory(sessionId);
+      if (nextUrl) {
+        setHistoryDialogOpen(false);
+        router.replace(nextUrl, { scroll: false });
+        return;
+      }
+      clearActiveWorkspace();
+      router.replace('/results', { scroll: false });
+      if (activeSessionId) {
+        await loadSessionHistory(activeSessionId);
       }
     } catch {
       setHistoryError('HISTORY_DELETE_FAILED: Delete failed.');
@@ -390,7 +502,7 @@ export function ResultsGrid() {
   }
 
   async function submitNextRevision() {
-    if (!sessionId) {
+    if (!activeSessionId) {
       setChainUploadError('UPLOAD_SESSION_NOT_FOUND: Current session is unavailable.');
       return;
     }
@@ -403,7 +515,7 @@ export function ResultsGrid() {
     setChainUploadError(null);
     try {
       const validationForm = new FormData();
-      validationForm.append('sessionId', sessionId);
+      validationForm.append('sessionId', activeSessionId);
       validationForm.append('fileB', nextRevisionFile);
 
       const validateResponse = await fetch('/api/uploads/validate', {
@@ -419,7 +531,7 @@ export function ResultsGrid() {
       }
 
       const intakeForm = new FormData();
-      intakeForm.append('sessionId', sessionId);
+      intakeForm.append('sessionId', activeSessionId);
       intakeForm.append('fileB', nextRevisionFile);
       const intakeResponse = await fetch('/api/uploads/intake', {
         method: 'POST',
@@ -691,6 +803,7 @@ export function ResultsGrid() {
   }
 
   useEffect(() => {
+    if (!workspaceRestoreResolved) return;
     if (comparisonIdParam) {
       if (comparisonIdParam === jobId) {
         return;
@@ -706,7 +819,7 @@ export function ResultsGrid() {
       return;
     }
     void startDiffJob();
-  }, [comparisonIdParam, sessionId, leftRevisionId, rightRevisionId]);
+  }, [comparisonIdParam, sessionId, leftRevisionId, rightRevisionId, workspaceRestoreResolved]);
 
   useEffect(() => {
     if (!jobId) return;
@@ -804,9 +917,32 @@ export function ResultsGrid() {
   }, [activeComparisonId]);
 
   useEffect(() => {
-    if (!historyDialogOpen || !sessionId) return;
-    void loadSessionHistory(sessionId);
-  }, [historyDialogOpen, sessionId]);
+    if (!activeSessionId) {
+      setHistorySessions([]);
+      return;
+    }
+    void loadSessionHistory(activeSessionId);
+  }, [activeSessionId, activeComparisonId]);
+
+  const currentSessionEntry = historySessions.find((entry) => entry.current) || historySessions[0] || null;
+  const sessionNameDirty = sessionNameDraft.trim() !== (currentSessionEntry?.sessionName || '');
+
+  useEffect(() => {
+    setSessionNameDraft(currentSessionEntry?.sessionName || '');
+  }, [currentSessionEntry?.historyId, currentSessionEntry?.sessionName]);
+
+  useEffect(() => {
+    if (!activeSessionId || !currentSessionEntry) return;
+    writeActiveWorkspace({
+      sessionId: activeSessionId,
+      comparisonId: activeComparisonId || null,
+      historyId: currentSessionEntry.historyId,
+      leftRevisionId: currentSessionEntry.leftRevisionId,
+      rightRevisionId: currentSessionEntry.rightRevisionId,
+      sessionName: currentSessionEntry.sessionName,
+      comparisonLabel: currentSessionEntry.comparisonLabel
+    });
+  }, [activeSessionId, activeComparisonId, currentSessionEntry]);
 
   const visibleRows = rows;
   const visibleTreeNodes = treeNodes;
@@ -832,10 +968,62 @@ export function ResultsGrid() {
   }
 
   return (
-    <section className="panel missionResultsSurface" data-testid="results-panel">
+    <>
+      {activeSessionId && currentSessionEntry && (
+        <section className="resultsSessionTitleBar" data-testid="results-session-title-bar">
+          <div className="resultsSessionTitleBarMain">
+            <div className="resultsSessionTitleEditor">
+              <input
+                id="results-session-name-input"
+                value={sessionNameDraft}
+                onChange={(event) => setSessionNameDraft(event.target.value)}
+                onBlur={() => {
+                  if (!sessionNameDirty || sessionRenameBusy || !currentSessionEntry.canRename) return;
+                  void saveSessionName();
+                }}
+                placeholder="Untitled session"
+                readOnly={!currentSessionEntry.canRename}
+                data-testid="results-session-name-input"
+              />
+              {sessionNameDirty && currentSessionEntry.canRename && (
+                <button
+                  className="btn btnPrimary"
+                  type="button"
+                  onClick={() => void saveSessionName()}
+                  disabled={sessionRenameBusy}
+                  data-testid="results-session-name-save"
+                >
+                  {sessionRenameBusy ? 'Saving...' : 'Save'}
+                </button>
+              )}
+            </div>
+            <span className="resultsSessionComparisonLabel">{formatComparisonLabelHuman(currentSessionEntry)}</span>
+          </div>
+          <div className="resultsSessionTitleBarMeta">
+            <div className="cellChips">
+              <span className="missionPill">{historySessions.length} comparisons</span>
+              {currentSessionEntry.current && <span className="missionPill">Current loaded</span>}
+              {currentSessionEntry.latest && <span className="missionPill">Latest available</span>}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="panel missionResultsSurface" data-testid="results-panel">
       <div className="missionResultsToolbar" data-testid="results-toolbar">
         <div className="missionResultsToolbarTop">
           <div className="missionToggleStrip missionResultsActionStrip">
+            <button
+              className="screenIconAction missionResultsIconButton"
+              type="button"
+              onClick={() => setCurrentComparisonDialogOpen(true)}
+              disabled={!currentSessionEntry}
+              aria-label="Current file comparison"
+              title={!currentSessionEntry ? 'Current session is unavailable' : 'Current file comparison'}
+              data-testid="results-current-comparison-btn"
+            >
+              <FileDetailsIcon />
+            </button>
             <button
               className="screenIconAction missionResultsIconButton"
               type="button"
@@ -843,9 +1031,15 @@ export function ResultsGrid() {
                 setChainUploadError(null);
                 setChainUploadDialogOpen(true);
               }}
-              disabled={!sessionId || chainUploadBusy}
+              disabled={!activeSessionId || chainUploadBusy}
               aria-label="Upload next revision"
-              title={!sessionId ? 'Current session is unavailable' : chainUploadBusy ? 'Uploading next revision' : 'Upload next revision'}
+              title={
+                !activeSessionId
+                  ? 'Current session is unavailable'
+                  : chainUploadBusy
+                    ? 'Uploading next revision'
+                    : 'Upload next revision'
+              }
               data-testid="results-upload-next-btn"
             >
               <UploadTrayIcon />
@@ -858,9 +1052,9 @@ export function ResultsGrid() {
                 setHistoryFeedback(null);
                 setHistoryDialogOpen(true);
               }}
-              disabled={!sessionId}
+              disabled={!activeSessionId}
               aria-label="Previous comparisons"
-              title={!sessionId ? 'Current session is unavailable' : 'Previous comparisons'}
+              title={!activeSessionId ? 'Current session is unavailable' : 'Previous comparisons'}
               data-testid="results-session-history-btn"
             >
               <HistoryIcon />
@@ -925,11 +1119,8 @@ export function ResultsGrid() {
         <div className="missionResultsToolbarGridRow">
           <div className="missionResultsToolbarLeft">
             {status && status.status === 'running' && (
-              <div className="resultsProgressBadge missionResultsProgressBadge" data-testid="results-partial-badge">
-                <span className="resultsProgressLabel">Running</span>
-                <div className="resultsProgressTrack" aria-hidden="true">
-                  <span className="resultsProgressFill" style={{ width: `${status.percentComplete}%` }} />
-                </div>
+              <div className="resultsProgressBadge resultsProgressBadgeRunning missionResultsProgressBadge" data-testid="results-partial-badge">
+                <CheckCircleIcon />
                 <span className="resultsProgressMeta">
                   {status.phase} {status.percentComplete}%
                 </span>
@@ -941,9 +1132,6 @@ export function ResultsGrid() {
                 data-testid="results-complete-badge"
               >
                 <CheckCircleIcon />
-                <div className="resultsProgressTrack" aria-hidden="true">
-                  <span className="resultsProgressFill" style={{ width: '100%' }} />
-                </div>
                 <span className="resultsProgressMeta">{status.loadedRows}/{status.totalRows}</span>
               </div>
             )}
@@ -986,7 +1174,7 @@ export function ResultsGrid() {
               </select>
             </div>
           </div>
-          <div className="resultsPagination missionResultsPagination" data-testid="results-pagination-controls">
+          <div className="resultsPagination missionResultsPagination missionResultsToolbarRight" data-testid="results-pagination-controls">
             <div className="resultsPaginationGroup missionResultsPaginationGroup">
               <span className="resultsPaginationSummary missionResultsPaginationSummary">
                 Showing {pageStart}-{pageEnd} of {filteredTotalRows}
@@ -1211,6 +1399,77 @@ export function ResultsGrid() {
         </div>
       )}
 
+      {currentComparisonDialogOpen && currentSessionEntry && (
+        <div className="screenModalLayer" role="presentation">
+          <button
+            type="button"
+            className="screenModalBackdrop"
+            aria-label="Close current file comparison dialog"
+            onClick={() => setCurrentComparisonDialogOpen(false)}
+          />
+          <section
+            className="screenModalCard screenModalCardCompact panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="results-current-comparison-title"
+            data-testid="results-current-comparison-dialog"
+          >
+            <div className="screenModalHeader">
+              <div>
+                <p className="missionShellEyebrow">Current file comparison</p>
+                <h2 className="h2" id="results-current-comparison-title">
+                  Latest loaded revision details
+                </h2>
+              </div>
+              <button
+                className="screenIconAction"
+                type="button"
+                aria-label="Close current file comparison dialog"
+                title="Close"
+                onClick={() => setCurrentComparisonDialogOpen(false)}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            <article className="resultsCurrentComparisonCard" data-testid="results-current-comparison-card">
+              <div className="cellChips">
+                <span className="missionPill">{currentSessionEntry.status}</span>
+                {currentSessionEntry.current && <span className="missionPill">Current</span>}
+                {currentSessionEntry.latest && <span className="missionPill">Latest</span>}
+              </div>
+              <strong>{currentSessionEntry.comparisonLabel}</strong>
+              <span>{currentSessionEntry.initiatorEmail}</span>
+              <dl className="resultsCurrentComparisonDetails">
+                <div>
+                  <dt>Uploaded</dt>
+                  <dd>{currentSessionEntry.comparisonDateLabel}</dd>
+                </div>
+                <div>
+                  <dt>Session title</dt>
+                  <dd>{currentSessionEntry.sessionName || 'Untitled session'}</dd>
+                </div>
+              </dl>
+            </article>
+            <div className="screenDialogActions">
+              <button
+                className="btn"
+                type="button"
+                onClick={() => {
+                  setCurrentComparisonDialogOpen(false);
+                  setHistoryError(null);
+                  setHistoryFeedback(null);
+                  setHistoryDialogOpen(true);
+                }}
+                disabled={!activeSessionId}
+                data-testid="results-current-comparison-history-btn"
+              >
+                Previous comparisons
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
       {chainUploadDialogOpen && (
         <div className="screenModalLayer" role="presentation">
           <button
@@ -1313,7 +1572,7 @@ export function ResultsGrid() {
                 className="btn btnPrimary"
                 type="button"
                 onClick={() => void submitNextRevision()}
-                disabled={!nextRevisionFile || chainUploadBusy || !sessionId}
+                disabled={!nextRevisionFile || chainUploadBusy || !activeSessionId}
                 data-testid="results-upload-next-submit"
               >
                 {chainUploadBusy ? 'Validating and opening...' : 'Validate and compare'}
@@ -1394,39 +1653,50 @@ export function ResultsGrid() {
                                 [entry.historyId]: event.target.value
                               }))
                             }
-                            placeholder={entry.comparisonLabel}
+                            placeholder="Session title"
+                            readOnly={!entry.canRename}
                             data-testid={`results-session-history-rename-${entry.historyId}`}
                           />
+                          <span className="resultsProgressMeta">{entry.comparisonLabel}</span>
                         </div>
                       </td>
                       <td>{new Date(entry.createdAtUtc).toLocaleString()}</td>
                       <td>{entry.initiatorEmail}</td>
-                      <td>{entry.latest ? 'Latest' : new Date(entry.createdAtUtc).toLocaleString()}</td>
+                      <td>
+                        <div className="cellChips">
+                          <span className="missionPill">{entry.status}</span>
+                          {entry.current && <span className="missionPill">Current</span>}
+                          {entry.latest && <span className="missionPill">Latest</span>}
+                        </div>
+                      </td>
                       <td>
                         <div className="screenRowActions">
                           <button
                             className="screenIconAction screenIconActionCompact"
                             type="button"
                             onClick={() => void renameComparison(entry.historyId)}
-                            aria-label={`Rename ${entry.comparisonLabel}`}
+                            disabled={!entry.canRename}
+                            aria-label={`Rename session for ${entry.comparisonLabel}`}
                             title="Rename"
                             data-testid={`results-session-history-save-${entry.historyId}`}
                           >
-                            <EditIcon />
+                            Save
                           </button>
                           <button
                             className="screenIconAction screenIconActionCompact"
                             type="button"
                             onClick={() => {
-                              if (!entry.leftRevisionId || !entry.rightRevisionId) return;
+                              const nextUrl = buildResultsUrl({
+                                comparisonId: entry.comparisonId,
+                                sessionId: entry.sessionId,
+                                leftRevisionId: entry.leftRevisionId,
+                                rightRevisionId: entry.rightRevisionId
+                              });
+                              if (!nextUrl) return;
                               setHistoryDialogOpen(false);
-                              router.push(
-                                `/results?sessionId=${encodeURIComponent(entry.sessionId)}&leftRevisionId=${encodeURIComponent(
-                                  entry.leftRevisionId
-                                )}&rightRevisionId=${encodeURIComponent(entry.rightRevisionId)}`
-                              );
+                              router.push(nextUrl);
                             }}
-                            disabled={!entry.leftRevisionId || !entry.rightRevisionId}
+                            disabled={!entry.comparisonId && (!entry.leftRevisionId || !entry.rightRevisionId)}
                             aria-label={`Open ${entry.comparisonLabel}`}
                             title="Open"
                             data-testid={`results-session-history-open-${entry.historyId}`}
@@ -1437,6 +1707,7 @@ export function ResultsGrid() {
                             className="screenIconAction screenIconActionCompact"
                             type="button"
                             onClick={() => void deleteComparison(entry.historyId)}
+                            disabled={!entry.canDelete}
                             aria-label={`Delete ${entry.comparisonLabel}`}
                             title="Delete"
                             data-testid={`results-session-history-delete-${entry.historyId}`}
@@ -1609,6 +1880,7 @@ export function ResultsGrid() {
           </section>
         </div>
       )}
-    </section>
+      </section>
+    </>
   );
 }

@@ -1,24 +1,25 @@
 ---
 name: backlog-execution
 description: Implements a BOM Compare VX backlog item, sprint story, stage task, or ordered execution sequence end-to-end inside the existing repository. Use when Codex is asked to execute one or more backlog or sprint files in a defined order by reading repository docs first, following the current architecture and patterns, running relevant tests and validation commands, exercising the real web flow, and reporting validated results.
-version: 1.1.0
-owner: project-team
-intended_audience:
-  - AI coding agents
-  - software engineers
-  - QA engineers
-  - tech leads
-stage:
-  - during backlog implementation
-  - during backlog-linked bug fixes
-  - before acceptance or demo
-tags:
-  - backlog
-  - implementation
-  - qa
-  - full-stack
-  - repo-aware
-  - ai-agent
+metadata:
+  version: 1.1.0
+  owner: project-team
+  intended_audience:
+    - AI coding agents
+    - software engineers
+    - QA engineers
+    - tech leads
+  stage:
+    - during backlog implementation
+    - during backlog-linked bug fixes
+    - before acceptance or demo
+  tags:
+    - backlog
+    - implementation
+    - qa
+    - full-stack
+    - repo-aware
+    - ai-agent
 ---
 
 # Backlog Execution Skill

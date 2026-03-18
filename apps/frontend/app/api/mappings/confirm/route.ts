@@ -5,9 +5,20 @@ interface ConfirmPayload {
   contractVersion: string;
   revisionId: string;
   explicitWarningAcknowledged: boolean;
+  confirmationMode?: 'accepted_as_suggested' | 'accepted_with_overrides' | 'accepted_with_warnings';
+  acceptedAsSuggested?: boolean;
+  impactCoverageAcknowledged?: boolean;
+  learnedAliasSuggestions?: Array<{
+    sourceColumn: string;
+    canonicalField: string;
+    suggestedAlias: string;
+  }>;
   mappings: Array<{
     sourceColumn: string;
     canonicalField: string;
+    originalCanonicalField?: string | null;
+    strategy?: 'REGISTRY_EXACT' | 'REGISTRY_FUZZY' | 'HEURISTIC' | 'MANUAL' | 'TENANT_PACK';
+    confidence?: number;
     reviewState: 'AUTO' | 'REVIEW_REQUIRED' | 'LOW_CONFIDENCE_WARNING';
   }>;
 }
@@ -59,6 +70,9 @@ export async function POST(request: NextRequest) {
     .map((mapping) => ({
       sourceColumn: mapping.sourceColumn,
       canonicalField: mapping.canonicalField,
+      originalCanonicalField: mapping.originalCanonicalField || null,
+      strategy: mapping.strategy,
+      confidence: mapping.confidence,
       reviewState: mapping.reviewState
     }));
 
@@ -70,9 +84,13 @@ export async function POST(request: NextRequest) {
         ...(cookie ? { cookie } : {})
       },
       body: JSON.stringify({
-        contractVersion: payload.contractVersion || 'v1',
+        contractVersion: payload.contractVersion || 'v2',
         revisionId: payload.revisionId,
         explicitWarningAcknowledged: !!payload.explicitWarningAcknowledged,
+        confirmationMode: payload.confirmationMode,
+        acceptedAsSuggested: payload.acceptedAsSuggested,
+        impactCoverageAcknowledged: payload.impactCoverageAcknowledged,
+        learnedAliasSuggestions: payload.learnedAliasSuggestions || [],
         mappings: deterministicMappings
       }),
       cache: 'no-store'

@@ -2,9 +2,19 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { DeleteIcon, EditIcon, OpenIcon, RefreshIcon, TagIcon } from '@/components/mission-icons';
+import { ActiveWorkspaceNotice } from '@/components/active-workspace-notice';
+import {
+  CloseIcon,
+  ConfirmIcon,
+  DeleteIcon,
+  FileDetailsIcon,
+  OpenIcon,
+  RefreshIcon,
+  TagIcon
+} from '@/components/mission-icons';
+import { readActiveWorkspace } from '@/lib/active-workspace';
 
-interface HistorySession {
+interface HistorySessionEntry {
   historyId: string;
   jobId: string;
   sessionId: string;
@@ -13,56 +23,133 @@ interface HistorySession {
   createdAtUtc: string;
   updatedAtUtc: string;
   status: string;
+  initiatorEmail: string;
+  comparisonId?: string | null;
   leftRevisionId?: string | null;
   rightRevisionId?: string | null;
   comparisonLabel?: string;
+  comparisonDateLabel?: string;
+  current?: boolean;
   latest?: boolean;
+  canRename?: boolean;
+  canDelete?: boolean;
+}
+
+interface HistorySessionGroup {
+  sessionId: string;
+  sessionName: string | null;
+  latestEntry: HistorySessionEntry;
+  renameTargetHistoryId: string | null;
+  entries: HistorySessionEntry[];
+  comparisonCount: number;
+  ownerEmail: string;
+  active: boolean;
+}
+
+function buildResultsUrl(entry: HistorySessionEntry): string | null {
+  const params = new URLSearchParams();
+  if (entry.comparisonId) {
+    params.set('comparisonId', entry.comparisonId);
+  } else if (entry.leftRevisionId && entry.rightRevisionId) {
+    params.set('leftRevisionId', entry.leftRevisionId);
+    params.set('rightRevisionId', entry.rightRevisionId);
+  } else {
+    return null;
+  }
+
+  params.set('sessionId', entry.sessionId);
+  return `/results?${params.toString()}`;
+}
+
+function comparisonFileName(entry: Pick<HistorySessionEntry, 'comparisonLabel' | 'comparisonDateLabel'>): string {
+  const label = entry.comparisonLabel || 'Comparison';
+  const comparisonDateLabel = entry.comparisonDateLabel || '';
+  const suffix = comparisonDateLabel ? ` (${comparisonDateLabel})` : '';
+  return suffix && label.endsWith(suffix) ? label.slice(0, -suffix.length) : label;
+}
+
+function buildSessionGroups(entries: HistorySessionEntry[], activeSessionId: string | null): HistorySessionGroup[] {
+  const grouped = new Map<string, HistorySessionEntry[]>();
+  for (const entry of entries) {
+    const current = grouped.get(entry.sessionId);
+    if (current) {
+      current.push(entry);
+      continue;
+    }
+    grouped.set(entry.sessionId, [entry]);
+  }
+
+  return [...grouped.entries()]
+    .map(([sessionId, sessionEntries]) => {
+      const sorted = [...sessionEntries].sort((a, b) => b.createdAtUtc.localeCompare(a.createdAtUtc));
+      const latestEntry = sorted[0];
+      const renameTarget = sorted.find((entry) => entry.canRename) || null;
+      return {
+        sessionId,
+        sessionName: latestEntry?.sessionName || null,
+        latestEntry,
+        renameTargetHistoryId: renameTarget?.historyId || null,
+        entries: sorted,
+        comparisonCount: sorted.length,
+        ownerEmail: latestEntry?.initiatorEmail || 'unknown-user',
+        active: activeSessionId === sessionId || sorted.some((entry) => entry.current)
+      };
+    })
+    .sort((a, b) => {
+      if (a.active !== b.active) return a.active ? -1 : 1;
+      return b.latestEntry.createdAtUtc.localeCompare(a.latestEntry.createdAtUtc);
+    });
 }
 
 export function HistoryPanel() {
   const historyParityEnabled =
     (process.env.NEXT_PUBLIC_HISTORY_PARITY_V1 || 'true').trim().toLowerCase() !== 'false';
-  const [sessions, setSessions] = useState<HistorySession[]>([]);
+  const [sessions, setSessions] = useState<HistorySessionEntry[]>([]);
   const [renameDraft, setRenameDraft] = useState<Record<string, string>>({});
   const [tagDraft, setTagDraft] = useState<Record<string, string>>({});
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<HistorySessionEntry | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   async function loadSessions() {
     try {
-      const response = await fetch('/api/history/sessions', { method: 'GET', cache: 'no-store' });
+      const workspace = readActiveWorkspace();
+      const query = new URLSearchParams();
+      if (workspace?.comparisonId) {
+        query.set('currentComparisonId', workspace.comparisonId);
+      }
+      setActiveSessionId(workspace?.sessionId || null);
+
+      const response = await fetch(`/api/history/sessions${query.size ? `?${query.toString()}` : ''}`, {
+        method: 'GET',
+        cache: 'no-store'
+      });
       const payload = (await response.json()) as
-        | { sessions?: HistorySession[] }
+        | { sessions?: HistorySessionEntry[] }
         | { code?: string; message?: string };
       if (!response.ok) {
         const err = payload as { code?: string; message?: string };
-        setError(`${err.code || 'HISTORY_LOAD_FAILED'}: ${err.message || 'Could not load history.'}`);
+        setError(`${err.code || 'HISTORY_LOAD_FAILED'}: ${err.message || 'Could not load revision chains.'}`);
         setSessions([]);
         return;
       }
 
-      const next = (payload as { sessions?: HistorySession[] }).sessions || [];
+      const next = (payload as { sessions?: HistorySessionEntry[] }).sessions || [];
       setSessions(next);
-      setRenameDraft((current) => {
-        const updated = { ...current };
-        for (const session of next) {
-          if (updated[session.historyId] === undefined) {
-            updated[session.historyId] = session.sessionName || '';
-          }
+
+      const nextRenameDraft: Record<string, string> = {};
+      const nextTagDraft: Record<string, string> = {};
+      for (const entry of next) {
+        if (nextRenameDraft[entry.sessionId] === undefined) {
+          nextRenameDraft[entry.sessionId] = entry.sessionName || '';
         }
-        return updated;
-      });
-      setTagDraft((current) => {
-        const updated = { ...current };
-        for (const session of next) {
-          if (updated[session.historyId] === undefined) {
-            updated[session.historyId] = session.tagLabel || '';
-          }
-        }
-        return updated;
-      });
+        nextTagDraft[entry.historyId] = entry.tagLabel || '';
+      }
+      setRenameDraft(nextRenameDraft);
+      setTagDraft(nextTagDraft);
     } catch {
-      setError('HISTORY_LOAD_FAILED: Could not load history.');
+      setError('HISTORY_LOAD_FAILED: Could not load revision chains.');
       setSessions([]);
     }
   }
@@ -72,8 +159,8 @@ export function HistoryPanel() {
     void loadSessions();
   }, [historyParityEnabled]);
 
-  async function renameSession(historyId: string) {
-    const draft = (renameDraft[historyId] || '').trim();
+  async function renameSession(historyId: string, sessionId: string) {
+    const draft = (renameDraft[sessionId] || '').trim();
     setError(null);
     setFeedback(null);
     const response = await fetch(`/api/history/sessions/${encodeURIComponent(historyId)}/rename`, {
@@ -86,7 +173,7 @@ export function HistoryPanel() {
       setError(`${payload.code || 'HISTORY_RENAME_FAILED'}: ${payload.message || 'Rename failed.'}`);
       return;
     }
-    setFeedback('Session name updated.');
+    setFeedback('Session title updated.');
     await loadSessions();
   }
 
@@ -101,10 +188,10 @@ export function HistoryPanel() {
     });
     const payload = (await response.json()) as { code?: string; message?: string };
     if (!response.ok) {
-      setError(`${payload.code || 'HISTORY_TAG_FAILED'}: ${payload.message || 'Tag update failed.'}`);
+      setError(`${payload.code || 'HISTORY_TAG_FAILED'}: ${payload.message || 'Private label update failed.'}`);
       return;
     }
-    setFeedback('Tag updated.');
+    setFeedback('Private label updated.');
     await loadSessions();
   }
 
@@ -119,7 +206,8 @@ export function HistoryPanel() {
       setError(`${payload.code || 'HISTORY_DELETE_FAILED'}: ${payload.message || 'Delete failed.'}`);
       return;
     }
-    setFeedback('Session deleted.');
+    setFeedback('Latest comparison removed.');
+    setSelectedEntry((current) => (current?.historyId === historyId ? null : current));
     await loadSessions();
   }
 
@@ -133,20 +221,33 @@ export function HistoryPanel() {
     );
   }
 
+  const groupedSessions = buildSessionGroups(sessions, activeSessionId);
+  const selectedEntryUrl = selectedEntry ? buildResultsUrl(selectedEntry) : null;
+
   return (
-    <section className="panel" data-testid="history-panel">
-      <div className="screenToolbar">
+    <section className="panel missionWorkspacePage missionWorkspacePageHistory historyChainsPanel" data-testid="history-panel">
+      <ActiveWorkspaceNotice
+        eyebrow="Active Session"
+        message="Your last results workspace is available if you want to jump back without rebuilding the URL."
+        dataTestId="history-active-workspace"
+      />
+
+      <div className="screenToolbar historyChainsToolbar">
         <div className="screenToolbarMeta">
-          <span className="missionShellEyebrow">Session archive</span>
-          <p className="p">Rename sessions, apply private label tags, and soft-delete history entries.</p>
+          <span className="missionShellEyebrow">Revision Chains</span>
+          <p className="p">
+            Grouped BOM session chains show how each comparison evolved when a new revision was added.
+          </p>
         </div>
         <div className="screenToolbarActions">
+          <span className="missionPill historyChainsToolbarPill">Grouped by session</span>
+          <span className="missionPill historyChainsToolbarPill">Newest first</span>
           <button
             className="screenIconAction"
             type="button"
             onClick={() => void loadSessions()}
-            aria-label="Refresh history"
-            title="Refresh history"
+            aria-label="Refresh revision chains"
+            title="Refresh revision chains"
             data-testid="history-refresh-btn"
           >
             <RefreshIcon />
@@ -165,107 +266,245 @@ export function HistoryPanel() {
         </div>
       )}
 
-      <div className="mappingTableWrap">
-        <table className="mappingTable" data-testid="history-table">
-          <thead>
-            <tr>
-              <th>Created</th>
-              <th>Session Name</th>
-              <th>Tag</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sessions.map((session) => (
-              <tr key={session.historyId} data-testid={`history-row-${session.historyId}`}>
-                <td>{new Date(session.createdAtUtc).toLocaleString()}</td>
-                <td>
+      <div className="historySessionList" data-testid="history-session-list">
+        {groupedSessions.map((session) => (
+          <details
+            className={`historySessionCard ${session.active ? 'historySessionCardActive' : ''}`}
+            key={session.sessionId}
+            data-testid={`history-session-${session.sessionId}`}
+          >
+            <summary className="historySessionSummary" data-testid={`history-session-summary-${session.sessionId}`}>
+              <div className="historySessionMain">
+                <div className="historySessionNameRow">
+                  <div className="historySessionName">{session.sessionName || 'Untitled session'}</div>
+                  {session.active ? <span className="missionPill historyPillActive">Open now</span> : null}
+                  {session.latestEntry.latest ? <span className="missionPill historyPillLatest">Latest revision</span> : null}
+                </div>
+                <div className="historySessionMeta">
+                  <span>Owner: {session.ownerEmail}</span>
+                  <span>Newest comparison: {comparisonFileName(session.latestEntry)}</span>
+                </div>
+              </div>
+              <div className="historySessionMetric">
+                <strong>{session.comparisonCount}</strong>
+                <span>Comparisons</span>
+              </div>
+              <span className="historySessionToggle" aria-hidden="true" />
+            </summary>
+
+            <div className="historySessionBody">
+              <div className="historySessionEditorCard">
+                <p className="missionShellEyebrow">Session title</p>
+                <div className="historySessionEditorRow">
                   <input
-                    value={renameDraft[session.historyId] || ''}
+                    className="historySessionInput"
+                    value={renameDraft[session.sessionId] || ''}
                     onChange={(event) =>
                       setRenameDraft((current) => ({
                         ...current,
-                        [session.historyId]: event.target.value
+                        [session.sessionId]: event.target.value
                       }))
                     }
-                    placeholder="Session name"
-                    data-testid={`history-rename-input-${session.historyId}`}
+                    placeholder="Untitled session"
+                    readOnly={!session.renameTargetHistoryId}
+                    data-testid={`history-session-name-input-${session.sessionId}`}
                   />
-                </td>
-                <td>
-                  <input
-                    value={tagDraft[session.historyId] || ''}
-                    onChange={(event) =>
-                      setTagDraft((current) => ({
-                        ...current,
-                        [session.historyId]: event.target.value
-                      }))
-                    }
-                    placeholder="Tag label"
-                    data-testid={`history-tag-input-${session.historyId}`}
-                  />
-                </td>
-                <td>{session.status}</td>
-                <td>
-                  <div className="screenRowActions">
-                    <button
-                      className="screenIconAction screenIconActionCompact"
-                      type="button"
-                      onClick={() => void renameSession(session.historyId)}
-                      aria-label={`Rename ${session.sessionName || session.historyId}`}
-                      title="Rename"
-                      data-testid={`history-rename-btn-${session.historyId}`}
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={() => session.renameTargetHistoryId && void renameSession(session.renameTargetHistoryId, session.sessionId)}
+                    disabled={!session.renameTargetHistoryId}
+                    data-testid={`history-session-name-save-${session.sessionId}`}
+                  >
+                    <ConfirmIcon />
+                    Save title
+                  </button>
+                </div>
+                <p className="historySessionEditorHint">Renaming applies to the full revision chain.</p>
+              </div>
+
+              <div className="historyComparisonTimeline" data-testid={`history-session-timeline-${session.sessionId}`}>
+                {session.entries.map((entry, index) => {
+                  const entryUrl = buildResultsUrl(entry);
+                  const comparisonNumber = session.comparisonCount - index;
+                  return (
+                    <article
+                      className={`historyComparisonCard ${entry.current ? 'historyComparisonCardCurrent' : ''}`}
+                      key={entry.historyId}
+                      data-testid={`history-comparison-${entry.historyId}`}
                     >
-                      <EditIcon />
-                    </button>
-                    <button
-                      className="screenIconAction screenIconActionCompact"
-                      type="button"
-                      onClick={() => void updateTag(session.historyId)}
-                      aria-label={`Save tag for ${session.sessionName || session.historyId}`}
-                      title="Save tag"
-                      data-testid={`history-tag-btn-${session.historyId}`}
-                    >
-                      <TagIcon />
-                    </button>
-                    <Link
-                      className="screenIconAction screenIconActionCompact"
-                      href={
-                        session.leftRevisionId && session.rightRevisionId
-                          ? `/results?sessionId=${encodeURIComponent(session.sessionId)}&leftRevisionId=${encodeURIComponent(
-                              session.leftRevisionId
-                            )}&rightRevisionId=${encodeURIComponent(session.rightRevisionId)}`
-                          : `/results?comparisonId=${encodeURIComponent(session.jobId)}&sessionId=${encodeURIComponent(session.sessionId)}`
-                      }
-                      aria-label={`Open ${session.sessionName || session.historyId}`}
-                      title="Open"
-                      data-testid={`history-open-results-${session.historyId}`}
-                    >
-                      <OpenIcon />
-                    </Link>
-                    <button
-                      className="screenIconAction screenIconActionCompact"
-                      type="button"
-                      onClick={() => void softDelete(session.historyId)}
-                      aria-label={`Delete ${session.sessionName || session.historyId}`}
-                      title="Delete"
-                      data-testid={`history-delete-btn-${session.historyId}`}
-                    >
-                      <DeleteIcon />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {sessions.length === 0 && (
-              <tr>
-                <td colSpan={5}>No active history sessions.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                      <div className="historyComparisonTop">
+                        <div className="historyComparisonStep">Comparison {comparisonNumber}</div>
+                        <div className="historyComparisonMain">
+                          <div className="historyComparisonTitle">{comparisonFileName(entry)}</div>
+                          <div className="historyComparisonMeta">
+                            <span>{entry.comparisonDateLabel || new Date(entry.createdAtUtc).toLocaleString()}</span>
+                            <span>{entry.initiatorEmail}</span>
+                          </div>
+                        </div>
+                        <div className="historyComparisonState">
+                          <span className="missionPill">{entry.status}</span>
+                          {entry.current ? <span className="missionPill historyPillActive">Current</span> : null}
+                          {entry.latest ? <span className="missionPill historyPillLatest">Latest</span> : null}
+                        </div>
+                      </div>
+
+                      <div className="historyComparisonActions">
+                        <button
+                          className="screenIconAction screenIconActionCompact"
+                          type="button"
+                          onClick={() => setSelectedEntry(entry)}
+                          aria-label={`Revision details for ${entry.comparisonLabel || entry.historyId}`}
+                          title="Revision details"
+                          data-testid={`history-details-open-${entry.historyId}`}
+                        >
+                          <FileDetailsIcon />
+                        </button>
+                        {entryUrl ? (
+                          <Link
+                            className="screenIconAction screenIconActionCompact"
+                            href={entryUrl}
+                            aria-label={`Open ${entry.comparisonLabel || entry.historyId}`}
+                            title="Open comparison"
+                            data-testid={`history-open-results-${entry.historyId}`}
+                          >
+                            <OpenIcon />
+                          </Link>
+                        ) : (
+                          <button
+                            className="screenIconAction screenIconActionCompact"
+                            type="button"
+                            disabled
+                            aria-label={`Open ${entry.historyId}`}
+                            title="Open comparison"
+                            data-testid={`history-open-results-${entry.historyId}`}
+                          >
+                            <OpenIcon />
+                          </button>
+                        )}
+                        <button
+                          className="screenIconAction screenIconActionCompact historyDeleteAction"
+                          type="button"
+                          onClick={() => void softDelete(entry.historyId)}
+                          disabled={!entry.canDelete}
+                          aria-label={`Delete ${entry.comparisonLabel || entry.historyId}`}
+                          title={entry.canDelete ? 'Delete latest comparison' : 'Only the latest comparison can be deleted'}
+                          data-testid={`history-delete-btn-${entry.historyId}`}
+                        >
+                          <DeleteIcon />
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          </details>
+        ))}
+
+        {groupedSessions.length === 0 ? (
+          <div className="historyEmptyState" data-testid="history-empty-state">
+            No revision chains are available yet.
+          </div>
+        ) : null}
       </div>
+
+      {selectedEntry ? (
+        <div className="screenModalLayer" role="presentation">
+          <button
+            className="screenModalBackdrop"
+            type="button"
+            aria-label="Close comparison details"
+            onClick={() => setSelectedEntry(null)}
+          />
+          <div
+            className="panel screenModalCard screenModalCardCompact missionWorkspaceDialog historyDetailsDialog"
+            data-testid="history-comparison-details-dialog"
+          >
+            <div className="screenModalHeader">
+              <div className="screenToolbarMeta">
+                <p className="missionShellEyebrow">Revision Details</p>
+                <h2 className="h2">{comparisonFileName(selectedEntry)}</h2>
+                <p className="p">{selectedEntry.comparisonDateLabel || new Date(selectedEntry.createdAtUtc).toLocaleString()}</p>
+              </div>
+              <button
+                className="screenIconAction screenIconActionCompact"
+                type="button"
+                onClick={() => setSelectedEntry(null)}
+                aria-label="Close comparison details dialog"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+
+            <div className="historyDetailsGrid">
+              <div className="historyDetailsItem">
+                <span>Session title</span>
+                <strong>{selectedEntry.sessionName || 'Untitled session'}</strong>
+              </div>
+              <div className="historyDetailsItem">
+                <span>Status</span>
+                <strong>{selectedEntry.status}</strong>
+              </div>
+              <div className="historyDetailsItem">
+                <span>Owner</span>
+                <strong>{selectedEntry.initiatorEmail}</strong>
+              </div>
+              <div className="historyDetailsItem">
+                <span>Markers</span>
+                <strong>
+                  {[selectedEntry.current ? 'Current' : null, selectedEntry.latest ? 'Latest' : null].filter(Boolean).join(' / ') || 'Completed'}
+                </strong>
+              </div>
+            </div>
+
+            <div className="historyDetailsLabelCard">
+              <p className="missionShellEyebrow">Private label</p>
+              <div className="screenInlineForm historyDetailsInlineForm">
+                <input
+                  value={tagDraft[selectedEntry.historyId] || ''}
+                  onChange={(event) =>
+                    setTagDraft((current) => ({
+                      ...current,
+                      [selectedEntry.historyId]: event.target.value
+                    }))
+                  }
+                  placeholder="Add private label"
+                  data-testid={`history-tag-input-${selectedEntry.historyId}`}
+                />
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => void updateTag(selectedEntry.historyId)}
+                  data-testid={`history-tag-btn-${selectedEntry.historyId}`}
+                >
+                  <TagIcon />
+                  Save label
+                </button>
+              </div>
+            </div>
+
+            <div className="screenDialogActions historyDetailsActions">
+              {selectedEntryUrl ? (
+                <Link className="btn" href={selectedEntryUrl} data-testid={`history-details-open-results-${selectedEntry.historyId}`}>
+                  <OpenIcon />
+                  Open comparison
+                </Link>
+              ) : null}
+              <button
+                className="btn historyDeleteButton"
+                type="button"
+                onClick={() => void softDelete(selectedEntry.historyId)}
+                disabled={!selectedEntry.canDelete}
+                data-testid={`history-details-delete-${selectedEntry.historyId}`}
+              >
+                <DeleteIcon />
+                Delete latest
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -6,6 +6,7 @@ import { MappingAliasLearningService } from './mapping-alias-learning.service';
 import { MappingAuditService } from './mapping-audit.service';
 import { MappingDetectionService } from './mapping-detection.service';
 import { MappingFieldPolicyService } from './mapping-field-policy.service';
+import { MappingPreviewPresenterService } from './mapping-preview-presenter.service';
 
 interface RevisionSeed {
   headers: string[];
@@ -19,7 +20,8 @@ export class MappingPreviewService {
     private readonly mappingAliasLearningService: MappingAliasLearningService,
     private readonly mappingDetectionService: MappingDetectionService,
     private readonly mappingFieldPolicyService: MappingFieldPolicyService,
-    private readonly mappingAuditService: MappingAuditService
+    private readonly mappingAuditService: MappingAuditService,
+    private readonly mappingPreviewPresenterService: MappingPreviewPresenterService
   ) {}
 
   async getPreview(
@@ -50,10 +52,18 @@ export class MappingPreviewService {
       columns
     });
 
+    const preview = await this.mappingPreviewPresenterService.presentPreview({
+      revisionId,
+      tenantId,
+      sampleRows: seed.sampleRows,
+      columns,
+      requiredFieldsStatus
+    });
+
     return {
+      ...preview,
       contractVersion: MAPPING_CONTRACT_VERSION,
       revisionId,
-      columns,
       sampleRows: seed.sampleRows,
       requiredFieldsStatus,
       canProceed: requiredFieldsStatus.every((status) => status.mapped)

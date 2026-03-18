@@ -1047,6 +1047,64 @@ Implement Excel export so the downloaded workbook preserves the latest uploaded 
 
 ---
 
+## Sprint S24 - Smart BOM Region Detection
+
+### Sprint Metadata
+- Sprint: `S24`
+- Stage: `Upload Parsing + Sheet-Aware BOM Region Detection`
+- Dates: `TBD`
+- Owner: `Product + Engineering`
+- Status: `Backlog`
+
+### Sprint Goal
+Enable sheet-aware, precision-first BOM extraction for CSV/XLS/XLSX uploads so the system compares the actual BOM table while safely excluding workbook framing content.
+
+Execution backlog:
+- `BACKLOG_S24_SMART_BOM_REGION_DETECTION.md`
+
+### Scope (Committed)
+| ID | Work Item | Traceability | Estimate | Owner | Priority | Status |
+|---|---|---|---:|---|---|---|
+| S24-01 | Add workbook metadata endpoint and preferred-sheet discovery for visible sheets | `docs/SMART_BOM_REGION_DETECTION_IMPLEMENTATION_SPEC.md`; sheet-selection decision set | 3 | BE | P0 | `Backlog` |
+| S24-02 | Add per-revision sheet dropdowns on `/upload` and `Upload Next Revision` | `docs/SMART_BOM_REGION_DETECTION_IMPLEMENTATION_SPEC.md`; upload UX decision set | 5 | FE | P0 | `Backlog` |
+| S24-03 | Extend validate/intake contracts to carry selected sheet values and parser warnings | `docs/SMART_BOM_REGION_DETECTION_IMPLEMENTATION_SPEC.md`; deterministic upload contract | 3 | FE/BE | P0 | `Backlog` |
+| S24-04 | Implement smart BOM-region detection with crop-first vs map-first confidence comparison | `docs/SMART_BOM_REGION_DETECTION_ARCHITECTURE.md`; parser-boundary architecture | 8 | BE | P0 | `Backlog` |
+| S24-05 | Add fallback controls, non-technical validation warnings, diagnostics, and feature flag rollout path | `docs/SMART_BOM_REGION_DETECTION_IMPLEMENTATION_SPEC.md`; change-management controls | 5 | FE/BE | P0 | `Backlog` |
+| S24-06 | Add fixture matrix and regression coverage for workbook and CSV variants | `docs/BOM Examples`; QA hardening | 5 | QA/BE/FE | P0 | `Backlog` |
+
+### Locked Decisions
+- Scan all visible sheets.
+- Prefer sheet names similar to `BOM`, `BillOfMaterials`, `Parts`, and `Components`.
+- Show an always-visible per-revision sheet dropdown and disable it until workbook metadata loads.
+- For CSV, show a disabled single-option `CSV`.
+- User-selected sheet wins completely for sheet selection.
+- Strictly exclude non-line-item columns while preserving legitimate business columns.
+- Always remove totals, subtotals, legends, status keys, instructions, and other non-BOM footer rows.
+- Primary BOM-row qualification is any 2 of `part number`, `description`, and `quantity`, with score-based fallback.
+- Ignore images entirely.
+- Favor precision over recall.
+- Weak-confidence cases continue with fallback to the current parser plus warning and diagnostics.
+- Rollout behind `UPLOAD_BOM_REGION_DETECTION_V1`.
+
+### Guardrails
+- Do not redesign the diff engine after normalized rows are produced.
+- Do not add manual row/column override in this sprint.
+- Do not add row/column preview UI in this sprint.
+- Keep validate and intake deterministic with respect to the user-reviewed sheet selection.
+- Non-technical validation warnings are required for fallback cases.
+
+### Definition of Done (Sprint-Level)
+- Workbook metadata discovery, sheet selection, and smart BOM-region detection are implemented behind a feature flag.
+- Validation and intake use the same selected-sheet contract deterministically.
+- Weak-confidence extraction degrades safely to the current parser with user warning and engineering diagnostics.
+- Fixture and regression automation pass for workbook and CSV examples.
+- Downstream compare behavior remains unchanged after BOM extraction.
+
+### Detailed Sprint Record
+- `docs/SPRINT_S24_SMART_BOM_REGION_DETECTION.md`
+
+---
+
 ## Ticket-Ready Story Template
 
 Use this template for every backlog story before sprint start.

@@ -685,6 +685,134 @@ Current recommendation:
 - Add a richer preview contract and redesign the frontend as a grouped, summary-first field-understanding experience
 - Make the experience safe for business users without weakening engineering/admin control over durable alias learning and governance
 
+### ISSUE-028 - Results workspace still leaves an unnecessary left gutter between navigation and content
+- Status: `Resolved`
+- Priority: `P2`
+- Area: `Frontend / Results / Layout`
+- First observed: `2026-03-16`
+
+Problem:
+- The `/results` workspace still renders with an extra left gutter between the redesigned sidebar and the page content.
+- That gap reduces usable horizontal space and makes the page feel narrower than the surrounding shell.
+
+Desired outcome:
+- Remove the extra gutter so the results workspace uses the available page width while preserving the existing toolbar, table, and modal behavior.
+
+Resolution:
+- Implemented on `2026-03-16`.
+- Removed the results-shell body gutter and moved the inner spacing into the results surface itself so the workspace now fills the available content area without changing current interactions.
+
+### ISSUE-029 - Session rename controls sit too far away from the Results page title
+- Status: `Resolved`
+- Priority: `P2`
+- Area: `Frontend / Results / Session UX`
+- First observed: `2026-03-16`
+
+Problem:
+- The session title textbox and save action were buried inside the larger `Session Workspace` panel instead of living directly beneath the page title.
+- This made the primary session naming control feel detached from the page heading and harder to discover.
+
+Desired outcome:
+- Move the session title textbox and save action directly under the `Results` page title while preserving session-wide rename behavior.
+
+Resolution:
+- Implemented on `2026-03-16`.
+- Replaced the large session-workspace panel with a compact session-title bar directly below the `Results` header and kept the existing blur-save and explicit-save flows intact.
+
+### ISSUE-030 - Results page lacks a dedicated current-file comparison details action
+- Status: `Resolved`
+- Priority: `P2`
+- Area: `Frontend / Results / Session Continuity`
+- First observed: `2026-03-16`
+
+Problem:
+- The current comparison details were only visible inside the larger session workspace area, with no dedicated toolbar action for quickly checking the latest loaded file comparison.
+
+Desired outcome:
+- Add a recognized file-details action near `Upload next revision` that opens a popup with the current file comparison details.
+
+Resolution:
+- Implemented on `2026-03-16`.
+- Added a document-style current-comparison action to the results toolbar, positioned to the left of `Upload next revision`, and wired it to a popup showing the active comparison label, state, user, uploaded timestamp, and session title.
+
+### ISSUE-031 - Session Workspace panel is redundant after session continuity actions moved into the header and dialogs
+- Status: `Resolved`
+- Priority: `P2`
+- Area: `Frontend / Results / Session UX`
+- First observed: `2026-03-16`
+
+Problem:
+- The `Session Workspace` section consumed a large amount of vertical space after the results page already had a title area, toolbar, and previous-comparisons dialog.
+- Once the rename control and current-comparison summary are surfaced elsewhere, the panel becomes redundant.
+
+Desired outcome:
+- Remove the `Session Workspace` section without removing the underlying session continuity capabilities.
+
+Resolution:
+- Implemented on `2026-03-16`.
+- Removed the `Session Workspace` panel, kept rename in the page header area, preserved previous-comparison open/delete flows in the existing dialog, and retained the current-comparison details via the new toolbar popup.
+
+### ISSUE-032 - History page is still a flat archive instead of a grouped BOM revision chain view
+- Status: `Resolved`
+- Priority: `P2`
+- Area: `Frontend / History / Revision Chains`
+- First observed: `2026-03-16`
+
+Problem:
+- The `/history` page still presents one flat row per comparison, which forces users to infer which records belong to the same BOM session.
+- The current table does not visually explain that `Upload next revision` grows a shared revision chain over time.
+- Inline rename and tag fields read like table maintenance controls rather than session-level chain management.
+
+Desired outcome:
+- Rebuild `/history` as grouped `Revision Chains` with collapsible BOM session cards, expanded session-level editing, and newest-first comparison cards while preserving open, rename, private-label, and latest-delete behavior.
+
+Resolution:
+- Implemented on `2026-03-16`.
+- Replaced the flat history table with grouped revision-chain accordions, moved rename into the expanded session surface, preserved private-label editing through a details modal, kept open and latest-only delete actions intact, and aligned the page header and navigation copy to `Revision Chains`.
+
+### ISSUE-033 - Mission Control theme stops at Upload and Results instead of carrying through the rest of the authenticated frontend
+- Status: `Resolved`
+- Priority: `P1`
+- Area: `Frontend / Shell / Admin / Notifications / History / Mappings`
+- First observed: `2026-03-17`
+
+Problem:
+- `/upload` and `/results` already present the intended Mission Control visual system, but `/admin`, `/notifications`, `/history`, `/mappings`, and their popups still use mixed legacy panels, table surfaces, and older spacing rules.
+- The authenticated product therefore feels like several different applications stitched into one shell rather than one coherent workspace.
+- The remaining pages need the same surface language, card rhythm, toolbar hierarchy, popup styling, and responsive behavior without changing the underlying workflows.
+
+Desired outcome:
+- Extend the Mission Control theme across the rest of the authenticated frontend so that page bodies, supporting cards, and dialogs/popup surfaces visually align with `/upload` and `/results` while preserving all current functionality, routes, and selectors required for regression safety.
+
+Resolution:
+- Implemented on `2026-03-17`.
+- Added a shared Mission Control workspace treatment for non-results pages, rethemed `/notifications`, `/mappings`, `/history`, and `/admin`, aligned their dialogs and popovers to the same surface language, and preserved existing behaviors with focused frontend typecheck, build, and Playwright regression coverage.
+
+### ISSUE-034 - Secondary pages still miss strict Mission Control brand parity against the approved Upload and Results baseline
+- Status: `Resolved`
+- Priority: `P1`
+- Area: `Frontend / Design System / Admin / Notifications / History / Mappings`
+- First observed: `2026-03-17`
+
+Problem:
+- The first mission-control unification pass carried the idea of shared theming into `/admin`, `/notifications`, `/history`, and `/mappings`, but it still diverged from the actual approved baseline visible on `/upload` and `/results`.
+- Those pages continued to use gradients, larger radii, summary cards, stronger chrome, and a looser interpretation of the theme instead of the flatter mission-control language with thin borders, monochrome surfaces, restrained pills, and sparse accent color.
+- Dialogs and popup surfaces in those areas also remained visually heavier than the baseline.
+
+Desired outcome:
+- Amend the documentation and implement strict Mission Control brand parity on `/mappings`, `/history`, `/notifications`, `/admin`, and their dialogs/popups using the established `/upload` and `/results` baseline:
+  - cool light-gray app background
+  - white flat cards with thin gray borders
+  - low-radius corners
+  - no drop shadows
+  - sans-serif UI copy plus monospace data labels and values where appropriate
+  - pastel status pills with restrained color use
+  - wide, whitespace-driven layout with horizontal-only table separation
+
+Resolution:
+- Implemented on `2026-03-17`.
+- Added `S23` documentation for strict brand parity, replaced the previous workspace-only interpretation with the flatter mission-control baseline on `/admin`, `/notifications`, `/history`, `/mappings`, and mapping preview, aligned popup surfaces to the same aesthetic rules, and added a reusable local skill to apply the same aesthetics to future pages.
+
 ## 3. Linked follow-up records
 - Sprint 12 QA: [UI_QA_S12_RESULTS_REVISION_CHAIN.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\UI_QA_S12_RESULTS_REVISION_CHAIN.md:1)
 - Sprint 12.1 backlog: [SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md:1)

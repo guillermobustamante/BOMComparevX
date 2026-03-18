@@ -8,6 +8,7 @@ import { MappingController } from './mapping.controller';
 import { MappingDetectionService } from './mapping-detection.service';
 import { MappingFieldPolicyService } from './mapping-field-policy.service';
 import { MappingPersistenceService } from './mapping-persistence.service';
+import { MappingPreviewPresenterService } from './mapping-preview-presenter.service';
 import { MappingPreviewService } from './mapping-preview.service';
 import { SemanticRegistryService } from './semantic-registry.service';
 import { TaxonomyPropertyFamilyService } from './taxonomy-property-family.service';
@@ -22,6 +23,7 @@ import { TaxonomyPropertyFamilyService } from './taxonomy-property-family.servic
     MappingAliasLearningService,
     MappingFieldPolicyService,
     MappingDetectionService,
+    MappingPreviewPresenterService,
     MappingPreviewService,
     MappingPersistenceService,
     MappingAuditService,
@@ -34,6 +36,7 @@ import { TaxonomyPropertyFamilyService } from './taxonomy-property-family.servic
     MappingAliasLearningService,
     MappingFieldPolicyService,
     MappingDetectionService,
+    MappingPreviewPresenterService,
     MappingPreviewService,
     MappingPersistenceService,
     MappingAuditService

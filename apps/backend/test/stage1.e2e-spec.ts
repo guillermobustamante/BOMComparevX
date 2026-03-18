@@ -108,6 +108,64 @@ describe('Stage 1 API baseline (e2e)', () => {
     await app.close();
   });
 
+  async function createSessionChain(
+    agent: ReturnType<typeof request.agent>,
+    prefix: string
+  ): Promise<{
+    sessionId: string;
+    firstHistoryId: string;
+    secondHistoryId: string;
+    firstComparisonId: string;
+    secondComparisonId: string;
+  }> {
+    const first = await agent
+      .post('/api/uploads/intake')
+      .attach('fileA', Buffer.from('part_number,description,quantity\nBOM-H,Widget H,2\n'), {
+        filename: `${prefix}-a.csv`,
+        contentType: 'text/csv'
+      })
+      .attach('fileB', Buffer.from('part_number,description,quantity\nBOM-H,Widget H,3\n'), {
+        filename: `${prefix}-b.csv`,
+        contentType: 'text/csv'
+      })
+      .expect(202);
+
+    const firstStarted = await agent
+      .post('/api/diff-jobs')
+      .send({
+        sessionId: first.body.sessionId,
+        leftRevisionId: first.body.leftRevisionId,
+        rightRevisionId: first.body.rightRevisionId
+      })
+      .expect(201);
+
+    const second = await agent
+      .post('/api/uploads/intake')
+      .field('sessionId', first.body.sessionId as string)
+      .attach('fileB', Buffer.from('part_number,description,quantity\nBOM-H,Widget H,4\n'), {
+        filename: `${prefix}-c.csv`,
+        contentType: 'text/csv'
+      })
+      .expect(202);
+
+    const secondStarted = await agent
+      .post('/api/diff-jobs')
+      .send({
+        sessionId: second.body.sessionId,
+        leftRevisionId: second.body.leftRevisionId,
+        rightRevisionId: second.body.rightRevisionId
+      })
+      .expect(201);
+
+    return {
+      sessionId: first.body.sessionId as string,
+      firstHistoryId: first.body.historyId as string,
+      secondHistoryId: second.body.historyId as string,
+      firstComparisonId: firstStarted.body.jobId as string,
+      secondComparisonId: secondStarted.body.jobId as string
+    };
+  }
+
   it('GET /api/health returns ok', async () => {
     const response = await request(app.getHttpServer()).get('/api/health').expect(200);
     expect(response.body).toEqual({ status: 'ok' });
@@ -589,6 +647,151 @@ describe('Stage 1 API baseline (e2e)', () => {
     ).toBe(false);
   });
 
+  it('session history exposes immutable comparison ids and lifecycle markers for a session chain', async () => {
+    const ownerEmail = `history.chain.owner.${Date.now()}@example.com`;
+    const ownerAgent = request.agent(app.getHttpServer());
+    await ownerAgent
+      .post('/api/auth/test/login')
+      .send({ email: ownerEmail, tenantId: 'tenant-history-chain', provider: 'google' })
+      .expect(201);
+
+    const chain = await createSessionChain(ownerAgent, `history-chain-${Date.now()}`);
+    const response = await ownerAgent
+      .get(
+        `/api/history/sessions?sessionId=${encodeURIComponent(chain.sessionId)}&currentComparisonId=${encodeURIComponent(
+          chain.secondComparisonId
+        )}`
+      )
+      .expect(200);
+
+    const sessions = response.body.sessions as Array<{
+      historyId: string;
+      comparisonId: string | null;
+      status: string;
+      current: boolean;
+      latest: boolean;
+      canRename: boolean;
+      canDelete: boolean;
+      comparisonLabel: string;
+    }>;
+    expect(sessions).toHaveLength(2);
+
+    const firstEntry = sessions.find((entry) => entry.historyId === chain.firstHistoryId);
+    const secondEntry = sessions.find((entry) => entry.historyId === chain.secondHistoryId);
+
+    expect(firstEntry).toBeDefined();
+    expect(firstEntry?.comparisonId).toBe(chain.firstComparisonId);
+    expect(firstEntry?.status).toBe('completed');
+    expect(firstEntry?.current).toBe(false);
+    expect(firstEntry?.latest).toBe(false);
+    expect(firstEntry?.canRename).toBe(true);
+    expect(firstEntry?.canDelete).toBe(false);
+    expect(firstEntry?.comparisonLabel).toBeTruthy();
+
+    expect(secondEntry).toBeDefined();
+    expect(secondEntry?.comparisonId).toBe(chain.secondComparisonId);
+    expect(secondEntry?.status).toBe('completed');
+    expect(secondEntry?.current).toBe(true);
+    expect(secondEntry?.latest).toBe(true);
+    expect(secondEntry?.canRename).toBe(true);
+    expect(secondEntry?.canDelete).toBe(true);
+    expect(secondEntry?.comparisonLabel).toBeTruthy();
+  });
+
+  it('shared viewers can read a full session chain for the active comparison but cannot mutate it', async () => {
+    const ownerAgent = request.agent(app.getHttpServer());
+    await ownerAgent
+      .post('/api/auth/test/login')
+      .send({ email: `history.share.owner.${Date.now()}@example.com`, tenantId: 'tenant-history-share', provider: 'google' })
+      .expect(201);
+
+    const chain = await createSessionChain(ownerAgent, `history-share-${Date.now()}`);
+    const viewerEmail = `history.share.viewer.${Date.now()}@example.com`;
+
+    await ownerAgent
+      .post('/api/shares/invite')
+      .send({
+        comparisonId: chain.secondComparisonId,
+        invitedEmails: [viewerEmail]
+      })
+      .expect(201);
+
+    const viewerAgent = request.agent(app.getHttpServer());
+    await viewerAgent
+      .post('/api/auth/test/login')
+      .send({ email: viewerEmail, tenantId: 'tenant-history-share', provider: 'google' })
+      .expect(201);
+
+    const response = await viewerAgent
+      .get(
+        `/api/history/sessions?sessionId=${encodeURIComponent(chain.sessionId)}&currentComparisonId=${encodeURIComponent(
+          chain.secondComparisonId
+        )}`
+      )
+      .expect(200);
+
+    const sessions = response.body.sessions as Array<{
+      historyId: string;
+      comparisonId: string | null;
+      canRename: boolean;
+      canDelete: boolean;
+      current: boolean;
+    }>;
+    expect(sessions).toHaveLength(2);
+    expect(sessions.every((entry) => entry.canRename === false)).toBe(true);
+    expect(sessions.every((entry) => entry.canDelete === false)).toBe(true);
+    expect(sessions.some((entry) => entry.comparisonId === chain.firstComparisonId)).toBe(true);
+    expect(sessions.some((entry) => entry.comparisonId === chain.secondComparisonId && entry.current)).toBe(true);
+
+    await viewerAgent
+      .post(`/api/history/sessions/${chain.secondHistoryId}/rename`)
+      .send({ sessionName: 'Viewer should not rename' })
+      .expect(404);
+  });
+
+  it('session rename propagates across the full comparison chain', async () => {
+    const ownerAgent = request.agent(app.getHttpServer());
+    await ownerAgent
+      .post('/api/auth/test/login')
+      .send({ email: `history.rename.chain.${Date.now()}@example.com`, tenantId: 'tenant-history-rename', provider: 'google' })
+      .expect(201);
+
+    const chain = await createSessionChain(ownerAgent, `history-rename-${Date.now()}`);
+    await ownerAgent
+      .post(`/api/history/sessions/${chain.firstHistoryId}/rename`)
+      .send({ sessionName: 'Program Alpha Release' })
+      .expect(201);
+
+    const response = await ownerAgent
+      .get(`/api/history/sessions?sessionId=${encodeURIComponent(chain.sessionId)}`)
+      .expect(200);
+    const sessions = response.body.sessions as Array<{ sessionName: string | null; comparisonLabel: string }>;
+    expect(sessions).toHaveLength(2);
+    expect(sessions.every((entry) => entry.sessionName === 'Program Alpha Release')).toBe(true);
+    expect(sessions.every((entry) => entry.comparisonLabel.includes('Program Alpha Release'))).toBe(false);
+  });
+
+  it('deleting the latest comparison returns rollback metadata and blocks deleting older comparisons', async () => {
+    const ownerAgent = request.agent(app.getHttpServer());
+    await ownerAgent
+      .post('/api/auth/test/login')
+      .send({ email: `history.delete.latest.${Date.now()}@example.com`, tenantId: 'tenant-history-delete', provider: 'google' })
+      .expect(201);
+
+    const chain = await createSessionChain(ownerAgent, `history-delete-${Date.now()}`);
+
+    await ownerAgent.post(`/api/history/sessions/${chain.firstHistoryId}/delete`).expect(409);
+
+    const deleted = await ownerAgent.post(`/api/history/sessions/${chain.secondHistoryId}/delete`).expect(201);
+    expect(deleted.body.deleted).toBe(true);
+    expect(deleted.body.historyId).toBe(chain.secondHistoryId);
+    expect(deleted.body.sessionId).toBe(chain.sessionId);
+    expect(deleted.body.nextActiveHistoryId).toBe(chain.firstHistoryId);
+    expect(deleted.body.nextActiveComparisonId).toBe(chain.firstComparisonId);
+    expect(deleted.body.nextActiveLeftRevisionId).toBeDefined();
+    expect(deleted.body.nextActiveRightRevisionId).toBeDefined();
+  });
+
   it('upload policy allows first three comparisons unrestricted and tracks usage', async () => {
     const email = `policy.user.${Date.now()}@example.com`;
     const agent = request.agent(app.getHttpServer());
@@ -689,7 +892,7 @@ describe('Stage 1 API baseline (e2e)', () => {
   });
 
   it('stage 3 mapping contract exposes canonical fields and confidence bands', () => {
-    expect(MAPPING_CONTRACT_VERSION).toBe('v1');
+    expect(MAPPING_CONTRACT_VERSION).toBe('v2');
     expect(DETECTION_CONFLICT_POLICY).toBe('fresh_detection_precedence');
     expect(MAPPING_EDIT_POLICY).toBe('owner_only');
     expect(REQUIRED_CANONICAL_FIELDS).toEqual(['part_number', 'description', 'quantity']);

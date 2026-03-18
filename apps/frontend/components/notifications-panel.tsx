@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { ActiveWorkspaceNotice } from '@/components/active-workspace-notice';
 import { OpenIcon, RefreshIcon } from '@/components/mission-icons';
 
 interface NotificationItem {
@@ -14,6 +15,19 @@ interface NotificationItem {
   createdAtUtc: string;
   comparisonId: string | null;
   emailDispatchedAtUtc: string | null;
+}
+
+const notificationDateFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short'
+});
+
+function formatNotificationDate(value: string) {
+  return notificationDateFormatter.format(new Date(value));
+}
+
+function notificationTypeLabel(type: NotificationItem['type']) {
+  return type === 'comparison_completed' ? 'Completed' : 'Failed';
 }
 
 export function NotificationsPanel() {
@@ -64,14 +78,27 @@ export function NotificationsPanel() {
     void loadNotifications();
   }, []);
 
+  const unreadCount = items.filter((item) => !item.isRead).length;
+  const completedCount = items.filter((item) => item.type === 'comparison_completed').length;
+  const failedCount = items.filter((item) => item.type === 'comparison_failed').length;
+
   return (
-    <section className="panel" data-testid="notifications-panel">
-      <div className="screenToolbar">
-        <div className="screenToolbarMeta">
-          <span className="missionShellEyebrow">Event log</span>
-          <p className="p">Track completion and failure notices, then jump directly to the linked comparison.</p>
+    <section className="panel missionWorkspacePage missionWorkspacePageStream notificationsPage" data-testid="notifications-panel">
+      <ActiveWorkspaceNotice
+        eyebrow="Active Session"
+        message="Notification links can take you elsewhere, but your current results workspace is still available."
+        dataTestId="notifications-active-workspace"
+      />
+      <div className="screenToolbar missionWorkspaceHero">
+        <div className="screenToolbarMeta missionWorkspaceHeroMeta">
+          <span className="missionShellEyebrow">Mission Feed</span>
+          <p className="p">Track comparison completions and failures, then jump directly back into the linked workspace.</p>
         </div>
-        <div className="screenToolbarActions">
+        <div className="screenToolbarActions missionWorkspaceHeroActions">
+          <span className="missionPill">{items.length} events</span>
+          <span className="missionPill">{unreadCount} unread</span>
+          <span className="missionPill notificationPillComplete">{completedCount} completed</span>
+          <span className="missionPill notificationPillFailed">{failedCount} failed</span>
           <button
             className="screenIconAction"
             type="button"
@@ -92,48 +119,56 @@ export function NotificationsPanel() {
         </div>
       )}
 
-      {!isLoading && !error && items.length === 0 && <p className="p">No notifications yet.</p>}
+      {!isLoading && !error && items.length === 0 && <p className="p missionWorkspaceEmptyState">No notifications yet.</p>}
       {!isLoading && !error && items.length > 0 && (
-        <div className="mappingTableWrap">
-          <table className="mappingTable" data-testid="notifications-table">
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Message</th>
-                <th>Created</th>
-                <th>Email</th>
-                <th>Link</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.notificationId}>
-                  <td>{item.type}</td>
-                  <td>{item.message}</td>
-                  <td>{new Date(item.createdAtUtc).toLocaleString()}</td>
-                  <td>{item.emailDispatchedAtUtc ? 'sent' : 'disabled'}</td>
-                  <td>
-                    {item.linkPath ? (
-                      <Link
-                        href={item.linkPath}
-                        className="screenIconAction screenIconActionCompact"
-                        onClick={() => void markRead(item.notificationId)}
-                        aria-label={`Open notification ${item.notificationId}`}
-                        title="Open"
-                        data-testid={`notification-link-${item.notificationId}`}
-                      >
-                        <OpenIcon />
-                      </Link>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td>{item.isRead ? 'read' : 'unread'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="notificationsList" data-testid="notifications-table">
+          {items.map((item) => (
+            <article
+              key={item.notificationId}
+              className={`notificationCard ${item.isRead ? 'notificationCardRead' : 'notificationCardUnread'}`}
+            >
+              <div className="notificationCardTop">
+                <div className="notificationCardTitleGroup">
+                  <div className="notificationCardPills">
+                    <span className={`missionPill ${item.type === 'comparison_failed' ? 'notificationPillFailed' : 'notificationPillComplete'}`}>
+                      {notificationTypeLabel(item.type)}
+                    </span>
+                    <span className="missionPill">{item.isRead ? 'Read' : 'Unread'}</span>
+                  </div>
+                  <h2 className="h3">{item.title}</h2>
+                </div>
+                <div className="notificationCardTimestamp">{formatNotificationDate(item.createdAtUtc)}</div>
+              </div>
+
+              <p className="p notificationCardMessage">{item.message}</p>
+
+              <div className="notificationCardMeta">
+                <span>Email delivery: {item.emailDispatchedAtUtc ? 'Sent' : 'Disabled'}</span>
+                {item.comparisonId ? <span>Comparison: {item.comparisonId}</span> : <span>No linked comparison</span>}
+              </div>
+
+              <div className="notificationCardActions">
+                {item.linkPath ? (
+                  <Link
+                    href={item.linkPath}
+                    className="btn"
+                    onClick={() => void markRead(item.notificationId)}
+                    aria-label={`Open notification ${item.notificationId}`}
+                    title="Open"
+                    data-testid={`notification-link-${item.notificationId}`}
+                  >
+                    <OpenIcon />
+                    Open
+                  </Link>
+                ) : (
+                  <button className="btn" type="button" disabled>
+                    <OpenIcon />
+                    Unavailable
+                  </button>
+                )}
+              </div>
+            </article>
+          ))}
         </div>
       )}
     </section>
