@@ -4,6 +4,8 @@ import { extname } from 'node:path';
 import * as XLSX from 'xlsx';
 import { DatabaseService } from '../database/database.service';
 import { DiffComparableRow } from '../diff/diff-contract';
+import { BomRegionDetectionService, BomRegionWarning } from './bom-region-detection.service';
+import { UploadWorkbookMetadataService } from './upload-workbook-metadata.service';
 
 interface StoredRevision {
   revisionId: string;
@@ -43,12 +45,38 @@ interface ParsedTableRow {
 interface ParsedTableResult {
   rows: ParsedTableRow[];
   sheetName: string;
+  warnings?: BomRegionWarning[];
+  fallbackParserUsed?: boolean;
+  diagnostics?: Record<string, unknown>;
+}
+
+interface ParseRowsOptions {
+  selectedSheetName?: string;
+}
+
+export interface ParsedRevisionAnalysis {
+  parserMode: ParserMode;
+  sheetName: string;
+  headers: string[];
+  headerFields: Array<keyof DiffComparableRow | null>;
+  headerRowIndex: number;
+  dataStartRowIndex: number;
+  dataEndRowIndex: number;
+  workbookBuffer: Buffer | null;
+  rows: DiffComparableRow[];
+  warnings: BomRegionWarning[];
+  fallbackParserUsed: boolean;
+  diagnostics?: Record<string, unknown>;
 }
 
 const HEADER_ALIASES = {
   partNumber: [
+    'part',
+    'partnum',
     'partnumber',
     'partno',
+    'itemnumber',
+    'itemno',
     'pn',
     'partid',
     'itemid',
@@ -59,7 +87,17 @@ const HEADER_ALIASES = {
     'cosmapartnumber'
   ],
   revision: ['revision', 'rev', 'version', 'mevscurrentrevision', 'oempartrev', 'cosmarevision', 'revisionlevel'],
-  description: ['description', 'desc', 'details', 'partname', 'partdescription', 'compdesc', 'objectdescription', 'partnameoemcosname'],
+  description: [
+    'description',
+    'desc',
+    'details',
+    'partname',
+    'itemname',
+    'partdescription',
+    'compdesc',
+    'objectdescription',
+    'partnameoemcosname'
+  ],
   quantity: [
     'quantity',
     'qty',
@@ -102,7 +140,11 @@ const MAX_PARSED_ROWS = 100_000;
 
 @Injectable()
 export class UploadRevisionService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly uploadWorkbookMetadataService: UploadWorkbookMetadataService,
+    private readonly bomRegionDetectionService: BomRegionDetectionService
+  ) {}
 
   private readonly logger = new Logger(UploadRevisionService.name);
   private readonly revisionsById = new Map<string, StoredRevision>();
@@ -115,6 +157,8 @@ export class UploadRevisionService {
     jobId: string;
     fileA: Express.Multer.File;
     fileB: Express.Multer.File;
+    fileASheetName?: string;
+    fileBSheetName?: string;
   }): Promise<StoredRevisionPair> {
     const existing = await this.findPairByJobId(input.tenantId, input.jobId);
     if (existing) return existing;
@@ -132,7 +176,9 @@ export class UploadRevisionService {
       fileName: input.fileA.originalname,
       fileSize: input.fileA.size,
       createdAtUtc,
-      ...this.parseRowsFromFile(input.fileA, 'A')
+      ...this.parseRowsFromFile(input.fileA, 'A', {
+        selectedSheetName: input.fileASheetName
+      })
     };
     const right: StoredRevision = {
       revisionId: rightRevisionId,
@@ -143,7 +189,9 @@ export class UploadRevisionService {
       fileName: input.fileB.originalname,
       fileSize: input.fileB.size,
       createdAtUtc,
-      ...this.parseRowsFromFile(input.fileB, 'B')
+      ...this.parseRowsFromFile(input.fileB, 'B', {
+        selectedSheetName: input.fileBSheetName
+      })
     };
 
     this.rememberRevision(left);
@@ -168,6 +216,7 @@ export class UploadRevisionService {
     sessionId: string;
     jobId: string;
     fileB: Express.Multer.File;
+    fileBSheetName?: string;
   }): Promise<StoredRevisionPair> {
     const latestPair = await this.findLatestPairBySession(input.tenantId, input.sessionId);
     if (!latestPair) {
@@ -196,7 +245,9 @@ export class UploadRevisionService {
       fileName: input.fileB.originalname,
       fileSize: input.fileB.size,
       createdAtUtc,
-      ...this.parseRowsFromFile(input.fileB, 'B')
+      ...this.parseRowsFromFile(input.fileB, 'B', {
+        selectedSheetName: input.fileBSheetName
+      })
     };
 
     this.rememberRevision(right);
@@ -441,9 +492,14 @@ export class UploadRevisionService {
     return `${tenantId}::${sessionId}`;
   }
 
+  analyzeFile(file: Express.Multer.File, prefix: string, options?: ParseRowsOptions): ParsedRevisionAnalysis {
+    return this.parseRowsFromFileDetailed(file, prefix, options);
+  }
+
   private parseRowsFromFile(
     file: Express.Multer.File,
-    prefix: string
+    prefix: string,
+    options?: ParseRowsOptions
   ): {
     parserMode: ParserMode;
     sheetName: string;
@@ -455,6 +511,25 @@ export class UploadRevisionService {
     workbookBuffer: Buffer | null;
     rows: DiffComparableRow[];
   } {
+    const parsed = this.parseRowsFromFileDetailed(file, prefix, options);
+    return {
+      parserMode: parsed.parserMode,
+      sheetName: parsed.sheetName,
+      headers: parsed.headers,
+      headerFields: parsed.headerFields,
+      headerRowIndex: parsed.headerRowIndex,
+      dataStartRowIndex: parsed.dataStartRowIndex,
+      dataEndRowIndex: parsed.dataEndRowIndex,
+      workbookBuffer: parsed.workbookBuffer,
+      rows: parsed.rows
+    };
+  }
+
+  private parseRowsFromFileDetailed(
+    file: Express.Multer.File,
+    prefix: string,
+    options?: ParseRowsOptions
+  ): ParsedRevisionAnalysis {
     const correlationId = randomUUID();
     const extension = extname(file.originalname || '').toLowerCase();
 
@@ -466,7 +541,7 @@ export class UploadRevisionService {
         parsed = this.parseCsvTable(file, correlationId);
       } else if (extension === '.xlsx' || extension === '.xls') {
         parserMode = 'xlsx';
-        parsed = this.parseWorkbookTable(file, correlationId);
+        parsed = this.parseWorkbookTable(file, correlationId, options?.selectedSheetName);
       } else {
         this.throwParseError({
           code: 'UPLOAD_PARSE_FORMAT_UNSUPPORTED',
@@ -491,6 +566,36 @@ export class UploadRevisionService {
       });
     }
 
+    const materialized = this.materializeParsedTable(file, prefix, parserMode, parsed, correlationId);
+    if (parsed.warnings?.length || parsed.diagnostics) {
+      this.logger.log(
+        JSON.stringify({
+          metricName: 'upload.parse.selection',
+          fileName: file.originalname,
+          selectedSheetName: options?.selectedSheetName || null,
+          actualSheetName: materialized.sheetName,
+          fallbackParserUsed: parsed.fallbackParserUsed || false,
+          warnings: parsed.warnings || [],
+          diagnostics: parsed.diagnostics || {},
+          emittedAtUtc: new Date().toISOString()
+        })
+      );
+    }
+    return {
+      ...materialized,
+      warnings: parsed.warnings || [],
+      fallbackParserUsed: parsed.fallbackParserUsed || false,
+      diagnostics: parsed.diagnostics
+    };
+  }
+
+  private materializeParsedTable(
+    file: Express.Multer.File,
+    prefix: string,
+    parserMode: ParserMode,
+    parsed: ParsedTableResult,
+    correlationId: string
+  ): Omit<ParsedRevisionAnalysis, 'warnings' | 'fallbackParserUsed' | 'diagnostics'> {
     const headerRow = parsed.rows.find((row) => row.values.some((value) => value.trim().length > 0));
     if (!headerRow) {
       this.throwParseError({
@@ -656,16 +761,32 @@ export class UploadRevisionService {
       });
     }
 
+    const parsedRows = content.split(/\r?\n/).map((line, index) => ({
+      sourceRowIndex: index + 1,
+      values: this.parseCsvLine(line)
+    }));
+    if (!this.smartDetectionEnabled()) {
+      return {
+        sheetName: 'Comparison Results',
+        rows: parsedRows
+      };
+    }
+
+    const detection = this.bomRegionDetectionService.detect(parsedRows);
     return {
       sheetName: 'Comparison Results',
-      rows: content.split(/\r?\n/).map((line, index) => ({
-        sourceRowIndex: index + 1,
-        values: this.parseCsvLine(line)
-      }))
+      rows: detection.rows,
+      warnings: detection.warnings,
+      fallbackParserUsed: detection.fallbackUsed,
+      diagnostics: detection.diagnostics
     };
   }
 
-  private parseWorkbookTable(file: Express.Multer.File, correlationId: string): ParsedTableResult {
+  private parseWorkbookTable(
+    file: Express.Multer.File,
+    correlationId: string,
+    selectedSheetName?: string
+  ): ParsedTableResult {
     let workbook: XLSX.WorkBook;
     try {
       workbook = XLSX.read(file.buffer, {
@@ -684,8 +805,14 @@ export class UploadRevisionService {
       });
     }
 
-    const firstSheet = workbook.SheetNames[0];
-    if (!firstSheet) {
+    const metadata = this.uploadWorkbookMetadataService.inspectFile(file);
+    const chosenSheet =
+      selectedSheetName &&
+      selectedSheetName !== 'CSV' &&
+      metadata.visibleSheets.some((sheet) => sheet.name === selectedSheetName)
+        ? selectedSheetName
+        : metadata.selectedSheetName;
+    if (!chosenSheet) {
       this.throwParseError({
         code: 'UPLOAD_PARSE_WORKBOOK_EMPTY',
         message: `File "${file.originalname}" does not contain sheets.`,
@@ -696,21 +823,42 @@ export class UploadRevisionService {
       });
     }
 
-    const worksheet = workbook.Sheets[firstSheet];
+    const worksheet = workbook.Sheets[chosenSheet];
     const rows = XLSX.utils.sheet_to_json(worksheet, {
       header: 1,
-      blankrows: false,
+      blankrows: true,
       raw: false,
       defval: ''
     }) as unknown[][];
 
+    const parsedRows = rows.map((row, index) => ({
+      sourceRowIndex: index + 1,
+      values: Array.isArray(row) ? row.map((cell) => String(cell ?? '').trim()) : []
+    }));
+
+    const smartDetectionEnabled = this.smartDetectionEnabled();
+    if (!smartDetectionEnabled) {
+      return {
+        sheetName: chosenSheet,
+        rows: parsedRows
+      };
+    }
+
+    const detection = this.bomRegionDetectionService.detect(parsedRows);
+
     return {
-      sheetName: firstSheet,
-      rows: rows.map((row, index) => ({
-        sourceRowIndex: index + 1,
-        values: Array.isArray(row) ? row.map((cell) => String(cell ?? '').trim()) : []
-      }))
+      sheetName: chosenSheet,
+      rows: detection.rows,
+      warnings: detection.warnings,
+      fallbackParserUsed: detection.fallbackUsed,
+      diagnostics: detection.diagnostics
     };
+  }
+
+  private smartDetectionEnabled(): boolean {
+    const raw = process.env.UPLOAD_BOM_REGION_DETECTION_V1;
+    if (!raw) return false;
+    return !['false', '0', 'off', 'no'].includes(raw.trim().toLowerCase());
   }
 
   private findHeaderIndex(headers: string[], aliases: readonly string[]): number {

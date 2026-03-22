@@ -11,6 +11,8 @@ import { UploadPolicyService } from './upload-policy.service';
 import { UploadQueueService } from './upload-queue.service';
 import { UploadRevisionService } from './upload-revision.service';
 import { UploadValidationService } from './upload-validation.service';
+import { UploadWorkbookMetadataService } from './upload-workbook-metadata.service';
+import { BomRegionDetectionService } from './bom-region-detection.service';
 
 @Module({
   imports: [AuditModule, SharesModule, forwardRef(() => DiffModule)],
@@ -22,8 +24,10 @@ import { UploadValidationService } from './upload-validation.service';
     UploadQueueService,
     UploadHistoryService,
     UploadRevisionService,
+    UploadWorkbookMetadataService,
+    BomRegionDetectionService,
     SessionAuthGuard
   ],
-  exports: [UploadHistoryService, UploadRevisionService, UploadPolicyService]
+  exports: [UploadHistoryService, UploadRevisionService, UploadPolicyService, UploadWorkbookMetadataService]
 })
 export class UploadsModule {}

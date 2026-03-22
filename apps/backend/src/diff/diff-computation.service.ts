@@ -425,40 +425,7 @@ export class DiffComputationService {
     if (tenantId) {
       await Promise.all(
         rows.map(async (row) => {
-          if (!['modified', 'quantity_change', 'moved', 'replaced', 'no_change'].includes(row.changeType)) {
-            row.impactClassification = null;
-            return;
-          }
-          const changedProperties = row.cells.map((cell) => cell.field);
-          if (changedProperties.length === 0) {
-            row.impactClassification = null;
-            return;
-          }
-          const classifiedImpact = await this.bomChangeTaxonomyService.classifyChangedProperties(
-            tenantId,
-            changedProperties
-          );
-          row.impactClassification = {
-            industry: classifiedImpact.industry,
-            categories: classifiedImpact.categories.map((category) => ({
-              industry: category.industry,
-              category: category.category,
-              changeDescription: category.changeDescription,
-              impactClass: category.impactClass,
-              impactCriticality: category.impactCriticality,
-              internalApprovingRoles: category.internalApprovingRoles,
-              externalApprovingRoles: category.externalApprovingRoles,
-              controlPath: category.controlPath,
-              complianceTrigger: category.complianceTrigger,
-              triggerProperties: category.triggerProperties,
-              matchedProperties: category.matchedProperties
-            })),
-            highestImpactClass: classifiedImpact.highestImpactClass,
-            impactCriticality: classifiedImpact.impactCriticality,
-            internalApprovingRoles: classifiedImpact.internalApprovingRoles,
-            externalApprovingRoles: classifiedImpact.externalApprovingRoles,
-            complianceTriggers: classifiedImpact.complianceTriggers
-          };
+          row.impactClassification = await this.classifyRowImpact(tenantId, row);
         })
       );
     }
@@ -501,6 +468,68 @@ export class DiffComputationService {
           ambiguityStrictEnabled
         }
       }
+    };
+  }
+
+  private async classifyRowImpact(
+    tenantId: string,
+    row: PersistedDiffRow
+  ): Promise<PersistedDiffRow['impactClassification']> {
+    if (row.changeType === 'removed') {
+      return this.mapImpactClassification(
+        await this.bomChangeTaxonomyService.classifyStructuralChange({
+          tenantId,
+          changeType: 'removed',
+          row: row.sourceSnapshot || row.targetSnapshot || null
+        })
+      );
+    }
+
+    if (row.changeType === 'added') {
+      return this.mapImpactClassification(
+        await this.bomChangeTaxonomyService.classifyStructuralChange({
+          tenantId,
+          changeType: 'added',
+          row: row.targetSnapshot || row.sourceSnapshot || null
+        })
+      );
+    }
+
+    if (!['modified', 'quantity_change', 'moved', 'replaced', 'no_change'].includes(row.changeType)) {
+      return null;
+    }
+
+    const changedProperties = row.cells.map((cell) => cell.field);
+    if (changedProperties.length === 0) {
+      return null;
+    }
+
+    return this.mapImpactClassification(
+      await this.bomChangeTaxonomyService.classifyChangedProperties(tenantId, changedProperties)
+    );
+  }
+
+  private mapImpactClassification(classifiedImpact: Awaited<ReturnType<BomChangeTaxonomyService['classifyChangedProperties']>>) {
+    return {
+      industry: classifiedImpact.industry,
+      categories: classifiedImpact.categories.map((category) => ({
+        industry: category.industry,
+        category: category.category,
+        changeDescription: category.changeDescription,
+        impactClass: category.impactClass,
+        impactCriticality: category.impactCriticality,
+        internalApprovingRoles: category.internalApprovingRoles,
+        externalApprovingRoles: category.externalApprovingRoles,
+        controlPath: category.controlPath,
+        complianceTrigger: category.complianceTrigger,
+        triggerProperties: category.triggerProperties,
+        matchedProperties: category.matchedProperties
+      })),
+      highestImpactClass: classifiedImpact.highestImpactClass,
+      impactCriticality: classifiedImpact.impactCriticality,
+      internalApprovingRoles: classifiedImpact.internalApprovingRoles,
+      externalApprovingRoles: classifiedImpact.externalApprovingRoles,
+      complianceTriggers: classifiedImpact.complianceTriggers
     };
   }
 

@@ -6,21 +6,34 @@ import {
   HttpStatus,
   Post,
   Req,
+  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors
 } from '@nestjs/common';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 import { SessionState } from '../auth/session-user.interface';
 import { AuditService } from '../audit/audit.service';
+import { UploadWorkbookMetadataService } from './upload-workbook-metadata.service';
 import { UploadHistoryService } from './upload-history.service';
 import { UploadJobService } from './upload-job.service';
 import { UploadPolicyService } from './upload-policy.service';
 import { UploadQueueService } from './upload-queue.service';
 import { UploadRevisionService } from './upload-revision.service';
 import { UploadValidationService } from './upload-validation.service';
+import { BomRegionWarning } from './bom-region-detection.service';
+
+interface UploadSheetSelections {
+  fileA: string | null;
+  fileB: string | null;
+}
+
+interface UploadValidationWarning extends BomRegionWarning {
+  file?: 'fileA' | 'fileB';
+  selectedSheetName?: string;
+}
 
 @Controller('uploads')
 export class UploadsController {
@@ -31,8 +44,28 @@ export class UploadsController {
     private readonly uploadQueueService: UploadQueueService,
     private readonly uploadHistoryService: UploadHistoryService,
     private readonly uploadRevisionService: UploadRevisionService,
+    private readonly uploadWorkbookMetadataService: UploadWorkbookMetadataService,
     private readonly auditService: AuditService
   ) {}
+
+  @Post('workbook-metadata')
+  @UseGuards(SessionAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  async workbookMetadata(
+    @UploadedFile()
+    file: Express.Multer.File | undefined
+  ) {
+    if (!file) {
+      throw new HttpException(
+        {
+          code: 'UPLOAD_WORKBOOK_METADATA_FILE_REQUIRED',
+          message: 'A file is required to inspect workbook sheets.'
+        },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+    return this.uploadWorkbookMetadataService.inspectFile(file);
+  }
 
   @Post('validate')
   @UseGuards(SessionAuthGuard)
@@ -56,6 +89,9 @@ export class UploadsController {
       fileA: { name: string; size: number };
       fileB: { name: string; size: number };
     };
+    warnings: UploadValidationWarning[];
+    fallbackParserUsed: boolean;
+    sheetSelections: UploadSheetSelections;
     policy: {
       comparisonsUsed: number;
       unrestrictedComparisonsRemaining: number;
@@ -67,9 +103,10 @@ export class UploadsController {
     const userKey = session.user?.email || 'unknown-user';
     const tenantId = session.user?.tenantId || 'unknown-tenant';
     const sessionId = this.readSessionId(req);
+    const sheetSelections = this.readSheetSelections(req);
     const validationResult = sessionId
-      ? await this.validateChainedFilesAsync(tenantId, sessionId, files)
-      : this.uploadValidationService.validatePair(files);
+      ? await this.validateChainedFilesAsync(tenantId, sessionId, files, sheetSelections.fileB)
+      : await this.validatePairWithAnalysisAsync(files, sheetSelections);
     const policy = await this.uploadPolicyService.registerAcceptedValidation(userKey, tenantId);
     this.auditService.emit({
       eventType: 'auth.login.success',
@@ -81,7 +118,8 @@ export class UploadsController {
     });
     return {
       ...validationResult,
-      policy
+      policy,
+      sheetSelections
     };
   }
 
@@ -112,6 +150,9 @@ export class UploadsController {
     status: 'accepted';
     correlationId: string;
     idempotentReplay: boolean;
+    warnings: UploadValidationWarning[];
+    fallbackParserUsed: boolean;
+    sheetSelections: UploadSheetSelections;
     policy: {
       comparisonsUsed: number;
       unrestrictedComparisonsRemaining: number;
@@ -123,23 +164,29 @@ export class UploadsController {
     const userKey = session.user?.email || 'unknown-user';
     const tenantId = session.user?.tenantId || 'unknown-tenant';
     const sessionId = this.readSessionId(req);
+    const sheetSelections = this.readSheetSelections(req);
 
     if (idempotencyKey) {
       const existing = await this.uploadJobService.findByIdempotency(userKey, idempotencyKey);
       if (existing) {
         const existingHistory = await this.uploadHistoryService.findByJobId(existing.jobId, tenantId);
-        return this.acceptedResponse(
-          existing,
-          existingHistory?.historyId || null,
-          true,
-          await this.uploadRevisionService.findPairByJobId(tenantId, existing.jobId)
-        );
+        return {
+          ...this.acceptedResponse(
+            existing,
+            existingHistory?.historyId || null,
+            true,
+            await this.uploadRevisionService.findPairByJobId(tenantId, existing.jobId)
+          ),
+          warnings: [],
+          fallbackParserUsed: false,
+          sheetSelections
+        };
       }
     }
 
     const validationResult = sessionId
-      ? await this.validateChainedFilesAsync(tenantId, sessionId, files)
-      : this.uploadValidationService.validatePair(files);
+      ? await this.validateChainedFilesAsync(tenantId, sessionId, files, sheetSelections.fileB)
+      : await this.validatePairWithAnalysisAsync(files, sheetSelections);
     const policy = await this.uploadPolicyService.registerAcceptedValidation(userKey, tenantId);
     const job = await this.uploadJobService.createAcceptedJob({
       tenantId,
@@ -185,7 +232,8 @@ export class UploadsController {
             tenantId,
             sessionId,
             jobId: job.jobId,
-            fileB
+            fileB,
+            fileBSheetName: sheetSelections.fileB || undefined
           })
         : fileA && fileB
         ? await this.uploadRevisionService.storeRevisionPair({
@@ -193,7 +241,9 @@ export class UploadsController {
             sessionId: job.sessionId,
             jobId: job.jobId,
             fileA,
-            fileB
+            fileB,
+            fileASheetName: sheetSelections.fileA || undefined,
+            fileBSheetName: sheetSelections.fileB || undefined
           })
         : null;
     this.auditService.emit({
@@ -204,7 +254,12 @@ export class UploadsController {
       reason: 'upload.intake.accepted',
       correlationId: job.correlationId
     });
-    return this.acceptedResponse(job, historyEntry.historyId, false, revisionPair);
+    return {
+      ...this.acceptedResponse(job, historyEntry.historyId, false, revisionPair),
+      warnings: validationResult.warnings,
+      fallbackParserUsed: validationResult.fallbackParserUsed,
+      sheetSelections
+    };
   }
 
   private readSessionId(req: Request): string | null {
@@ -219,7 +274,8 @@ export class UploadsController {
     files: {
       fileA?: Express.Multer.File[];
       fileB?: Express.Multer.File[];
-    }
+    },
+    fileBSheetName: string | null
   ) {
     const latestPair = await this.uploadRevisionService.findLatestPairBySession(tenantId, sessionId);
     const baseline = latestPair
@@ -236,10 +292,78 @@ export class UploadsController {
       );
     }
 
-    return this.uploadValidationService.validateChainedFollowUp(files, {
+    const validation = this.uploadValidationService.validateChainedFollowUp(files, {
       name: baseline.fileName,
       size: baseline.fileSize
     });
+    const fileB = files.fileB?.[0];
+    const analysis = fileB
+      ? this.uploadRevisionService.analyzeFile(fileB, 'B', {
+          selectedSheetName: fileBSheetName || undefined
+        })
+      : null;
+    return {
+      ...validation,
+      warnings: this.toWarnings(analysis?.warnings || [], 'fileB', analysis?.sheetName || fileBSheetName || undefined),
+      fallbackParserUsed: analysis?.fallbackParserUsed || false
+    };
+  }
+
+  private async validatePairWithAnalysisAsync(
+    files: {
+      fileA?: Express.Multer.File[];
+      fileB?: Express.Multer.File[];
+    },
+    sheetSelections: UploadSheetSelections
+  ) {
+    const validation = this.uploadValidationService.validatePair(files);
+    const fileA = files.fileA?.[0];
+    const fileB = files.fileB?.[0];
+    const analysisA = fileA
+      ? this.uploadRevisionService.analyzeFile(fileA, 'A', {
+          selectedSheetName: sheetSelections.fileA || undefined
+        })
+      : null;
+    const analysisB = fileB
+      ? this.uploadRevisionService.analyzeFile(fileB, 'B', {
+          selectedSheetName: sheetSelections.fileB || undefined
+        })
+      : null;
+
+    return {
+      ...validation,
+      warnings: [
+        ...this.toWarnings(analysisA?.warnings || [], 'fileA', analysisA?.sheetName || sheetSelections.fileA || undefined),
+        ...this.toWarnings(analysisB?.warnings || [], 'fileB', analysisB?.sheetName || sheetSelections.fileB || undefined)
+      ],
+      fallbackParserUsed: Boolean(analysisA?.fallbackParserUsed || analysisB?.fallbackParserUsed)
+    };
+  }
+
+  private toWarnings(
+    warnings: BomRegionWarning[],
+    file: 'fileA' | 'fileB',
+    selectedSheetName?: string
+  ): UploadValidationWarning[] {
+    return warnings.map((warning) => ({
+      ...warning,
+      file,
+      selectedSheetName
+    }));
+  }
+
+  private readSheetSelections(req: Request): UploadSheetSelections {
+    const body = (req.body as { fileASheetName?: string; fileBSheetName?: string } | undefined) || {};
+    const normalize = (value: string | undefined): string | null => {
+      if (typeof value !== 'string') return null;
+      const trimmed = value.trim();
+      if (!trimmed || trimmed.toUpperCase() === 'CSV') return trimmed || null;
+      return trimmed;
+    };
+    return {
+      fileA: normalize(body.fileASheetName),
+      fileB: normalize(body.fileBSheetName)
+    };
   }
 
   private acceptedResponse(

@@ -18,7 +18,7 @@ This backlog should:
 As a BOM Compare user, I want the platform to automatically isolate the real BOM table from mixed-format spreadsheets so that uploads compare the actual parts list instead of decorative or administrative spreadsheet content.
 
 Status:
-* `Backlog`
+* `Completed`
 
 ## Locked product decisions
 
@@ -140,37 +140,37 @@ Required additions:
 As a user selecting BOM revisions, I need the upload flow to discover visible sheets and preselect the most likely BOM sheet so the correct sheet is chosen by default before validation.
 
 Status:
-* `Backlog`
+* `Completed`
 
 ### S24-02 - Per-revision sheet dropdowns on `/upload` and `Upload Next Revision`
 As a user uploading BOM revisions, I want a visible sheet dropdown for each revision so I can override the default sheet when the workbook contains multiple candidates.
 
 Status:
-* `Backlog`
+* `Completed`
 
 ### S24-03 - Validate/intake contract updates for selected sheets and warnings
 As the platform, I need validate and intake to carry the selected sheet and parser-warning data so the sheet the user reviewed is the same sheet that is parsed and stored.
 
 Status:
-* `Backlog`
+* `Completed`
 
 ### S24-04 - Smart BOM-region detection service with dual extraction strategies
 As the comparison engine, I need the upload parser to isolate the real BOM region from mixed-format spreadsheets so non-BOM content is excluded before row normalization.
 
 Status:
-* `Backlog`
+* `Completed`
 
 ### S24-05 - Fallback, user warnings, diagnostics, and rollout controls
 As product and engineering stakeholders, we need weak-confidence parsing to degrade safely with clear user messaging and engineering diagnostics so rollout risk stays controlled.
 
 Status:
-* `Backlog`
+* `Completed`
 
 ### S24-06 - Fixture matrix and regression validation
 As the delivery team, we need automated validation proving smart extraction works on the known workbook patterns and does not regress the established compare workflow.
 
 Status:
-* `Backlog`
+* `Completed`
 
 ## Acceptance bar
 

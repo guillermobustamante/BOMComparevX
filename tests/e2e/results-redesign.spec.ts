@@ -4,6 +4,29 @@ import type { APIRequestContext, Browser, BrowserContext } from '@playwright/tes
 const e2eApiBaseUrl = process.env.E2E_API_BASE_URL || 'http://localhost:4100';
 const uniqueEmail = (prefix: string) => `${prefix}.${Date.now()}@example.com`;
 
+async function loginForResultsRequest(request: APIRequestContext, email: string) {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+        data: {
+          email,
+          displayName: 'Playwright Results User',
+          tenantId: 'tenant-playwright',
+          provider: 'google'
+        }
+      });
+      expect(response.ok()).toBeTruthy();
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 3) break;
+      await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+    }
+  }
+  throw lastError;
+}
+
 async function loginForResults(
   browser: Browser,
   request: APIRequestContext,
@@ -11,14 +34,7 @@ async function loginForResults(
   prefix: string
 ): Promise<BrowserContext> {
   const email = uniqueEmail(prefix);
-  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
-    data: {
-      email,
-      displayName: 'Playwright Results User',
-      tenantId: 'tenant-playwright',
-      provider: 'google'
-    }
-  });
+  await loginForResultsRequest(request, email);
 
   const storageState = await request.storageState();
   return browser.newContext({
@@ -36,19 +52,25 @@ test('results redesign preserves toolbar tooltips and action dialogs', async ({ 
   const shell = page.locator('.missionShellRoot');
   await expect(page.getByTestId('results-panel')).toBeVisible();
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
+  await expect(page.getByTestId('results-complete-badge')).toContainText('Ready to review');
   await expect(page.getByRole('heading', { name: 'Results' })).toBeVisible();
   await expect(page.getByText('Mission Control')).toHaveCount(0);
   await expect(shell).toHaveAttribute('data-theme', 'light');
   await expect(page.getByTestId('theme-toggle-btn')).toHaveAttribute('title', 'Toggle Theme');
 
   const uploadButtonBox = await page.getByTestId('results-upload-next-btn').boundingBox();
+  const runButtonBox = await page.getByTestId('results-run-btn').boundingBox();
   const searchInputBox = await page.getByTestId('results-search-input').boundingBox();
   const pageSizeBox = await page.getByTestId('results-page-size-select').boundingBox();
-  if (!uploadButtonBox || !searchInputBox || !pageSizeBox) {
+  const paginationNextBox = await page.getByTestId('results-page-next').boundingBox();
+  const toolbarBox = await page.getByTestId('results-toolbar').boundingBox();
+  if (!uploadButtonBox || !runButtonBox || !searchInputBox || !pageSizeBox || !paginationNextBox || !toolbarBox) {
     throw new Error('Results toolbar controls did not render with measurable layout boxes');
   }
   expect(uploadButtonBox.y).toBeLessThan(searchInputBox.y);
   expect(Math.abs(searchInputBox.y - pageSizeBox.y)).toBeLessThan(6);
+  expect(toolbarBox.x + toolbarBox.width - (runButtonBox.x + runButtonBox.width)).toBeLessThan(48);
+  expect(toolbarBox.x + toolbarBox.width - (paginationNextBox.x + paginationNextBox.width)).toBeLessThan(48);
 
   await page.locator('label[title="Toggle Theme"]').click();
   await expect(shell).toHaveAttribute('data-theme', 'dark');

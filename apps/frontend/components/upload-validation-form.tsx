@@ -19,12 +19,25 @@ interface ValidationError {
   unrestrictedComparisonsRemaining?: number;
 }
 
+interface ValidationWarning {
+  code: string;
+  message: string;
+  file?: 'fileA' | 'fileB';
+  selectedSheetName?: string;
+}
+
 interface ValidationSuccess {
   accepted: true;
   correlationId: string;
   files: {
     fileA: { name: string; size: number };
     fileB: { name: string; size: number };
+  };
+  warnings: ValidationWarning[];
+  fallbackParserUsed: boolean;
+  sheetSelections: {
+    fileA: string | null;
+    fileB: string | null;
   };
   policy?: {
     comparisonsUsed: number;
@@ -51,7 +64,33 @@ interface UploadFeedbackDialog {
   details: string[];
 }
 
+interface SheetOption {
+  name: string;
+  preferred: boolean;
+}
+
+interface WorkbookMetadataSuccess {
+  fileKind: 'csv' | 'workbook';
+  visibleSheets: SheetOption[];
+  selectedSheetName: string;
+  dropdownDisabled: boolean;
+}
+
+interface SheetSelectorState {
+  fileKind: 'csv' | 'workbook' | null;
+  options: SheetOption[];
+  selectedSheetName: string;
+  dropdownDisabled: boolean;
+  isLoading: boolean;
+}
+
 type RevisionSlot = 'a' | 'b';
+
+interface DisplayValidationWarning {
+  message: string;
+  selectedSheetName?: string;
+  files: Array<'fileA' | 'fileB'>;
+}
 
 function formatFileSize(value: number): string {
   if (value < 1024) return `${value} Bytes`;
@@ -59,10 +98,38 @@ function formatFileSize(value: number): string {
   return `${(value / (1024 * 1024)).toFixed(2)} MB`;
 }
 
+function emptySheetSelectorState(label = 'Select file first'): SheetSelectorState {
+  return {
+    fileKind: null,
+    options: [{ name: label, preferred: true }],
+    selectedSheetName: '',
+    dropdownDisabled: true,
+    isLoading: false
+  };
+}
+
+function loadingSheetSelectorState(): SheetSelectorState {
+  return {
+    fileKind: null,
+    options: [{ name: 'Loading sheets...', preferred: true }],
+    selectedSheetName: '',
+    dropdownDisabled: true,
+    isLoading: true
+  };
+}
+
+function fileLabel(file: 'fileA' | 'fileB'): string {
+  return file === 'fileA' ? 'Revision A' : 'Revision B';
+}
+
 export function UploadValidationForm() {
   const router = useRouter();
   const [fileA, setFileA] = useState<File | null>(null);
   const [fileB, setFileB] = useState<File | null>(null);
+  const [sheetSelectorA, setSheetSelectorA] = useState<SheetSelectorState>(() => emptySheetSelectorState());
+  const [sheetSelectorB, setSheetSelectorB] = useState<SheetSelectorState>(() => emptySheetSelectorState());
+  const [validationWarnings, setValidationWarnings] = useState<ValidationWarning[]>([]);
+  const [warningDialogOpen, setWarningDialogOpen] = useState(false);
   const [isMasterDragActive, setIsMasterDragActive] = useState(false);
   const [activeRevisionDrop, setActiveRevisionDrop] = useState<RevisionSlot | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,10 +143,42 @@ export function UploadValidationForm() {
   const [isAutoOpeningResults, setIsAutoOpeningResults] = useState(false);
 
   const isBlocked = useMemo(() => !!blockedUntilUtc, [blockedUntilUtc]);
-  const canSubmit = useMemo(
-    () => !!fileA && !!fileB && !isSubmitting && !isQueueing && !isBlocked,
-    [fileA, fileB, isSubmitting, isQueueing, isBlocked]
+  const selectorsReady = useMemo(
+    () =>
+      !!fileA &&
+      !!fileB &&
+      !sheetSelectorA.isLoading &&
+      !sheetSelectorB.isLoading &&
+      !!sheetSelectorA.selectedSheetName &&
+      !!sheetSelectorB.selectedSheetName,
+    [fileA, fileB, sheetSelectorA, sheetSelectorB]
   );
+  const canSubmit = useMemo(
+    () => selectorsReady && !isSubmitting && !isQueueing && !isBlocked,
+    [selectorsReady, isSubmitting, isQueueing, isBlocked]
+  );
+  const displayValidationWarnings = useMemo<DisplayValidationWarning[]>(() => {
+    const grouped = new Map<string, DisplayValidationWarning>();
+    for (const warning of validationWarnings) {
+      const key = `${warning.code}::${warning.message}::${warning.selectedSheetName || ''}`;
+      const existing = grouped.get(key);
+      if (existing) {
+        if (warning.file && !existing.files.includes(warning.file)) {
+          existing.files.push(warning.file);
+        }
+        continue;
+      }
+      grouped.set(key, {
+        message: warning.message,
+        selectedSheetName: warning.selectedSheetName,
+        files: warning.file ? [warning.file] : []
+      });
+    }
+    return Array.from(grouped.values()).map((warning) => ({
+      ...warning,
+      files: [...warning.files].sort()
+    }));
+  }, [validationWarnings]);
 
   function applyFileToSlot(slot: RevisionSlot, nextFile: File | null) {
     if (slot === 'a') {
@@ -90,8 +189,18 @@ export function UploadValidationForm() {
   }
 
   function applyPickedFiles(nextFileA: File | null, nextFileB: File | null) {
+    const revisionAChanged = nextFileA !== fileA;
+    const revisionBChanged = nextFileB !== fileB;
     setFileA(nextFileA);
     setFileB(nextFileB);
+    if (revisionAChanged) {
+      setSheetSelectorA(nextFileA ? loadingSheetSelectorState() : emptySheetSelectorState());
+    }
+    if (revisionBChanged) {
+      setSheetSelectorB(nextFileB ? loadingSheetSelectorState() : emptySheetSelectorState());
+    }
+    setValidationWarnings([]);
+    setWarningDialogOpen(false);
     setError(null);
     setSuccess(null);
     setIntakeSuccess(null);
@@ -113,6 +222,27 @@ export function UploadValidationForm() {
       details.push(`Remaining unrestricted comparisons: ${nextError.unrestrictedComparisonsRemaining}`);
     }
     setFeedbackDialog({ eyebrow, title, details });
+  }
+
+  async function discoverWorkbookMetadata(file: File, slot: RevisionSlot): Promise<SheetSelectorState> {
+    const form = new FormData();
+    form.append('file', file);
+    const response = await fetch('/api/uploads/workbook-metadata', {
+      method: 'POST',
+      body: form
+    });
+    const payload = (await response.json()) as ValidationError | WorkbookMetadataSuccess;
+    if (!response.ok) {
+      throw payload;
+    }
+    const parsed = payload as WorkbookMetadataSuccess;
+    return {
+      fileKind: parsed.fileKind,
+      options: parsed.visibleSheets.length ? parsed.visibleSheets : [{ name: 'No visible sheets', preferred: true }],
+      selectedSheetName: parsed.selectedSheetName,
+      dropdownDisabled: parsed.dropdownDisabled,
+      isLoading: false
+    };
   }
 
   function applyDroppedFiles(dropped: FileList | null) {
@@ -151,10 +281,12 @@ export function UploadValidationForm() {
     applyFileToSlot(slot, droppedFiles[0]);
   }
 
-  async function validateFiles(): Promise<boolean> {
+  async function validateFiles(): Promise<{ ok: boolean; warnings: ValidationWarning[] }> {
     setError(null);
     setSuccess(null);
     setIntakeSuccess(null);
+    setValidationWarnings([]);
+    setWarningDialogOpen(false);
 
     if (!fileA || !fileB) {
       const nextError = {
@@ -163,13 +295,15 @@ export function UploadValidationForm() {
       };
       setError(nextError);
       openIssueDialog('Compare', 'Comparison blocked', nextError);
-      return false;
+      return { ok: false, warnings: [] };
     }
 
     setIsSubmitting(true);
     const form = new FormData();
     form.append('fileA', fileA);
     form.append('fileB', fileB);
+    if (sheetSelectorA.selectedSheetName) form.append('fileASheetName', sheetSelectorA.selectedSheetName);
+    if (sheetSelectorB.selectedSheetName) form.append('fileBSheetName', sheetSelectorB.selectedSheetName);
 
     try {
       const response = await fetch('/api/uploads/validate', {
@@ -185,7 +319,7 @@ export function UploadValidationForm() {
         }
         setError(parsedError);
         openIssueDialog('Compare', 'Validation issue', parsedError);
-        return false;
+        return { ok: false, warnings: [] };
       }
 
       const parsedSuccess = payload as ValidationSuccess;
@@ -193,7 +327,8 @@ export function UploadValidationForm() {
         setBlockedUntilUtc(parsedSuccess.policy.cooldownUntilUtc);
       }
       setSuccess(parsedSuccess);
-      return true;
+      setValidationWarnings(parsedSuccess.warnings || []);
+      return { ok: true, warnings: parsedSuccess.warnings || [] };
     } catch {
       const nextError = {
         code: 'UPLOAD_VALIDATE_REQUEST_FAILED',
@@ -201,7 +336,7 @@ export function UploadValidationForm() {
       };
       setError(nextError);
       openIssueDialog('Compare', 'Validation issue', nextError);
-      return false;
+      return { ok: false, warnings: [] };
     } finally {
       setIsSubmitting(false);
     }
@@ -225,6 +360,8 @@ export function UploadValidationForm() {
     const form = new FormData();
     form.append('fileA', fileA);
     form.append('fileB', fileB);
+    if (sheetSelectorA.selectedSheetName) form.append('fileASheetName', sheetSelectorA.selectedSheetName);
+    if (sheetSelectorB.selectedSheetName) form.append('fileBSheetName', sheetSelectorB.selectedSheetName);
 
     try {
       const response = await fetch('/api/uploads/intake', {
@@ -262,9 +399,62 @@ export function UploadValidationForm() {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const validated = await validateFiles();
-    if (!validated) return;
+    if (!validated.ok) return;
+    if (validated.warnings.length > 0) {
+      setWarningDialogOpen(true);
+      return;
+    }
     await queueFiles();
   }
+
+  async function continueAfterWarnings() {
+    setWarningDialogOpen(false);
+    await queueFiles();
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!fileA) {
+      setSheetSelectorA(emptySheetSelectorState());
+      return undefined;
+    }
+    setSheetSelectorA(loadingSheetSelectorState());
+    void discoverWorkbookMetadata(fileA, 'a')
+      .then((nextState) => {
+        if (!cancelled) setSheetSelectorA(nextState);
+      })
+      .catch((nextError: ValidationError) => {
+        if (cancelled) return;
+        setSheetSelectorA(emptySheetSelectorState('Unavailable'));
+        setError(nextError);
+        openIssueDialog('Revision A', 'Sheet inspection issue', nextError);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fileA]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!fileB) {
+      setSheetSelectorB(emptySheetSelectorState());
+      return undefined;
+    }
+    setSheetSelectorB(loadingSheetSelectorState());
+    void discoverWorkbookMetadata(fileB, 'b')
+      .then((nextState) => {
+        if (!cancelled) setSheetSelectorB(nextState);
+      })
+      .catch((nextError: ValidationError) => {
+        if (cancelled) return;
+        setSheetSelectorB(emptySheetSelectorState('Unavailable'));
+        setError(nextError);
+        openIssueDialog('Revision B', 'Sheet inspection issue', nextError);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fileB]);
 
   const openResultsHref =
     intakeSuccess?.leftRevisionId && intakeSuccess.rightRevisionId
@@ -275,18 +465,26 @@ export function UploadValidationForm() {
   const isBusy = isSubmitting || isQueueing;
   const isTransitioningToResults = isAutoOpeningResults && Boolean(openResultsHref);
   const shouldHighlightCompare = canSubmit && !isTransitioningToResults && !openResultsHref;
+  const hasSelectedFiles = !!fileA || !!fileB;
   const compareTooltip = isSubmitting
     ? 'Validation is running before comparison starts'
     : isQueueing
       ? 'Comparison is starting'
       : isTransitioningToResults
         ? 'Opening results workspace'
-      : !fileA || !fileB
-        ? 'Select two files to validate and compare'
-        : isBlocked
-          ? 'Comparison is blocked during the cooldown window'
-          : 'Validate and start comparison';
-  const showActionRow = isBusy || isTransitioningToResults || shouldHighlightCompare || Boolean(openResultsHref);
+        : !fileA || !fileB
+          ? 'Select two files to validate and compare'
+          : !selectorsReady
+            ? 'Wait for sheet selection to load'
+            : isBlocked
+              ? 'Comparison is blocked during the cooldown window'
+              : 'Validate and start comparison';
+  const showActionRow =
+    isBusy ||
+    isTransitioningToResults ||
+    shouldHighlightCompare ||
+    Boolean(openResultsHref) ||
+    (!isBlocked && hasSelectedFiles);
 
   function renderStatus(slot: RevisionSlot): { label: string; className: string } {
     const file = slot === 'a' ? fileA : fileB;
@@ -451,6 +649,27 @@ export function UploadValidationForm() {
               </strong>
             </div>
             <div>
+              <span className="missionCompareMetaLabel">Sheet</span>
+              <select
+                className="missionCompareSheetSelect"
+                value={sheetSelectorA.selectedSheetName}
+                disabled={isBlocked || sheetSelectorA.dropdownDisabled || sheetSelectorA.isLoading}
+                onChange={(event) =>
+                  setSheetSelectorA((current) => ({
+                    ...current,
+                    selectedSheetName: event.target.value
+                  }))
+                }
+                data-testid="upload-sheet-select-a"
+              >
+                {sheetSelectorA.options.map((option) => (
+                  <option key={option.name} value={option.name}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <span className="missionCompareMetaLabel">Size</span>
               <strong className="missionCompareMetaValue" data-testid="upload-size-a">
                 {fileA ? formatFileSize(fileA.size) : 'Pending'}
@@ -520,6 +739,27 @@ export function UploadValidationForm() {
               </strong>
             </div>
             <div>
+              <span className="missionCompareMetaLabel">Sheet</span>
+              <select
+                className="missionCompareSheetSelect"
+                value={sheetSelectorB.selectedSheetName}
+                disabled={isBlocked || sheetSelectorB.dropdownDisabled || sheetSelectorB.isLoading}
+                onChange={(event) =>
+                  setSheetSelectorB((current) => ({
+                    ...current,
+                    selectedSheetName: event.target.value
+                  }))
+                }
+                data-testid="upload-sheet-select-b"
+              >
+                {sheetSelectorB.options.map((option) => (
+                  <option key={option.name} value={option.name}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <span className="missionCompareMetaLabel">Size</span>
               <strong className="missionCompareMetaValue" data-testid="upload-size-b">
                 {fileB ? formatFileSize(fileB.size) : 'Pending'}
@@ -541,6 +781,64 @@ export function UploadValidationForm() {
         </article>
       </section>
 
+      {warningDialogOpen && displayValidationWarnings.length > 0 && (
+        <div className="screenModalLayer" role="presentation">
+          <button
+            type="button"
+            className="screenModalBackdrop"
+            aria-label="Close upload warning dialog"
+            onClick={() => setWarningDialogOpen(false)}
+          />
+          <section
+            className="screenModalCard screenModalCardCompact panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="upload-warning-dialog-title"
+            data-testid="upload-warning-dialog"
+          >
+            <div className="screenModalHeader">
+              <div>
+                <p className="missionShellEyebrow">Validation warning</p>
+                <h2 className="h2" id="upload-warning-dialog-title">
+                  We found extra content in one of the files
+                </h2>
+              </div>
+              <button
+                className="screenIconAction"
+                type="button"
+                aria-label="Close upload warning dialog"
+                title="Close"
+                onClick={() => setWarningDialogOpen(false)}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            <div className="missionCompareDialogDetails" data-testid="upload-warning-details">
+              {displayValidationWarnings.map((warning) => (
+                <p
+                  className="p"
+                  key={`${warning.message}-${warning.selectedSheetName || 'none'}-${warning.files.join('-') || 'all'}`}
+                >
+                  {warning.message}
+                  {warning.selectedSheetName ? ` Sheet: ${warning.selectedSheetName}.` : ''}
+                  {warning.files.length > 0
+                    ? ` Applies to: ${warning.files.map((file) => fileLabel(file)).join(' and ')}.`
+                    : ''}
+                </p>
+              ))}
+            </div>
+            <div className="screenDialogActions">
+              <button className="btn" type="button" onClick={() => setWarningDialogOpen(false)}>
+                Cancel
+              </button>
+              <button className="btn btnPrimary" type="button" onClick={() => void continueAfterWarnings()} data-testid="upload-warning-continue">
+                Continue
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
       {feedbackDialog && (
         <div className="screenModalLayer" role="presentation">
           <button
@@ -554,6 +852,7 @@ export function UploadValidationForm() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="upload-feedback-dialog-title"
+            data-testid="upload-feedback-dialog"
           >
             <div className="screenModalHeader">
               <div>
@@ -572,7 +871,7 @@ export function UploadValidationForm() {
                 <CloseIcon />
               </button>
             </div>
-            <div className="missionCompareDialogDetails">
+            <div className="missionCompareDialogDetails" data-testid="upload-feedback-details">
               {feedbackDialog.details.map((detail) => (
                 <p className="p" key={detail}>
                   {detail}

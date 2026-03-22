@@ -8,6 +8,8 @@ import { ClassificationService } from '../src/diff/classification.service';
 import { DiffComputationService } from '../src/diff/diff-computation.service';
 import { BomChangeTaxonomyService } from '../src/mapping/bom-change-taxonomy.service';
 import { SemanticRegistryService } from '../src/mapping/semantic-registry.service';
+import { BomRegionDetectionService } from '../src/uploads/bom-region-detection.service';
+import { UploadWorkbookMetadataService } from '../src/uploads/upload-workbook-metadata.service';
 
 function buildWorkbookFile(rows: Array<Record<string, string | number>>): Express.Multer.File {
   const headers = [...new Set(rows.flatMap((row) => Object.keys(row)))];
@@ -121,7 +123,11 @@ function buildOccurrenceRows(order: string[]): Array<Record<string, string | num
 }
 
 describe('Occurrence-aware matching hardening', () => {
-  const uploadRevisionService = new UploadRevisionService({ enabled: false } as any);
+  const uploadRevisionService = new UploadRevisionService(
+    { enabled: false } as any,
+    new UploadWorkbookMetadataService(),
+    new BomRegionDetectionService()
+  );
   const normalizationService = new NormalizationService();
   const featureFlags = new DiffFeatureFlagService();
   const profileAdapterService = new ProfileAdapterService();
@@ -212,6 +218,51 @@ describe('Occurrence-aware matching hardening', () => {
           row.rationale.sourceStableOccurrenceKey === row.rationale.targetStableOccurrenceKey
       )
     ).toBe(true);
+  });
+
+  it('applies structural impact classification to added and removed rows during async diff computation', async () => {
+    const computed = await diffComputationService.computeAsync({
+      tenantId: 'tenant-structural-impact',
+      sourceRows: [
+        {
+          rowId: 's-removed',
+          partNumber: 'FUSE-100',
+          quantity: 1,
+          parentPath: '/root',
+          properties: {
+            'Service BOM Flag': 'Y'
+          }
+        }
+      ],
+      targetRows: [
+        {
+          rowId: 't-added',
+          partNumber: 'NOTE-200',
+          quantity: 1,
+          parentPath: '/root',
+          properties: {
+            'Line Notes': 'new installation note'
+          }
+        }
+      ]
+    });
+
+    const removedRow = computed.rows.find((row) => row.changeType === 'removed');
+    const addedRow = computed.rows.find((row) => row.changeType === 'added');
+
+    expect(removedRow?.impactClassification).toEqual(
+      expect.objectContaining({
+        impactCriticality: 'High',
+        highestImpactClass: 'A'
+      })
+    );
+    expect(removedRow?.impactClassification?.categories[0]).toEqual(
+      expect.objectContaining({
+        category: 'Functional or service-affecting component removed'
+      })
+    );
+    expect(addedRow?.impactClassification?.categories.length).toBeGreaterThan(0);
+    expect(addedRow?.impactClassification?.impactCriticality).toBeTruthy();
   });
 
   it('teaches mapping semantics about occurrence and object identifiers', () => {

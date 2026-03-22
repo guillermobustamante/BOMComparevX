@@ -27,11 +27,12 @@ export class UploadHistoryService {
 
   async createAcceptedUploadEntry(job: AcceptedUploadJob): Promise<UploadHistoryEntry> {
     const now = new Date().toISOString();
+    const defaultSessionName = await this.resolveAcceptedUploadSessionName(job);
     const entry: UploadHistoryEntry = {
       historyId: randomUUID(),
       jobId: job.jobId,
       sessionId: job.sessionId,
-      sessionName: null,
+      sessionName: defaultSessionName,
       tagLabel: null,
       deletedAtUtc: null,
       deletedBy: null,
@@ -64,6 +65,33 @@ export class UploadHistoryService {
     }
 
     return entry;
+  }
+
+  private async resolveAcceptedUploadSessionName(job: AcceptedUploadJob): Promise<string | null> {
+    const fallbackName = job.files.fileB.name.trim() || null;
+
+    if (this.databaseService.enabled) {
+      const existing = await this.databaseService.client.historyEntry.findFirst({
+        where: {
+          tenantId: job.tenantId,
+          sessionId: job.sessionId,
+          deletedAtUtc: null
+        },
+        orderBy: {
+          createdAtUtc: 'desc'
+        }
+      });
+      const preservedName = (existing?.sessionName || '').trim();
+      return preservedName || fallbackName;
+    }
+
+    const existing = [...this.historyById.values()]
+      .filter(
+        (entry) => entry.tenantId === job.tenantId && entry.sessionId === job.sessionId && !entry.deletedAtUtc
+      )
+      .sort((a, b) => b.createdAtUtc.localeCompare(a.createdAtUtc))[0];
+    const preservedName = (existing?.sessionName || '').trim();
+    return preservedName || fallbackName;
   }
 
   async findByJobId(jobId: string, tenantId?: string): Promise<UploadHistoryEntry | null> {

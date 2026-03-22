@@ -4,6 +4,29 @@ import type { APIRequestContext, Browser, BrowserContext } from '@playwright/tes
 const e2eApiBaseUrl = process.env.E2E_API_BASE_URL || 'http://localhost:4100';
 const uniqueEmail = (prefix: string) => `${prefix}.${Date.now()}@example.com`;
 
+async function loginForUploadRequest(request: APIRequestContext, email: string) {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+        data: {
+          email,
+          displayName: 'Playwright Upload User',
+          tenantId: 'tenant-playwright',
+          provider: 'google'
+        }
+      });
+      expect(response.ok()).toBeTruthy();
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 3) break;
+      await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+    }
+  }
+  throw lastError;
+}
+
 async function loginForUpload(
   browser: Browser,
   request: APIRequestContext,
@@ -11,14 +34,7 @@ async function loginForUpload(
   prefix: string
 ): Promise<{ context: BrowserContext; email: string }> {
   const email = uniqueEmail(prefix);
-  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
-    data: {
-      email,
-      displayName: 'Playwright Upload User',
-      tenantId: 'tenant-playwright',
-      provider: 'google'
-    }
-  });
+  await loginForUploadRequest(request, email);
 
   const storageState = await request.storageState();
   const context = await browser.newContext({

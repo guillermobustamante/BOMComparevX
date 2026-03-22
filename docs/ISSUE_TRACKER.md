@@ -813,6 +813,23 @@ Resolution:
 - Implemented on `2026-03-17`.
 - Added `S23` documentation for strict brand parity, replaced the previous workspace-only interpretation with the flatter mission-control baseline on `/admin`, `/notifications`, `/history`, `/mappings`, and mapping preview, aligned popup surfaces to the same aesthetic rules, and added a reusable local skill to apply the same aesthetics to future pages.
 
+### ISSUE-035 - Unclassified results rows do not give admins a direct path into taxonomy governance
+- Status: `Resolved`
+- Priority: `P2`
+- Area: `Frontend / Results / Admin / Taxonomy UX`
+- First observed: `2026-03-20`
+
+Problem:
+- When a results row lands in an `Unclassified` state, admins can see that the classification needs taxonomy work, but the interface leaves them at a dead end on the results page.
+- The current experience forces an admin to manually navigate to `/admin`, expand `Change Taxonomy & Impacts`, and reconstruct the row context from memory.
+
+Desired outcome:
+- Turn `Unclassified` into an admin-only deep link from `/results` to `/admin` so the `Change Taxonomy & Impacts` section opens expanded with lightweight row context visible on arrival.
+
+Resolution:
+- Implemented on `2026-03-20`.
+- Added an admin-only `Unclassified` deep link in `/results`, routed it to `/admin?section=taxonomyImpacts...`, auto-expanded the taxonomy section on landing, scrolled it into view, and surfaced a contextual banner with the row field/rationale so admins land directly in the relevant governance workspace.
+
 ## 3. Linked follow-up records
 - Sprint 12 QA: [UI_QA_S12_RESULTS_REVISION_CHAIN.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\UI_QA_S12_RESULTS_REVISION_CHAIN.md:1)
 - Sprint 12.1 backlog: [SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md:1)

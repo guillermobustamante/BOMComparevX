@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   ChevronDownIcon,
   ChevronUpIcon,
@@ -137,6 +138,7 @@ const EMPTY_CATEGORY: TaxonomyCategory = {
 };
 
 export function AdminGovernanceConsole() {
+  const searchParams = useSearchParams();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [canBootstrapAdmin, setCanBootstrapAdmin] = useState(false);
   const [users, setUsers] = useState<AdminUserEntry[]>([]);
@@ -170,10 +172,25 @@ export function AdminGovernanceConsole() {
     taxonomyImpacts: true,
     learnedAliases: true
   });
+  const taxonomySectionRef = useRef<HTMLElement | null>(null);
 
   const activeAdminCount = useMemo(() => users.filter((user) => user.isAdmin).length, [users]);
   const taxonomyCategoryCount = taxonomyDraft?.categories.length || 0;
   const enabledAliasCount = useMemo(() => aliases.filter((alias) => alias.isEnabled).length, [aliases]);
+  const taxonomyDeepLinkActive = searchParams.get('section') === 'taxonomyImpacts';
+  const taxonomyDeepLinkField = (searchParams.get('field') || '').trim();
+  const taxonomyDeepLinkRationale = (searchParams.get('rationale') || '').trim();
+  const taxonomyDeepLinkMessage = useMemo(() => {
+    if (!taxonomyDeepLinkActive) return null;
+    const parts = [
+      taxonomyDeepLinkField ? `Field: ${taxonomyDeepLinkField}` : null,
+      taxonomyDeepLinkRationale ? `Rationale: ${taxonomyDeepLinkRationale}` : null
+    ].filter(Boolean);
+    if (parts.length === 0) {
+      return 'Opened from Results to review an unclassified row.';
+    }
+    return `Opened from Results to review an unclassified row. ${parts.join(' | ')}`;
+  }, [taxonomyDeepLinkActive, taxonomyDeepLinkField, taxonomyDeepLinkRationale]);
 
   async function loadTaxonomy(industry?: string) {
     setTaxonomyLoading(true);
@@ -344,6 +361,18 @@ export function AdminGovernanceConsole() {
 
     return () => window.clearTimeout(timeout);
   }, [isAdmin, taxonomyDraft, taxonomyDirty]);
+
+  useEffect(() => {
+    if (!taxonomyDeepLinkActive) return;
+    setCollapsedSections((current) =>
+      current.taxonomyImpacts ? { ...current, taxonomyImpacts: false } : current
+    );
+  }, [taxonomyDeepLinkActive]);
+
+  useEffect(() => {
+    if (!taxonomyDeepLinkActive || collapsedSections.taxonomyImpacts) return;
+    taxonomySectionRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [taxonomyDeepLinkActive, collapsedSections.taxonomyImpacts]);
 
   function updateTaxonomy(mutator: (current: TaxonomyDocument) => TaxonomyDocument) {
     setTaxonomyDraft((current) => {
@@ -1055,6 +1084,8 @@ export function AdminGovernanceConsole() {
           </section>
 
           <section
+            id="admin-taxonomy-impacts"
+            ref={taxonomySectionRef}
             className={`panel adminSectionCard adminTaxonomySection adminMissionSection ${
               collapsedSections.taxonomyImpacts ? 'adminSectionCardCollapsed' : ''
             }`}
@@ -1084,6 +1115,11 @@ export function AdminGovernanceConsole() {
             </div>
             <div className="adminSectionPanelContent">
               <div className="adminSectionPanelInner adminMissionSectionBody">
+                {taxonomyDeepLinkMessage ? (
+                  <div className="alertWarning adminTaxonomyDeepLinkNotice" data-testid="admin-taxonomy-deeplink-banner">
+                    {taxonomyDeepLinkMessage}
+                  </div>
+                ) : null}
                 {taxonomyError ? <div className="alertError">{taxonomyError}</div> : null}
                 {taxonomyFeedback ? <div className="alertSuccess">{taxonomyFeedback}</div> : null}
 

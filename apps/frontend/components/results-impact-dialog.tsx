@@ -38,6 +38,10 @@ interface ResultsImpactDialogProps {
   onClose: () => void;
 }
 
+function fallbackImpactLabel(row: DiffRow): string {
+  return row.changeType === 'no_change' ? 'Unclassified' : 'Needs Review';
+}
+
 export function ResultsImpactDialog({ row, onClose }: ResultsImpactDialogProps) {
   return (
     <div className="screenModalLayer" role="presentation">
@@ -78,7 +82,7 @@ export function ResultsImpactDialog({ row, onClose }: ResultsImpactDialogProps) 
             <div className="impactDialogHeroBlock">
               <span className="impactDialogLabel">Impact criticality</span>
               <span className={impactCriticalityBadgeClass(row.impactClassification?.impactCriticality)}>
-                {row.impactClassification?.impactCriticality || 'None'}
+                {row.impactClassification?.impactCriticality || fallbackImpactLabel(row)}
               </span>
             </div>
             <div className="impactDialogHeroBlock">

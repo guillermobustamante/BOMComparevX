@@ -305,6 +305,8 @@ export class HistoryController {
       rightFile?.fileName || leftFile?.fileName
         ? `${rightFile?.fileName || leftFile?.fileName} (${comparisonDateLabel})`
         : `Comparison ${input.entry.historyId.slice(0, 8)} (${comparisonDateLabel})`;
+    const effectiveSessionName =
+      (input.entry.sessionName || '').trim() || rightFile?.fileName || leftFile?.fileName || null;
     const comparison = pair
       ? await this.diffJobService.findComparisonByRevisionPair({
           tenantId: input.tenantId,
@@ -319,6 +321,7 @@ export class HistoryController {
       comparisonId: comparison?.comparisonId || null,
       leftRevisionId: pair?.leftRevisionId || null,
       rightRevisionId: pair?.rightRevisionId || null,
+      sessionName: effectiveSessionName,
       comparisonLabel: generatedLabel,
       comparisonDateLabel,
       status: comparison?.status || input.entry.status,

@@ -90,7 +90,7 @@ test('navigation redesign keeps route wiring working across shell links', async 
 
   await page.getByTestId('nav-link-admin').click();
   await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByRole('heading', { name: 'Admin' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Admin', exact: true })).toBeVisible();
 
   await page.getByTestId('nav-link-mapping').click();
   await expect(page).toHaveURL(/\/mappings$/);

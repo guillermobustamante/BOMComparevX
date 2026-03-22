@@ -40,6 +40,81 @@ describe('Change intelligence foundations', () => {
     };
   }
 
+  it('classifies removed service-relevant BOM lines as high-impact functional removals', async () => {
+    const result = await taxonomyService.classifyStructuralChange({
+      tenantId: 'tenant-a',
+      changeType: 'removed',
+      row: {
+        rowId: 'removed-service',
+        partNumber: 'FUSE-100',
+        quantity: 1,
+        parentPath: '/root',
+        properties: {
+          'Service BOM Flag': 'Y'
+        }
+      }
+    });
+
+    expect(result.highestImpactClass).toBe('A');
+    expect(result.impactCriticality).toBe('High');
+    expect(result.categories[0]).toEqual(
+      expect.objectContaining({
+        category: 'Functional or service-affecting component removed'
+      })
+    );
+    expect(result.categories[0].matchedProperties).toEqual(
+      expect.arrayContaining(['Component PN', 'Quantity', 'Parent Item', 'Service BOM Flag'])
+    );
+  });
+
+  it('classifies effectivity-scoped removals as medium-impact scoped removals', async () => {
+    const result = await taxonomyService.classifyStructuralChange({
+      tenantId: 'tenant-a',
+      changeType: 'removed',
+      row: {
+        rowId: 'removed-variant',
+        properties: {
+          'Date Effectivity': '2026-03-20',
+          'Serial Effectivity': '100-200'
+        }
+      }
+    });
+
+    expect(result.highestImpactClass).toBe('B');
+    expect(result.impactCriticality).toBe('Medium');
+    expect(result.categories[0]).toEqual(
+      expect.objectContaining({
+        category: 'Variant or effectivity-scoped removal'
+      })
+    );
+    expect(result.categories[0].matchedProperties).toEqual(
+      expect.arrayContaining(['Date Effectivity', 'Serial Effectivity'])
+    );
+  });
+
+  it('classifies explicit reference-only removals as low-impact cleanup removals', async () => {
+    const result = await taxonomyService.classifyStructuralChange({
+      tenantId: 'tenant-a',
+      changeType: 'removed',
+      row: {
+        rowId: 'removed-note',
+        properties: {
+          'BOM Text': 'REMOVE LEGACY NOTE',
+          'Line Notes': 'obsolete annotation'
+        }
+      }
+    });
+
+    expect(result.highestImpactClass).toBe('C');
+    expect(result.impactCriticality).toBe('Low');
+    expect(result.categories[0]).toEqual(
+      expect.objectContaining({
+        category: 'Reference-only, documentation, or cleanup removal'
+      })
+    );
+    expect(result.categories[0].matchedProperties).toEqual(expect.arrayContaining(['BOM Text', 'Line Notes']));
+  });
+
   it('compares all preserved properties and detects non-canonical BOM field changes', () => {
     const rows = classificationService.classifyWithStats({
       sourceRows: [

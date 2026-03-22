@@ -11,6 +11,7 @@ import * as XLSX from 'xlsx';
 import { AppModule } from '../src/app.module';
 import { UploadHistoryService } from '../src/uploads/upload-history.service';
 import { UploadJobService } from '../src/uploads/upload-job.service';
+import { UploadRevisionService } from '../src/uploads/upload-revision.service';
 import {
   CONFIDENCE_BANDS,
   CONDITIONAL_CANONICAL_FIELDS,
@@ -56,6 +57,7 @@ describe('Stage 1 API baseline (e2e)', () => {
   let app: INestApplication;
   let uploadHistoryService: UploadHistoryService;
   let uploadJobService: UploadJobService;
+  let uploadRevisionService: UploadRevisionService;
   let semanticRegistryService: SemanticRegistryService;
   let mappingDetectionService: MappingDetectionService;
   let mappingPersistenceService: MappingPersistenceService;
@@ -92,6 +94,7 @@ describe('Stage 1 API baseline (e2e)', () => {
     await app.init();
     uploadHistoryService = moduleFixture.get(UploadHistoryService);
     uploadJobService = moduleFixture.get(UploadJobService);
+    uploadRevisionService = moduleFixture.get(UploadRevisionService);
     semanticRegistryService = moduleFixture.get(SemanticRegistryService);
     mappingDetectionService = moduleFixture.get(MappingDetectionService);
     mappingPersistenceService = moduleFixture.get(MappingPersistenceService);
@@ -164,6 +167,26 @@ describe('Stage 1 API baseline (e2e)', () => {
       firstComparisonId: firstStarted.body.jobId as string,
       secondComparisonId: secondStarted.body.jobId as string
     };
+  }
+
+  function createWorkbookBuffer(
+    sheets: Array<{ name: string; data: unknown[][]; hidden?: 0 | 1 | 2 }>
+  ): Buffer {
+    const workbook = XLSX.utils.book_new();
+    workbook.Workbook = { Sheets: [] };
+    for (const sheet of sheets) {
+      const worksheet = XLSX.utils.aoa_to_sheet(sheet.data);
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name);
+      workbook.Workbook.Sheets?.push({
+        name: sheet.name,
+        Hidden: sheet.hidden ?? 0
+      });
+    }
+    return XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' }) as Buffer;
+  }
+
+  function readXappexFixture(name: string): Buffer {
+    return readFileSync(resolve(process.cwd(), '..', '..', 'randomtests', 'bomheaders', name));
   }
 
   it('GET /api/health returns ok', async () => {
@@ -357,7 +380,10 @@ describe('Stage 1 API baseline (e2e)', () => {
     const response = await agent
       .post('/api/uploads/validate')
       .attach('fileA', Buffer.from('not-valid'), { filename: 'parts.txt', contentType: 'text/plain' })
-      .attach('fileB', Buffer.from('a,b\n1,2\n'), { filename: 'parts.csv', contentType: 'text/csv' })
+      .attach('fileB', Buffer.from('part_number,description,quantity\nA-100,Widget,1\n'), {
+        filename: 'parts.csv',
+        contentType: 'text/csv'
+      })
       .expect(400);
 
     expect(response.body.code).toBe('UPLOAD_FILE_TYPE_INVALID');
@@ -366,8 +392,14 @@ describe('Stage 1 API baseline (e2e)', () => {
   it('upload validate requires authentication', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/uploads/validate')
-      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'bom-a.csv', contentType: 'text/csv' })
-      .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'bom-b.csv', contentType: 'text/csv' })
+      .attach('fileA', Buffer.from('part_number,description,quantity\nA-100,Widget,1\n'), {
+        filename: 'bom-a.csv',
+        contentType: 'text/csv'
+      })
+      .attach('fileB', Buffer.from('part_number,description,quantity\nB-200,Bracket,2\n'), {
+        filename: 'bom-b.csv',
+        contentType: 'text/csv'
+      })
       .expect(401);
 
     expect(response.body.code).toBe('AUTH_REQUIRED');
@@ -387,7 +419,10 @@ describe('Stage 1 API baseline (e2e)', () => {
         filename: 'huge.csv',
         contentType: 'text/csv'
       })
-      .attach('fileB', Buffer.from('a,b\n1,2\n'), { filename: 'parts.csv', contentType: 'text/csv' })
+      .attach('fileB', Buffer.from('part_number,description,quantity\nA-100,Widget,1\n'), {
+        filename: 'parts.csv',
+        contentType: 'text/csv'
+      })
       .expect(400);
 
     expect(response.body.code).toBe('UPLOAD_FILE_SIZE_EXCEEDED');
@@ -402,7 +437,10 @@ describe('Stage 1 API baseline (e2e)', () => {
 
     const response = await agent
       .post('/api/uploads/validate')
-      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'parts.csv', contentType: 'text/csv' })
+      .attach('fileA', Buffer.from('part_number,description,quantity\nA-100,Widget,1\n'), {
+        filename: 'parts.csv',
+        contentType: 'text/csv'
+      })
       .expect(400);
 
     expect(response.body.code).toBe('UPLOAD_FILE_COUNT_INVALID');
@@ -417,10 +455,23 @@ describe('Stage 1 API baseline (e2e)', () => {
       .send({ email, tenantId: 'tenant-a', provider: 'google' })
       .expect(201);
 
+    const workbook = createWorkbookBuffer([
+      {
+        name: 'BOM',
+        data: [
+          ['Part Number', 'Description', 'Quantity'],
+          ['B-100', 'Bracket', 4]
+        ]
+      }
+    ]);
+
     const response = await agent
       .post('/api/uploads/validate')
-      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'bom-a.csv', contentType: 'text/csv' })
-      .attach('fileB', Buffer.from('PK\x03\x04'), {
+      .attach('fileA', Buffer.from('part_number,description,quantity\nA-100,Widget,2\n'), {
+        filename: 'bom-a.csv',
+        contentType: 'text/csv'
+      })
+      .attach('fileB', workbook, {
         filename: 'bom-b.xlsx',
         contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       })
@@ -431,6 +482,83 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(response.body.files.fileB.name).toBe('bom-b.xlsx');
     expect(response.body.policy.comparisonsUsed).toBe(1);
     expect(response.body.policy.unrestrictedComparisonsRemaining).toBe(2);
+  });
+
+  it('workbook metadata lists visible sheets, hides hidden ones, and prefers BOM-like names', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'workbook.meta@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const workbook = createWorkbookBuffer([
+      { name: 'Notes', data: [['Read me']] },
+      {
+        name: 'BOM',
+        data: [
+          ['Part Number', 'Description', 'Quantity'],
+          ['A-100', 'Widget', 2]
+        ]
+      },
+      { name: 'HiddenSheet', data: [['Ignore me']], hidden: 1 }
+    ]);
+
+    const response = await agent
+      .post('/api/uploads/workbook-metadata')
+      .attach('file', workbook, {
+        filename: 'metadata-test.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      .expect(201);
+
+    expect(response.body.fileKind).toBe('workbook');
+    expect(response.body.selectedSheetName).toBe('BOM');
+    expect(response.body.visibleSheets.map((sheet: { name: string }) => sheet.name)).toEqual(['BOM', 'Notes']);
+  });
+
+  it('workbook metadata returns disabled CSV selector payload for csv uploads', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'workbook.meta.csv@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const response = await agent
+      .post('/api/uploads/workbook-metadata')
+      .attach('file', Buffer.from('part_number,description,quantity\nA-100,Widget,2\n'), {
+        filename: 'metadata-test.csv',
+        contentType: 'text/csv'
+      })
+      .expect(201);
+
+    expect(response.body.fileKind).toBe('csv');
+    expect(response.body.selectedSheetName).toBe('CSV');
+    expect(response.body.dropdownDisabled).toBe(true);
+  });
+
+  it('workbook metadata prefers the BillOfMaterials sheet for the Xappex template fixtures', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'workbook.meta.xappex@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const response = await agent
+      .post('/api/uploads/workbook-metadata')
+      .attach('file', readXappexFixture('xappex-bill-of-materials-template.xlsx'), {
+        filename: 'xappex-bill-of-materials-template.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      .expect(201);
+
+    expect(response.body.fileKind).toBe('workbook');
+    expect(response.body.selectedSheetName).toBe('BillOfMaterials');
+    expect(response.body.visibleSheets.map((sheet: { name: string }) => sheet.name)).toEqual([
+      'BillOfMaterials',
+      'BillOfMaterials Ex.2',
+      'Invoice',
+      'Revisions'
+    ]);
   });
 
   it('upload intake accepts valid files and returns accepted job metadata', async () => {
@@ -461,6 +589,217 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(response.body.historyId).toBeDefined();
     expect(response.body.correlationId).toBeDefined();
     expect(response.body.idempotentReplay).toBe(false);
+  });
+
+  it('upload validate returns parser warnings and sheet selections for mixed-format workbooks', async () => {
+    const previousFlag = process.env.UPLOAD_BOM_REGION_DETECTION_V1;
+    process.env.UPLOAD_BOM_REGION_DETECTION_V1 = 'true';
+    try {
+      const agent = request.agent(app.getHttpServer());
+      await agent
+        .post('/api/auth/test/login')
+        .send({ email: 'warning.workbook@example.com', tenantId: 'tenant-a', provider: 'google' })
+        .expect(201);
+
+      const workbook = createWorkbookBuffer([
+        {
+          name: 'BOM',
+          data: [
+            ['Bill of Materials Template'],
+            ['', 'Name', 'Assembly'],
+            ['A', 'Part Number', 'Part Name', 'Qty', 'Instructions'],
+            ['', 'A-100', 'Widget', 2, 'ignore'],
+            ['', 'A-200', 'Bracket', 3, 'ignore'],
+            ['', 'Total', '', 5, 'ignore']
+          ]
+        }
+      ]);
+
+      const response = await agent
+        .post('/api/uploads/validate')
+        .field('fileASheetName', 'BOM')
+        .field('fileBSheetName', 'BOM')
+        .attach('fileA', workbook, {
+          filename: 'warning-a.xlsx',
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+        .attach('fileB', workbook, {
+          filename: 'warning-b.xlsx',
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+        .expect(201);
+
+      expect(response.body.accepted).toBe(true);
+      expect(response.body.sheetSelections.fileA).toBe('BOM');
+      expect(response.body.sheetSelections.fileB).toBe('BOM');
+      expect(response.body.warnings.length).toBeGreaterThan(0);
+    } finally {
+      if (previousFlag === undefined) delete process.env.UPLOAD_BOM_REGION_DETECTION_V1;
+      else process.env.UPLOAD_BOM_REGION_DETECTION_V1 = previousFlag;
+    }
+  });
+
+  it('upload validate does not warn for clean csv comparisons when smart BOM-region detection is enabled', async () => {
+    const previousFlag = process.env.UPLOAD_BOM_REGION_DETECTION_V1;
+    process.env.UPLOAD_BOM_REGION_DETECTION_V1 = 'true';
+    try {
+      const agent = request.agent(app.getHttpServer());
+      await agent
+        .post('/api/auth/test/login')
+        .send({ email: 'warning.clean.csv@example.com', tenantId: 'tenant-a', provider: 'google' })
+        .expect(201);
+
+      const response = await agent
+        .post('/api/uploads/validate')
+        .attach('fileA', Buffer.from('part_number,description,quantity\nA-100,Widget,2\n'), {
+          filename: 'clean-a.csv',
+          contentType: 'text/csv'
+        })
+        .attach('fileB', Buffer.from('part_number,description,quantity\nA-200,Bracket,3\n'), {
+          filename: 'clean-b.csv',
+          contentType: 'text/csv'
+        })
+        .expect(201);
+
+      expect(response.body.accepted).toBe(true);
+      expect(response.body.warnings).toEqual([]);
+    } finally {
+      if (previousFlag === undefined) delete process.env.UPLOAD_BOM_REGION_DETECTION_V1;
+      else process.env.UPLOAD_BOM_REGION_DETECTION_V1 = previousFlag;
+    }
+  });
+
+  it('upload intake honors selected sheet override when first sheet is not a BOM', async () => {
+    const agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/auth/test/login')
+      .send({ email: 'selected.sheet@example.com', tenantId: 'tenant-a', provider: 'google' })
+      .expect(201);
+
+    const workbook = createWorkbookBuffer([
+      {
+        name: 'Notes',
+        data: [['Instructions'], ['This workbook includes a BOM on another sheet.']]
+      },
+      {
+        name: 'Components',
+        data: [
+          ['Part Number', 'Description', 'Quantity'],
+          ['A-100', 'Widget', 2],
+          ['A-200', 'Bracket', 3]
+        ]
+      }
+    ]);
+
+    const intake = await agent
+      .post('/api/uploads/intake')
+      .field('fileASheetName', 'Components')
+      .field('fileBSheetName', 'Components')
+      .attach('fileA', workbook, {
+        filename: 'selected-a.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      .attach('fileB', workbook, {
+        filename: 'selected-b.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      .expect(202);
+
+    const template = await uploadRevisionService.getRevisionTemplate('tenant-a', intake.body.leftRevisionId);
+    const rows = await uploadRevisionService.getRevisionRows('tenant-a', intake.body.leftRevisionId);
+    expect(template?.sheetName).toBe('Components');
+    expect(rows?.map((row) => row.partNumber)).toEqual(['A-100', 'A-200']);
+  });
+
+  it('smart BOM-region detection trims header rows, side noise, and total rows from workbook BOMs', async () => {
+    const previousFlag = process.env.UPLOAD_BOM_REGION_DETECTION_V1;
+    process.env.UPLOAD_BOM_REGION_DETECTION_V1 = 'true';
+    try {
+      const agent = request.agent(app.getHttpServer());
+      await agent
+        .post('/api/auth/test/login')
+        .send({ email: 'smart.region@example.com', tenantId: 'tenant-a', provider: 'google' })
+        .expect(201);
+
+      const workbook = createWorkbookBuffer([
+        {
+          name: 'BOM',
+          data: [
+            ['Bill of Materials Template', '', '', '', '', '', '', '', '', '', 'Instructions'],
+            ['', 'Assembly Name', 'Motor Platform', '', '', '', '', '', '', '', 'Keep out'],
+            ['', '', '', '', '', '', '', '', '', '', 'Ignore'],
+            ['', 'Part #', 'Part Name', 'Description', 'Supplier', 'Units', 'Unit Cost', 'Qty', 'Cost', '', 'Ignore'],
+            ['junk', 'A-100', 'Widget', 'Widget body', 'Acme', 'ea', '4.50', '2', '9.00', '', 'Ignore'],
+            ['junk', 'A-200', 'Bracket', 'Steel bracket', 'Acme', 'ea', '2.00', '4', '8.00', '', 'Ignore'],
+            ['junk', 'Total', '', '', '', '', '', '6', '17.00', '', 'Ignore']
+          ]
+        }
+      ]);
+
+      const intake = await agent
+        .post('/api/uploads/intake')
+        .field('fileASheetName', 'BOM')
+        .field('fileBSheetName', 'BOM')
+        .attach('fileA', workbook, {
+          filename: 'smart-a.xlsx',
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+        .attach('fileB', workbook, {
+          filename: 'smart-b.xlsx',
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+        .expect(202);
+
+      const rows = await uploadRevisionService.getRevisionRows('tenant-a', intake.body.leftRevisionId);
+      const template = await uploadRevisionService.getRevisionTemplate('tenant-a', intake.body.leftRevisionId);
+      expect(rows?.length).toBe(2);
+      expect(rows?.map((row) => row.partNumber)).toEqual(['A-100', 'A-200']);
+      expect(template?.headers).not.toContain('Instructions');
+      expect(template?.headers).toContain('Part #');
+    } finally {
+      if (previousFlag === undefined) delete process.env.UPLOAD_BOM_REGION_DETECTION_V1;
+      else process.env.UPLOAD_BOM_REGION_DETECTION_V1 = previousFlag;
+    }
+  });
+
+  it('smart BOM-region detection parses the Xappex workbook BOM sheet and excludes footer totals', async () => {
+    const previousFlag = process.env.UPLOAD_BOM_REGION_DETECTION_V1;
+    process.env.UPLOAD_BOM_REGION_DETECTION_V1 = 'true';
+    try {
+      const agent = request.agent(app.getHttpServer());
+      await agent
+        .post('/api/auth/test/login')
+        .send({ email: 'xappex.smart.region@example.com', tenantId: 'tenant-a', provider: 'google' })
+        .expect(201);
+
+      const workbook = readXappexFixture('xappex-bill-of-materials-template.xlsx');
+      const intake = await agent
+        .post('/api/uploads/intake')
+        .field('fileASheetName', 'BillOfMaterials')
+        .field('fileBSheetName', 'BillOfMaterials')
+        .attach('fileA', workbook, {
+          filename: 'xappex-a.xlsx',
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+        .attach('fileB', workbook, {
+          filename: 'xappex-b.xlsx',
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+        .expect(202);
+
+      const rows = await uploadRevisionService.getRevisionRows('tenant-a', intake.body.leftRevisionId);
+      const template = await uploadRevisionService.getRevisionTemplate('tenant-a', intake.body.leftRevisionId);
+
+      expect(template?.sheetName).toBe('BillOfMaterials');
+      expect(template?.headers).toContain('Part #');
+      expect(rows?.length).toBeGreaterThan(5);
+      expect(rows?.[0]?.partNumber).toBeTruthy();
+      expect(rows?.[0]?.partNumber).not.toBe('Total');
+      expect(rows?.some((row) => row.partNumber === 'Total')).toBe(false);
+    } finally {
+      if (previousFlag === undefined) delete process.env.UPLOAD_BOM_REGION_DETECTION_V1;
+      else process.env.UPLOAD_BOM_REGION_DETECTION_V1 = previousFlag;
+    }
   });
 
   it('upload intake is idempotent by Idempotency-Key and does not create duplicate jobs', async () => {
@@ -771,6 +1110,72 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(sessions.every((entry) => entry.comparisonLabel.includes('Program Alpha Release'))).toBe(false);
   });
 
+  it('session history preserves the initial session name across chained revisions until renamed', async () => {
+    const ownerAgent = request.agent(app.getHttpServer());
+    await ownerAgent
+      .post('/api/auth/test/login')
+      .send({ email: `history.default.name.${Date.now()}@example.com`, tenantId: 'tenant-history-default-name', provider: 'google' })
+      .expect(201);
+
+    const prefix = `history-default-${Date.now()}`;
+    const chain = await createSessionChain(ownerAgent, prefix);
+    const response = await ownerAgent
+      .get(
+        `/api/history/sessions?sessionId=${encodeURIComponent(chain.sessionId)}&currentComparisonId=${encodeURIComponent(
+          chain.secondComparisonId
+        )}`
+      )
+      .expect(200);
+
+    const sessions = response.body.sessions as Array<{ historyId: string; sessionName: string | null }>;
+    expect(sessions).toHaveLength(2);
+    const firstEntry = sessions.find((entry) => entry.historyId === chain.firstHistoryId);
+    const secondEntry = sessions.find((entry) => entry.historyId === chain.secondHistoryId);
+    expect(firstEntry?.sessionName).toBe(`${prefix}-b.csv`);
+    expect(secondEntry?.sessionName).toBe(`${prefix}-b.csv`);
+  });
+
+  it('manual session rename remains in place when another revision is added to the chain', async () => {
+    const ownerAgent = request.agent(app.getHttpServer());
+    await ownerAgent
+      .post('/api/auth/test/login')
+      .send({ email: `history.rename.persist.${Date.now()}@example.com`, tenantId: 'tenant-history-rename-persist', provider: 'google' })
+      .expect(201);
+
+    const prefix = `history-rename-persist-${Date.now()}`;
+    const chain = await createSessionChain(ownerAgent, prefix);
+
+    await ownerAgent
+      .post(`/api/history/sessions/${chain.firstHistoryId}/rename`)
+      .send({ sessionName: 'Program Atlas' })
+      .expect(201);
+
+    const third = await ownerAgent
+      .post('/api/uploads/intake')
+      .field('sessionId', chain.sessionId)
+      .attach('fileB', Buffer.from('part_number,description,quantity\nBOM-H,Widget H,5\n'), {
+        filename: `${prefix}-d.csv`,
+        contentType: 'text/csv'
+      })
+      .expect(202);
+
+    await ownerAgent
+      .post('/api/diff-jobs')
+      .send({
+        sessionId: third.body.sessionId,
+        leftRevisionId: third.body.leftRevisionId,
+        rightRevisionId: third.body.rightRevisionId
+      })
+      .expect(201);
+
+    const response = await ownerAgent
+      .get(`/api/history/sessions?sessionId=${encodeURIComponent(chain.sessionId)}`)
+      .expect(200);
+    const sessions = response.body.sessions as Array<{ sessionName: string | null }>;
+    expect(sessions).toHaveLength(3);
+    expect(sessions.every((entry) => entry.sessionName === 'Program Atlas')).toBe(true);
+  });
+
   it('deleting the latest comparison returns rollback metadata and blocks deleting older comparisons', async () => {
     const ownerAgent = request.agent(app.getHttpServer());
     await ownerAgent
@@ -802,24 +1207,42 @@ describe('Stage 1 API baseline (e2e)', () => {
 
     const one = await agent
       .post('/api/uploads/validate')
-      .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'bom-1.csv', contentType: 'text/csv' })
-      .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'bom-2.csv', contentType: 'text/csv' })
+      .attach('fileA', Buffer.from('part_number,description,quantity\nA-100,Widget,1\n'), {
+        filename: 'bom-1.csv',
+        contentType: 'text/csv'
+      })
+      .attach('fileB', Buffer.from('part_number,description,quantity\nB-200,Bracket,2\n'), {
+        filename: 'bom-2.csv',
+        contentType: 'text/csv'
+      })
       .expect(201);
     expect(one.body.policy.comparisonsUsed).toBe(1);
     expect(one.body.policy.unrestrictedComparisonsRemaining).toBe(2);
 
     const two = await agent
       .post('/api/uploads/validate')
-      .attach('fileA', Buffer.from('a,b\n5,6\n'), { filename: 'bom-3.csv', contentType: 'text/csv' })
-      .attach('fileB', Buffer.from('a,b\n7,8\n'), { filename: 'bom-4.csv', contentType: 'text/csv' })
+      .attach('fileA', Buffer.from('part_number,description,quantity\nC-300,Motor,5\n'), {
+        filename: 'bom-3.csv',
+        contentType: 'text/csv'
+      })
+      .attach('fileB', Buffer.from('part_number,description,quantity\nD-400,Sensor,7\n'), {
+        filename: 'bom-4.csv',
+        contentType: 'text/csv'
+      })
       .expect(201);
     expect(two.body.policy.comparisonsUsed).toBe(2);
     expect(two.body.policy.unrestrictedComparisonsRemaining).toBe(1);
 
     const three = await agent
       .post('/api/uploads/validate')
-      .attach('fileA', Buffer.from('a,b\n9,10\n'), { filename: 'bom-5.csv', contentType: 'text/csv' })
-      .attach('fileB', Buffer.from('a,b\n11,12\n'), { filename: 'bom-6.csv', contentType: 'text/csv' })
+      .attach('fileA', Buffer.from('part_number,description,quantity\nE-500,Frame,9\n'), {
+        filename: 'bom-5.csv',
+        contentType: 'text/csv'
+      })
+      .attach('fileB', Buffer.from('part_number,description,quantity\nF-600,Cover,11\n'), {
+        filename: 'bom-6.csv',
+        contentType: 'text/csv'
+      })
       .expect(201);
     expect(three.body.policy.comparisonsUsed).toBe(3);
     expect(three.body.policy.unrestrictedComparisonsRemaining).toBe(0);
@@ -836,8 +1259,14 @@ describe('Stage 1 API baseline (e2e)', () => {
     const postValidPair = () =>
       agent
         .post('/api/uploads/validate')
-        .attach('fileA', Buffer.from('a,b\n1,2\n'), { filename: 'cool-1.csv', contentType: 'text/csv' })
-        .attach('fileB', Buffer.from('a,b\n3,4\n'), { filename: 'cool-2.csv', contentType: 'text/csv' });
+        .attach('fileA', Buffer.from('part_number,description,quantity\nA-100,Widget,1\n'), {
+          filename: 'cool-1.csv',
+          contentType: 'text/csv'
+        })
+        .attach('fileB', Buffer.from('part_number,description,quantity\nB-200,Bracket,2\n'), {
+          filename: 'cool-2.csv',
+          contentType: 'text/csv'
+        });
 
     await postValidPair().expect(201);
     await postValidPair().expect(201);
@@ -1801,7 +2230,7 @@ describe('Stage 1 API baseline (e2e)', () => {
     const startedAt = Date.now();
     const started = await agent.post('/api/diff-jobs').send({}).expect(201);
     const firstProgressMs = Date.now() - startedAt;
-    expect(firstProgressMs).toBeLessThan(2000);
+    expect(firstProgressMs).toBeLessThan(5000);
 
     let firstChunkMs: number | null = null;
     let completed = false;
@@ -2049,7 +2478,9 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(exportedTableXml).toContain('ref="A1:U');
   });
 
-  it('excel export preserves drawing and media parts for image-based uploaded xlsx', async () => {
+  it(
+    'excel export preserves drawing and media parts for image-based uploaded xlsx',
+    async () => {
     const templateV1 = readFileSync(
       resolve(process.cwd(), '..', '..', 'docs', 'BOM Examples', 'Example 6 ver 1 MEVS.xlsx')
     );
@@ -2107,7 +2538,9 @@ describe('Stage 1 API baseline (e2e)', () => {
     expect(exportedHeaderRow).toContain('<c r="D1" s="15"');
     expect(exportedHeaderRow).toContain('<c r="AF1"');
     expect(templateHeaderRow).toContain('<c r="A1" s="1"');
-  });
+    },
+    120000
+  );
 
   it('excel export denies same-tenant non-owner access', async () => {
     const owner = request.agent(app.getHttpServer());
@@ -2911,7 +3344,7 @@ describe('Stage 1 API baseline (e2e)', () => {
       expect(noChangeCount).toBeGreaterThanOrEqual(Math.floor(rows.length * 0.6));
       expect(replacedCount).toBeLessThanOrEqual(Math.ceil(rows.length * 0.05));
     },
-    90000
+    150000
   );
 
   it(

@@ -9,7 +9,7 @@ System scope: BOM Compare VX current implementation (`apps/backend/src/diff/*`, 
 | Change Type | What It Means | What Must Happen For This Option To Be Selected | Key System Notes |
 |---|---|---|---|
 | `added` | A row exists only in target (new revision). | Row is unmatched on target side and is not consumed by replacement pairing. | Classification reason is `unmatched_target_row`. |
-| `removed` | A row exists only in source (old revision). | Row is unmatched on source side and is not consumed by replacement pairing. | Classification reason is `unmatched_source_row`. |
+| `removed` | A row exists only in source (old revision). | Row is unmatched on source side and is not consumed by replacement pairing. | Classification reason is `unmatched_source_row`. Reviewer-facing impact must not default to `No Impact` only because no taxonomy row matched. |
 | `replaced` | A removed row and an added row are paired as likely replacement. | Source unmatched row + target unmatched row pass replacement pairing logic (similarity threshold and ambiguity policy). | Classification reason is `unmatched_pair_replacement`. |
 | `modified` | Matched row changed in one or more comparable fields (not pure quantity-only and not moved). | Rows are matched, `changedCells > 0`, moved rule not satisfied, quantity-only rule not satisfied. | Classification reason is `matched_modified`. |
 | `moved` | Matched part changed parent/position context in BOM structure. | Rows are matched; `parentPath` or `position` changed; match is not `reviewRequired`; match score `>= 0.90`. | Classification reason is `matched_moved`; includes `fromParent` and `toParent`. |
@@ -72,7 +72,40 @@ Cell-level reason pattern: `field_changed_<fieldName>`.
 | Purchasing | supplier/quantity/commercial impact | Prioritize `added`, `removed`, `quantity_change`, supplier/cost changes in `modified`; trigger supplier confirmation where needed. |
 | Support Leads | process quality and execution risk | Track high volumes of `replaced`/`modified`, unresolved review-required match contexts, and abnormal unmatched trends by tenant/session. |
 
-## 6) Industry Standard Comparison (High-Level)
+## 6) Approved Removed-Component Impact Policy
+
+This policy closes the gap where structural `removed` rows can appear without impact guidance even though the removal itself is a governed engineering change.
+
+### Default reviewer-facing behavior
+
+| Situation | Reviewer label | Default impact |
+|---|---|---|
+| `removed` row with insufficient evidence to classify further | `Needs Review` | `B / Medium` |
+| `removed` row with functional, service, safety, or compliance evidence | explicit removal category | `A / High` |
+| `removed` row with clear variant/effectivity-only scope | explicit removal category | `B / Medium` |
+| `removed` row with strong reference-only / metadata-only evidence | explicit removal category | `C / Low` |
+
+### Removal categories approved for the taxonomy
+
+| Category | Meaning | Default impact |
+|---|---|---|
+| `Component removed - impact review required` | Real BOM line removed but evidence is not strong enough to call it scoped-only or low-risk | `B / Medium` |
+| `Functional or service-affecting component removed` | Installed or service-relevant component removed from released structure | `A / High` |
+| `Safety, regulatory, or critical characteristic removed` | Removal touches safety, compliance, traceability, or critical-characteristic signals | `A / High` |
+| `Variant or effectivity-scoped removal` | Removal applies only to option, plant, customer, date, serial, lot, or model scope | `B / Medium` |
+| `Reference-only, documentation, or cleanup removal` | Note, metadata, document-only, or other non-installed reference row removed | `C / Low` |
+
+### Execution notes
+
+| Rule | Approved behavior |
+|---|---|
+| `replaced` vs `removed` | Keep them separate. A pure removal is not downgraded into a replacement unless pairing logic explicitly proves a successor. |
+| Structural fallback | `added` and `removed` rows must run through impact fallback logic even when no changed-cell payload exists. |
+| Low-risk cleanup | Only assign the cleanup category when there is strong explicit evidence that the row was note/reference/document-only. |
+| Unmatched changed rows | If a changed row has no matched taxonomy category, show `Needs Review` in reviewer-facing UX instead of `No Impact`. |
+| Historical runs | Apply this policy to new computations by default; historical runs are not automatically backfilled. |
+
+## 7) Industry Standard Comparison (High-Level)
 
 | Industry | Typical Standards Baseline | Current Fit in BOM Compare VX | Main Gap Themes to Reach State of the Art |
 |---|---|---|---|
@@ -85,7 +118,7 @@ Cell-level reason pattern: `field_changed_<fieldName>`.
 For detailed prioritized gap items that can be converted directly into user stories, see:
 `docs/change-management-gap-analysis.md`
 
-## 7) Source Basis
+## 8) Source Basis
 
 Implementation basis (repository):
 - `apps/backend/src/diff/diff-contract.ts`

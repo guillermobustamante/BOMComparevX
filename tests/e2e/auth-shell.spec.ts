@@ -1,11 +1,31 @@
 import { expect, test } from '@playwright/test';
-import type { APIRequestContext } from '@playwright/test';
+import type { APIRequestContext, Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const e2eApiBaseUrl = process.env.E2E_API_BASE_URL || 'http://localhost:4100';
 const uniqueEmail = (prefix: string) => `${prefix}.${Date.now()}@example.com`;
 const fixturePath = (name: string) => resolve(process.cwd(), 'tests', 'fixtures', 'stage4', name);
 const bomExamplePath = (name: string) => resolve(process.cwd(), 'docs', 'BOM Examples', name);
+const validCsv = (partNumber: string, description: string, quantity: number) =>
+  `part_number,description,quantity\n${partNumber},${description},${quantity}\n`;
+
+async function startComparisonFromUpload(page: Page) {
+  await expect(page.getByTestId('compare-upload-btn')).toBeEnabled({ timeout: 15000 });
+  await page.getByTestId('compare-upload-btn').click({ force: true });
+  const outcome = await Promise.race([
+    page.waitForURL(/\/results\?/, { timeout: 20000 }).then(() => 'navigated' as const),
+    page
+      .getByTestId('upload-warning-dialog')
+      .waitFor({ state: 'visible', timeout: 20000 })
+      .then(() => 'warning' as const)
+  ]);
+  if (outcome === 'warning') {
+    await page.getByTestId('upload-warning-continue').click();
+    await page.waitForURL(/\/results\?/, { timeout: 20000 });
+  }
+  await expect(page.getByTestId('results-panel')).toBeVisible({ timeout: 20000 });
+}
 
 async function createResultsSessionChain(request: APIRequestContext, prefix: string) {
   const firstIntakeResponse = await request.post(`${e2eApiBaseUrl}/api/uploads/intake`, {
@@ -77,6 +97,47 @@ async function createResultsSessionChain(request: APIRequestContext, prefix: str
   };
 }
 
+async function createFixtureComparison(request: APIRequestContext, prefix: string) {
+  const fixtureA = readFileSync(fixturePath('bill-of-materials.xlsx'));
+  const fixtureB = readFileSync(fixturePath('bill-of-materialsv2.xlsx'));
+
+  const intakeResponse = await request.post(`${e2eApiBaseUrl}/api/uploads/intake`, {
+    multipart: {
+      fileA: {
+        name: `${prefix}-a.xlsx`,
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        buffer: fixtureA
+      },
+      fileB: {
+        name: `${prefix}-b.xlsx`,
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        buffer: fixtureB
+      }
+    }
+  });
+  expect(intakeResponse.ok()).toBeTruthy();
+  const intake = (await intakeResponse.json()) as {
+    sessionId: string;
+    leftRevisionId: string;
+    rightRevisionId: string;
+  };
+
+  const diffResponse = await request.post(`${e2eApiBaseUrl}/api/diff-jobs`, {
+    data: {
+      sessionId: intake.sessionId,
+      leftRevisionId: intake.leftRevisionId,
+      rightRevisionId: intake.rightRevisionId
+    }
+  });
+  expect(diffResponse.ok()).toBeTruthy();
+  const diff = (await diffResponse.json()) as { jobId: string };
+
+  return {
+    sessionId: intake.sessionId,
+    comparisonId: diff.jobId
+  };
+}
+
 test('upload route redirects to login when unauthenticated', async ({ page }) => {
   await page.goto('/upload');
   await expect(page).toHaveURL(/\/login\?returnTo=(%2Fupload|\/upload)$/);
@@ -121,7 +182,7 @@ test('authenticated user can load upload shell', async ({ browser, request, base
   const page = await context.newPage();
 
   await page.goto('/upload');
-  await expect(page.getByRole('heading', { name: 'Upload' })).toBeVisible();
+  await expect(page.getByTestId('upload-validation-form')).toBeVisible();
   await expect(page.getByText('playwright.user@example.com')).toBeVisible();
   await expect(page.getByText('tenant: tenant-playwright')).toBeVisible();
 
@@ -155,15 +216,14 @@ test('upload validation shows backend rejection for invalid file type', async ({
   await page.setInputFiles('[data-testid="file-input-b"]', {
     name: 'good.csv',
     mimeType: 'text/csv',
-    buffer: Buffer.from('part,qty\nA,1\n')
+    buffer: Buffer.from(validCsv('A-100', 'Widget', 1))
   });
-  await page.getByTestId('validate-upload-btn').click();
-
-  await expect(page.getByTestId('upload-validation-error')).toContainText('UPLOAD_FILE_TYPE_INVALID');
+  await expect(page.getByTestId('upload-feedback-dialog')).toBeVisible();
+  await expect(page.getByTestId('upload-feedback-details')).toContainText('UPLOAD_FILE_TYPE_INVALID');
   await context.close();
 });
 
-test('upload shows cooldown blocked banner, disables controls, and shows More credits link', async ({
+test('upload shows cooldown feedback and disables controls after policy block', async ({
   browser,
   request,
   baseURL
@@ -178,6 +238,24 @@ test('upload shows cooldown blocked banner, disables controls, and shows More cr
     }
   });
 
+  for (let i = 0; i < 3; i += 1) {
+    const response = await request.post(`${e2eApiBaseUrl}/api/uploads/validate`, {
+      multipart: {
+        fileA: {
+          name: `cooldown-a-${i}.csv`,
+          mimeType: 'text/csv',
+          buffer: Buffer.from(validCsv(`A-10${i}`, 'Widget', i + 1))
+        },
+        fileB: {
+          name: `cooldown-b-${i}.csv`,
+          mimeType: 'text/csv',
+          buffer: Buffer.from(validCsv(`B-20${i}`, 'Bracket', i + 2))
+        }
+      }
+    });
+    expect(response.ok()).toBeTruthy();
+  }
+
   const storageState = await request.storageState();
   const context = await browser.newContext({
     baseURL,
@@ -189,30 +267,29 @@ test('upload shows cooldown blocked banner, disables controls, and shows More cr
   await page.setInputFiles('[data-testid="file-input-a"]', {
     name: 'good-a.csv',
     mimeType: 'text/csv',
-    buffer: Buffer.from('part,qty\nA,1\n')
+    buffer: Buffer.from(validCsv('A-100', 'Widget', 1))
   });
   await page.setInputFiles('[data-testid="file-input-b"]', {
     name: 'good-b.csv',
     mimeType: 'text/csv',
-    buffer: Buffer.from('part,qty\nB,2\n')
+    buffer: Buffer.from(validCsv('B-200', 'Bracket', 2))
   });
+  await expect(page.getByTestId('upload-sheet-select-a')).toHaveValue('CSV');
+  await expect(page.getByTestId('upload-sheet-select-b')).toHaveValue('CSV');
 
-  for (let i = 0; i < 3; i += 1) {
-    await page.getByTestId('validate-upload-btn').click();
-    await expect(page.getByTestId('upload-validation-success')).toBeVisible();
-  }
-
-  await page.getByTestId('validate-upload-btn').click();
-  await expect(page.getByTestId('upload-policy-blocked-banner')).toBeVisible();
-  await expect(page.getByTestId('more-credits-link')).toBeVisible();
-  await expect(page.getByTestId('validate-upload-btn')).toBeDisabled();
+  await page.getByTestId('compare-upload-btn').click({ force: true });
+  await expect(page.getByTestId('upload-feedback-dialog')).toBeVisible();
+  await expect(page.getByTestId('upload-feedback-details')).toContainText('UPLOAD_COOLDOWN_ACTIVE');
+  await expect(page.getByTestId('compare-upload-btn')).toHaveCount(0);
   await expect(page.getByTestId('file-input-a')).toBeDisabled();
   await expect(page.getByTestId('file-input-b')).toBeDisabled();
+  await expect(page.getByTestId('upload-sheet-select-a')).toBeDisabled();
+  await expect(page.getByTestId('upload-sheet-select-b')).toBeDisabled();
 
   await context.close();
 });
 
-test('upload drag/drop assigns deterministic slots and validates', async ({ browser, request, baseURL }) => {
+test('upload drag/drop assigns deterministic slots and can start comparison', async ({ browser, request, baseURL }) => {
   const email = uniqueEmail('playwright.dragdrop');
   await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
     data: {
@@ -233,17 +310,18 @@ test('upload drag/drop assigns deterministic slots and validates', async ({ brow
   await page.goto('/upload');
   const dataTransfer = await page.evaluateHandle(() => {
     const dt = new DataTransfer();
-    dt.items.add(new File(['part,qty\nA,1\n'], 'drop-a.csv', { type: 'text/csv' }));
-    dt.items.add(new File(['part,qty\nB,2\n'], 'drop-b.csv', { type: 'text/csv' }));
+    dt.items.add(new File(['part_number,description,quantity\nA-100,Widget,1\n'], 'drop-a.csv', { type: 'text/csv' }));
+    dt.items.add(new File(['part_number,description,quantity\nB-200,Bracket,2\n'], 'drop-b.csv', { type: 'text/csv' }));
     return dt;
   });
 
   await page.dispatchEvent('[data-testid="upload-dropzone"]', 'drop', { dataTransfer });
-  await expect(page.getByText(/File A: drop-a\.csv/)).toBeVisible();
-  await expect(page.getByText(/File B: drop-b\.csv/)).toBeVisible();
+  await expect(page.getByTestId('upload-source-a')).toContainText('drop-a.csv');
+  await expect(page.getByTestId('upload-source-b')).toContainText('drop-b.csv');
+  await expect(page.getByTestId('upload-sheet-select-a')).toHaveValue('CSV');
+  await expect(page.getByTestId('upload-sheet-select-b')).toHaveValue('CSV');
 
-  await page.getByTestId('validate-upload-btn').click();
-  await expect(page.getByTestId('upload-validation-success')).toContainText('UPLOAD_VALIDATED');
+  await startComparisonFromUpload(page);
   await context.close();
 });
 
@@ -269,17 +347,291 @@ test('upload can queue a valid intake and show accepted job feedback', async ({ 
   await page.setInputFiles('[data-testid="file-input-a"]', {
     name: 'good-a.csv',
     mimeType: 'text/csv',
-    buffer: Buffer.from('part,qty\nA,1\n')
+    buffer: Buffer.from(validCsv('A-100', 'Widget', 1))
   });
   await page.setInputFiles('[data-testid="file-input-b"]', {
     name: 'good-b.csv',
     mimeType: 'text/csv',
-    buffer: Buffer.from('part,qty\nB,2\n')
+    buffer: Buffer.from(validCsv('B-200', 'Bracket', 2))
   });
-  await page.getByTestId('compare-upload-btn').click({ force: true });
+  await expect(page.getByTestId('upload-sheet-select-a')).toHaveValue('CSV');
+  await expect(page.getByTestId('upload-sheet-select-b')).toHaveValue('CSV');
+  await startComparisonFromUpload(page);
+  await expect(page.getByTestId('results-panel')).toBeVisible();
+  await context.close();
+});
 
-  await expect(page.getByTestId('upload-progress-indicator')).toBeVisible();
-  await expect(page.getByTestId('upload-view-results-link')).toBeVisible();
+test('upload sheet selectors stay visible and show CSV and workbook defaults', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.sheet-selectors');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({ baseURL, storageState });
+  const page = await context.newPage();
+
+  await page.goto('/upload');
+  await expect(page.getByTestId('upload-sheet-select-a')).toBeDisabled();
+  await expect(page.getByTestId('upload-sheet-select-a')).toHaveValue('Select file first');
+
+  await page.setInputFiles('[data-testid="file-input-a"]', {
+    name: 'first.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(validCsv('A-100', 'Widget', 1))
+  });
+  await expect(page.getByTestId('upload-sheet-select-a')).toHaveValue('CSV');
+  await expect(page.getByTestId('upload-sheet-select-a')).toBeDisabled();
+
+  await page.setInputFiles('[data-testid="file-input-b"]', fixturePath('bill-of-materials.xlsx'));
+  await expect(page.getByTestId('upload-sheet-select-b')).toHaveValue('Example');
+  await expect(page.getByTestId('upload-sheet-select-b')).toBeEnabled();
+  await expect(page.getByTestId('upload-sheet-select-b').locator('option')).toHaveCount(2);
+
+  await context.close();
+});
+
+test('upload keeps revision a sheet selection when revision b workbook is added', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.sheet-selector-persistence');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({ baseURL, storageState });
+  const page = await context.newPage();
+
+  await page.goto('/upload');
+
+  await page.setInputFiles('[data-testid="file-input-a"]', fixturePath('bill-of-materials.xlsx'));
+  const selectorA = page.getByTestId('upload-sheet-select-a');
+  await expect(selectorA).toBeEnabled();
+
+  const optionValuesA = await selectorA
+    .locator('option')
+    .evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
+  expect(optionValuesA.length).toBeGreaterThan(1);
+  const alternateSheetA = optionValuesA[1]!;
+
+  await selectorA.selectOption(alternateSheetA);
+  await expect(selectorA).toHaveValue(alternateSheetA);
+
+  await page.setInputFiles('[data-testid="file-input-b"]', fixturePath('bill-of-materialsv2.xlsx'));
+  await expect(page.getByTestId('upload-sheet-select-b')).toBeEnabled();
+  await expect(selectorA).toHaveValue(alternateSheetA);
+  await expect(page.getByTestId('compare-upload-btn')).toBeVisible();
+  await expect(page.getByTestId('compare-upload-btn')).toBeEnabled();
+
+  await context.close();
+});
+
+test('upload warning dialog appears before compare and continues after confirmation', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.upload.warning');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({ baseURL, storageState });
+  const page = await context.newPage();
+
+  await page.route('**/api/uploads/validate', async (route) => {
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        accepted: true,
+        correlationId: 'warning-validation',
+        files: {
+          fileA: { name: 'warn-a.csv', size: 42 },
+          fileB: { name: 'warn-b.csv', size: 42 }
+        },
+        warnings: [
+          {
+            code: 'UPLOAD_BOM_REGION_ESTIMATED',
+            message: 'We found extra content around the part list. Please review results after compare.',
+            file: 'fileB',
+            selectedSheetName: 'CSV'
+          }
+        ],
+        fallbackParserUsed: false,
+        sheetSelections: { fileA: 'CSV', fileB: 'CSV' },
+        policy: {
+          comparisonsUsed: 1,
+          unrestrictedComparisonsRemaining: 2,
+          cooldownUntilUtc: null,
+          isUnlimited: false
+        }
+      })
+    });
+  });
+  await page.route('**/api/uploads/intake', async (route) => {
+    await route.fulfill({
+      status: 202,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        jobId: 'warning-job',
+        sessionId: 'warning-session',
+        leftRevisionId: 'left-warning',
+        rightRevisionId: 'right-warning',
+        historyId: 'history-warning',
+        status: 'accepted',
+        correlationId: 'warning-intake',
+        idempotentReplay: false
+      })
+    });
+  });
+
+  await page.goto('/upload');
+  await page.setInputFiles('[data-testid="file-input-a"]', {
+    name: 'warn-a.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(validCsv('A-100', 'Widget', 1))
+  });
+  await page.setInputFiles('[data-testid="file-input-b"]', {
+    name: 'warn-b.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(validCsv('B-200', 'Bracket', 2))
+  });
+  await expect(page.getByTestId('upload-sheet-select-a')).toHaveValue('CSV');
+  await expect(page.getByTestId('upload-sheet-select-b')).toHaveValue('CSV');
+
+  await page.getByTestId('compare-upload-btn').click({ force: true });
+  await expect(page.getByTestId('upload-warning-dialog')).toBeVisible();
+  await expect(page.getByTestId('upload-warning-details')).toContainText('Please review results after compare.');
+
+  await page.getByTestId('upload-warning-continue').click();
+  await page.waitForURL(/\/results\?sessionId=warning-session&leftRevisionId=left-warning&rightRevisionId=right-warning/, {
+    timeout: 20000
+  });
+
+  await context.close();
+});
+
+test('upload warning dialog deduplicates identical warnings across both revisions', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.upload.warning.dedupe');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const storageState = await request.storageState();
+  const context = await browser.newContext({ baseURL, storageState });
+  const page = await context.newPage();
+
+  await page.route('**/api/uploads/validate', async (route) => {
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        accepted: true,
+        correlationId: 'warning-validation-dedupe',
+        files: {
+          fileA: { name: 'warn-a.xlsx', size: 42 },
+          fileB: { name: 'warn-b.xlsx', size: 42 }
+        },
+        warnings: [
+          {
+            code: 'UPLOAD_BOM_REGION_ESTIMATED',
+            message: 'We found the part list, but this file includes extra content like headers or side notes. Please review results if anything looks incomplete.',
+            file: 'fileA',
+            selectedSheetName: 'Multi-Level Bill of Materials'
+          },
+          {
+            code: 'UPLOAD_BOM_REGION_ESTIMATED',
+            message: 'We found the part list, but this file includes extra content like headers or side notes. Please review results if anything looks incomplete.',
+            file: 'fileB',
+            selectedSheetName: 'Multi-Level Bill of Materials'
+          }
+        ],
+        fallbackParserUsed: false,
+        sheetSelections: {
+          fileA: 'Multi-Level Bill of Materials',
+          fileB: 'Multi-Level Bill of Materials'
+        },
+        policy: {
+          comparisonsUsed: 1,
+          unrestrictedComparisonsRemaining: 2,
+          cooldownUntilUtc: null,
+          isUnlimited: false
+        }
+      })
+    });
+  });
+  await page.route('**/api/uploads/intake', async (route) => {
+    await route.fulfill({
+      status: 202,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        jobId: 'warning-job-dedupe',
+        sessionId: 'warning-session-dedupe',
+        leftRevisionId: 'left-warning-dedupe',
+        rightRevisionId: 'right-warning-dedupe',
+        historyId: 'history-warning-dedupe',
+        status: 'accepted',
+        correlationId: 'warning-intake-dedupe',
+        idempotentReplay: false
+      })
+    });
+  });
+
+  await page.goto('/upload');
+  await page.setInputFiles('[data-testid="file-input-a"]', {
+    name: 'warn-a.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(validCsv('A-100', 'Widget', 1))
+  });
+  await page.setInputFiles('[data-testid="file-input-b"]', {
+    name: 'warn-b.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(validCsv('B-200', 'Bracket', 2))
+  });
+  await expect(page.getByTestId('upload-sheet-select-a')).toHaveValue('CSV');
+  await expect(page.getByTestId('upload-sheet-select-b')).toHaveValue('CSV');
+  await expect(page.getByTestId('compare-upload-btn')).toBeEnabled();
+
+  await page.getByTestId('compare-upload-btn').click({ force: true });
+  await expect(page.getByTestId('upload-warning-dialog')).toBeVisible();
+
+  const warningDetails = page.getByTestId('upload-warning-details');
+  await expect(warningDetails.locator('p')).toHaveCount(1);
+  await expect(warningDetails).toContainText('Applies to: Revision A and Revision B.');
+
   await context.close();
 });
 
@@ -379,17 +731,116 @@ test('upload can open results using uploaded revision pair (real file rows)', as
   await page.setInputFiles('[data-testid="file-input-a"]', fixturePath('bill-of-materials.xlsx'));
   await page.setInputFiles('[data-testid="file-input-b"]', fixturePath('bill-of-materialsv2.xlsx'));
 
-  await page.getByTestId('compare-upload-btn').click({ force: true });
-  await expect(page.getByTestId('upload-view-results-link')).toBeVisible();
-  await page.getByTestId('upload-view-results-link').click();
-
-  await expect(page).toHaveURL(/\/results\?/);
+  await startComparisonFromUpload(page);
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 15000 });
   await expect(page.getByTestId('results-grid-table')).toContainText('3023');
   await expect(page.getByTestId('results-grid-table')).toContainText('modified');
-  await expect(page.getByTestId('results-grid-table')).toContainText('color');
-  await expect(page.getByTestId('results-grid-table')).toContainText('quantity');
-  await expect(page.getByTestId('results-grid-table')).toContainText('cost');
+  await expect(page.getByTestId('results-grid-table')).toContainText('Color');
+  await expect(page.getByTestId('results-grid-table')).toContainText('Qty');
+  await expect(page.getByTestId('results-grid-table')).toContainText('Cost');
+  await context.close();
+});
+
+test('results upload next revision shows sheet selector and warning dialog before compare', async ({
+  browser,
+  request,
+  baseURL
+}) => {
+  const email = uniqueEmail('playwright.results.next-warning');
+  await request.post(`${e2eApiBaseUrl}/api/auth/test/login`, {
+    data: {
+      email,
+      displayName: 'Playwright User',
+      tenantId: 'tenant-playwright',
+      provider: 'google'
+    }
+  });
+
+  const chain = await createResultsSessionChain(request, 'results-next-warning');
+  const storageState = await request.storageState();
+  const context = await browser.newContext({ baseURL, storageState });
+  const page = await context.newPage();
+
+  await page.goto(`/results?comparisonId=${encodeURIComponent(chain.secondComparisonId)}`);
+  await expect(page.getByTestId('results-grid-table')).toBeVisible({ timeout: 20000 });
+
+  await page.route('**/api/uploads/validate', async (route) => {
+    const body = route.request().postDataBuffer()?.toString('utf8') || '';
+    if (!body.includes('sessionId')) {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        accepted: true,
+        correlationId: 'next-warning-validation',
+        files: {
+          fileA: { name: 'results-next-warning-b.csv', size: 42 },
+          fileB: { name: 'results-next-warning-c.csv', size: 42 }
+        },
+        warnings: [
+          {
+            code: 'UPLOAD_BOM_REGION_ESTIMATED',
+            message: 'We isolated the parts list automatically. Please check the next comparison once it opens.',
+            file: 'fileB',
+            selectedSheetName: 'CSV'
+          }
+        ],
+        fallbackParserUsed: false,
+        sheetSelections: { fileA: null, fileB: 'CSV' },
+        policy: {
+          comparisonsUsed: 1,
+          unrestrictedComparisonsRemaining: 2,
+          cooldownUntilUtc: null,
+          isUnlimited: false
+        }
+      })
+    });
+  });
+  await page.route('**/api/uploads/intake', async (route) => {
+    const body = route.request().postDataBuffer()?.toString('utf8') || '';
+    if (!body.includes('sessionId')) {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      status: 202,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        jobId: 'next-warning-job',
+        sessionId: 'next-warning-session',
+        leftRevisionId: 'left-next-warning',
+        rightRevisionId: 'right-next-warning',
+        historyId: 'history-next-warning',
+        status: 'accepted',
+        correlationId: 'next-warning-intake',
+        idempotentReplay: false
+      })
+    });
+  });
+
+  await page.getByTestId('results-upload-next-btn').click();
+  await expect(page.getByTestId('results-upload-next-dialog')).toBeVisible();
+
+  await page.setInputFiles('[data-testid="results-upload-next-file-input"]', {
+    name: 'results-next-warning-c.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(validCsv('C-300', 'Harness', 3))
+  });
+  await expect(page.getByTestId('results-upload-next-sheet-select')).toHaveValue('CSV');
+  await expect(page.getByTestId('results-upload-next-sheet-select')).toBeDisabled();
+
+  await page.getByTestId('results-upload-next-submit').click();
+  await expect(page.getByTestId('results-upload-next-warning-dialog')).toBeVisible();
+  await expect(page.getByTestId('results-upload-next-warning-details')).toContainText(
+    'Please check the next comparison once it opens.'
+  );
+
+  await page.getByTestId('results-upload-next-warning-continue').click();
+  await expect(page).toHaveURL(/\/results\?sessionId=next-warning-session&leftRevisionId=left-next-warning&rightRevisionId=right-next-warning/);
+
   await context.close();
 });
 
@@ -426,10 +877,7 @@ test('results load starts a single diff job and does not auto-restart in a loop'
   await page.setInputFiles('[data-testid="file-input-a"]', fixturePath('bill-of-materials.xlsx'));
   await page.setInputFiles('[data-testid="file-input-b"]', fixturePath('bill-of-materialsv2.xlsx'));
 
-  await page.getByTestId('compare-upload-btn').click({ force: true });
-  await expect(page.getByTestId('upload-view-results-link')).toBeVisible();
-  await page.getByTestId('upload-view-results-link').click();
-
+  await startComparisonFromUpload(page);
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
   await page.waitForTimeout(1200);
   expect(diffStartCount).toBe(1);
@@ -462,15 +910,10 @@ test('stage 7 adapter scenario: SAP same-vs-same yields no-change-dominant witho
   await page.goto('/upload');
   await page.setInputFiles('[data-testid="file-input-a"]', bomExamplePath('Example 3 ver 1 SAP.xlsx'));
   await page.setInputFiles('[data-testid="file-input-b"]', bomExamplePath('Example 3 ver 1 SAP.xlsx'));
-  await page.getByTestId('compare-upload-btn').click({ force: true });
-  await expect(page.getByTestId('upload-view-results-link')).toBeVisible();
-  await page.getByTestId('upload-view-results-link').click();
-
+  await startComparisonFromUpload(page);
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
-  const noChangeCount = await page.locator('[data-testid="results-grid-table"] .chip-no_change').count();
-  const replacedCount = await page.locator('[data-testid="results-grid-table"] .chip-replaced').count();
-  expect(noChangeCount).toBeGreaterThan(0);
-  expect(replacedCount).toBe(0);
+  await expect(page.getByTestId('results-grid-table')).toContainText('no_change');
+  await expect(page.getByTestId('results-grid-table')).not.toContainText('replaced');
 
   await context.close();
 });
@@ -500,18 +943,11 @@ test('stage 7 adapter scenario: SAP version delta surfaces modified changed fiel
   await page.goto('/upload');
   await page.setInputFiles('[data-testid="file-input-a"]', bomExamplePath('Example 3 ver 1 SAP.xlsx'));
   await page.setInputFiles('[data-testid="file-input-b"]', bomExamplePath('Example 3 ver 2 SAP.xlsx'));
-  await page.getByTestId('compare-upload-btn').click({ force: true });
-  await expect(page.getByTestId('upload-view-results-link')).toBeVisible();
-  await page.getByTestId('upload-view-results-link').click();
-
+  await startComparisonFromUpload(page);
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
   await page.getByTestId('results-change-filter').selectOption('modified');
   await expect(page.getByTestId('results-grid-table')).toContainText('modified');
-  const hasPartOrPlantField = await page
-    .locator('[data-testid="results-grid-table"]')
-    .filter({ hasText: /partNumber|plant/i })
-    .count();
-  expect(hasPartOrPlantField).toBeGreaterThan(0);
+  await expect(page.getByTestId('results-grid-table')).toContainText(/Qty|Plant|Part Number/i);
 
   await context.close();
 });
@@ -623,11 +1059,12 @@ test('results page streams partial-to-final diff rows with rationale metadata', 
   });
   const page = await context.newPage();
 
-  await page.goto('/results');
+  const chain = await createResultsSessionChain(request, 'results-stream');
+  await page.goto(`/results?comparisonId=${encodeURIComponent(chain.secondComparisonId)}`);
   await expect(page.getByTestId('results-panel')).toBeVisible();
   await expect(page.getByTestId('results-grid-table')).toBeVisible();
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 15000 });
-  await expect(page.locator('[data-testid="results-grid-table"] .chip-quantity_change').first()).toBeVisible();
+  await expect(page.getByTestId('results-grid-table')).toContainText('quantity_change');
   await expect(page.getByText('matched_quantity_change')).toBeVisible();
 
   await context.close();
@@ -655,20 +1092,32 @@ test('results page supports search/sort/filter/change-type controls', async ({
   });
   const page = await context.newPage();
 
-  await page.goto('/results');
+  const comparison = await createFixtureComparison(request, 'results-filters');
+  await page.goto(`/results?comparisonId=${encodeURIComponent(comparison.comparisonId)}`);
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 15000 });
 
-  await page.getByTestId('results-search-input').fill('PN200');
-  await expect(page.getByTestId('results-grid-table')).toContainText('PN200');
+  await page.getByTestId('results-part-filter-input').fill('3023');
+  await expect(page.getByTestId('results-grid-table')).toContainText('3023');
 
-  await page.getByTestId('results-change-filter').selectOption('quantity_change');
-  await expect(page.getByTestId('results-grid-table')).toContainText('quantity_change');
+  await page.getByTestId('results-change-filter').selectOption('modified');
+  await expect(page.getByTestId('results-grid-table')).toContainText('modified');
 
-  await page.getByTestId('results-part-filter-input').fill('PN300');
-  await expect(page.getByTestId('results-grid-table')).not.toContainText('PN200');
+  await page.getByTestId('results-search-input').fill('PLATE 1X2');
+  await expect(page.getByTestId('results-grid-table')).toContainText('PLATE 1X2');
 
+  await page.getByTestId('results-part-filter-input').fill('NO-MATCH');
+  await expect(page.getByTestId('results-grid-table')).toContainText('No rows for the current page/filter.');
+
+  await page.getByTestId('results-part-filter-input').fill('3023');
+  await page.getByTestId('results-search-input').fill('');
+  await expect(page.getByTestId('results-grid-table')).toContainText('modified');
+
+  await page.getByTestId('results-search-input').fill('NO-MATCH');
+  await expect(page.getByTestId('results-grid-table')).toContainText('No rows for the current page/filter.');
+
+  await page.getByTestId('results-search-input').fill('');
   await page.getByTestId('results-sort-select').selectOption('change');
-  await expect(page.getByTestId('results-grid-table')).toBeVisible();
+  await expect(page.getByTestId('results-grid-table')).toContainText('modified');
 
   await context.close();
 });
@@ -710,10 +1159,7 @@ test('results page supports tree mode toggle and expand/collapse behavior', asyn
       'part_number,description,quantity,parentPath,position,level\nROOT,Root Node,1,/root,10,0\nCH-1,Child 1,2,/root/10,20,1\nCH-2,Child 2,1,/root/10,30,1\n'
     )
   });
-  await page.getByTestId('compare-upload-btn').click({ force: true });
-  await expect(page.getByTestId('upload-view-results-link')).toBeVisible();
-  await page.getByTestId('upload-view-results-link').click();
-
+  await startComparisonFromUpload(page);
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
   await page.getByTestId('results-view-tree-btn').click();
   await expect(page.getByTestId('results-tree-table')).toBeVisible();
@@ -763,13 +1209,15 @@ test('results page exposes csv/excel export actions bound to comparisonId', asyn
   });
   const page = await context.newPage();
 
-  await page.goto('/results');
+  const chain = await createResultsSessionChain(request, 'results-exports');
+  await page.goto(`/results?comparisonId=${encodeURIComponent(chain.secondComparisonId)}`);
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 15000 });
+  await page.getByTestId('results-export-menu-btn').click();
 
   const csvLink = page.getByTestId('results-export-csv-link');
   const excelLink = page.getByTestId('results-export-excel-link');
-  await expect(csvLink).toBeVisible();
-  await expect(excelLink).toBeVisible();
+  await expect(csvLink).toBeVisible({ timeout: 15000 });
+  await expect(excelLink).toBeVisible({ timeout: 15000 });
   const currentUrl = new URL(page.url());
   const fromQuery = currentUrl.searchParams.get('comparisonId');
   const csvHref = await csvLink.getAttribute('href');
@@ -808,8 +1256,11 @@ test('results sharing panel supports invite for owner, and invited user can open
   const ownerContext = await browser.newContext({ baseURL, storageState: ownerStorageState });
   const ownerPage = await ownerContext.newPage();
 
-  await ownerPage.goto('/results');
+  const chain = await createResultsSessionChain(request, 'results-share');
+  await ownerPage.goto(`/results?comparisonId=${encodeURIComponent(chain.secondComparisonId)}`);
   await expect(ownerPage.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
+  await ownerPage.getByTestId('results-share-btn').click();
+  await expect(ownerPage.getByTestId('share-panel')).toBeVisible({ timeout: 15000 });
   await ownerPage.getByTestId('share-invite-input').fill(viewerEmail);
   await ownerPage.getByTestId('share-invite-btn').click();
   await expect(ownerPage.getByTestId('share-feedback')).toContainText('Invited');
@@ -895,11 +1346,25 @@ test('results session header saves the shared name and restores the active works
   await page.goto(`/results?comparisonId=${encodeURIComponent(chain.secondComparisonId)}`);
   await expect(page.getByTestId('results-session-title-bar')).toBeVisible({ timeout: 20000 });
   await expect(page.getByTestId('results-current-comparison-btn')).toBeVisible({ timeout: 20000 });
+  await expect(page.getByTestId('results-session-name-input')).toHaveValue('results-restore-b.csv');
+  await expect(page.getByTestId('results-session-count-pill')).toHaveAttribute(
+    'title',
+    'How many saved comparisons are grouped in this revision chain.'
+  );
+  await expect(page.getByTestId('results-session-current-pill')).toHaveAttribute(
+    'title',
+    'The comparison currently open on this page.'
+  );
+  await expect(page.getByTestId('results-session-latest-pill')).toHaveAttribute(
+    'title',
+    'The newest comparison already saved in this revision chain.'
+  );
 
   await page.getByTestId('results-current-comparison-btn').click();
   await expect(page.getByTestId('results-current-comparison-dialog')).toBeVisible({ timeout: 20000 });
   await expect(page.getByTestId('results-current-comparison-card')).toContainText('results-restore-c.csv');
-  await page.getByRole('button', { name: 'Close current file comparison dialog' }).click();
+  await expect(page.getByTestId('results-current-comparison-card')).toContainText('results-restore-b.csv');
+  await page.getByTestId('results-current-comparison-dialog').getByTitle('Close').click();
 
   await page.getByTestId('results-session-name-input').fill('Flight Deck Review');
   await page.getByTestId('results-session-name-input').blur();
@@ -908,7 +1373,7 @@ test('results session header saves the shared name and restores the active works
   await page.goto('/notifications');
   await expect(page.getByTestId('notifications-active-workspace')).toContainText('Flight Deck Review');
 
-  await page.goto('/results');
+  await page.goto(`/results?comparisonId=${encodeURIComponent(chain.secondComparisonId)}`);
   await expect(page).toHaveURL(new RegExp(`/results\\?comparisonId=${chain.secondComparisonId}(?:&|$)`), {
     timeout: 20000
   });
@@ -967,7 +1432,8 @@ test('notifications page shows comparison outcome entries with result links', as
   const context = await browser.newContext({ baseURL, storageState });
   const page = await context.newPage();
 
-  await page.goto('/results');
+  const chain = await createResultsSessionChain(request, 'results-notifications');
+  await page.goto(`/results?comparisonId=${encodeURIComponent(chain.secondComparisonId)}`);
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
   await page.goto('/notifications');
   await expect(page.getByTestId('notifications-panel')).toBeVisible();

@@ -817,10 +817,22 @@ a {
   min-width: 0;
 }
 
+.resultsSessionTitleBarHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
 .resultsSessionTitleBarMeta {
   justify-items: end;
   align-self: start;
   padding-top: 2px;
+}
+
+.resultsSessionTitleBarMeta .cellChips {
+  width: 100%;
+  justify-content: flex-end;
 }
 
 .resultsSessionWorkspace {
@@ -856,16 +868,23 @@ a {
   display: flex;
   gap: 12px;
   align-items: center;
+  min-width: 0;
 }
 
 .resultsSessionTitleEditor input {
   flex: 1 1 auto;
+  min-width: 0;
   min-height: 42px;
   border: 1px solid var(--mission-line);
   border-radius: 12px;
   background: var(--mission-canvas);
   color: var(--mission-ink);
   padding: 0 12px;
+}
+
+.missionResultsHeaderActionStrip {
+  justify-content: flex-end;
+  flex: 0 0 auto;
 }
 
 .resultsSessionComparisonLabel {
@@ -995,6 +1014,12 @@ a {
   justify-content: flex-end;
   gap: 10px;
   margin-left: auto;
+}
+
+.missionResultsPagination,
+.missionResultsPaginationGroup,
+.missionResultsPaginationSummary {
+  text-align: right;
 }
 
 .resultsPaginationSummary {
@@ -1492,6 +1517,15 @@ a {
   .resultsSessionTitleBar {
     grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .resultsSessionTitleBarHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .missionResultsHeaderActionStrip {
+    justify-content: flex-start;
   }
 
   .resultsSessionTitleBarMeta {
@@ -3306,10 +3340,12 @@ a {
 
 .missionResultsActionStrip {
   margin-left: auto;
+  justify-content: flex-end;
 }
 
 .missionResultsToolbarRight {
   flex: 0 0 auto;
+  margin-left: auto;
   justify-content: flex-end;
   flex-wrap: nowrap;
   gap: 12px;
@@ -3326,12 +3362,12 @@ a {
 
 .missionResultsProgressBadge {
   flex: 0 0 auto;
-  min-width: 170px;
-  max-width: 170px;
-  padding: 6px 12px;
+  min-width: 148px;
+  max-width: 180px;
+  padding: 6px 10px;
   border: 1px solid var(--results-border);
-  border-radius: 16px;
-  background: transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--results-input-bg) 82%, transparent);
   color: var(--results-muted);
   font-size: 12px;
   font-family: "Roboto Mono", "Courier New", monospace;
@@ -3345,7 +3381,19 @@ a {
 }
 
 .missionResultsProgressBadge .resultsProgressMeta {
-  font-size: 12px;
+  font-size: 11px;
+}
+
+.missionResultsProgressBadge .resultsProgressText {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.missionResultsProgressBadge .resultsProgressHint {
+  color: var(--results-muted);
+  font-size: 10px;
+  line-height: 1.2;
 }
 
 .missionResultsActionStrip {
@@ -3535,20 +3583,41 @@ a {
 .missionResultsImpactCell {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   min-width: 210px;
 }
 
 .missionResultsImpactPill {
-  display: block;
-  width: 100%;
-  padding: 4px 8px;
-  border: 1px solid var(--results-border);
-  border-radius: 4px;
-  background: var(--results-input-bg);
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.missionResultsImpactSummaryRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.missionResultsImpactCategory {
+  max-width: 100%;
+  border-color: var(--results-border);
+  background: color-mix(in srgb, var(--results-input-bg) 88%, transparent);
   color: var(--results-text);
-  font-size: 13px;
-  font-family: inherit;
+  font-size: 11px;
+}
+
+.missionResultsImpactOverflow {
+  border-color: color-mix(in srgb, var(--results-text) 18%, transparent);
+  background: color-mix(in srgb, var(--results-text) 6%, transparent);
+  color: var(--results-text);
+  font-size: 11px;
+  cursor: help;
 }
 
 .missionResultsImpactLabel {
@@ -3591,6 +3660,10 @@ a {
 .missionTableActionActive {
   background: transparent;
   border-color: var(--results-text);
+}
+
+.missionTableActionGlow {
+  animation: missionResultsActionGlow 1.25s ease-in-out infinite;
 }
 
 .missionTableAction:disabled {
@@ -4654,6 +4727,23 @@ a {
   color: var(--upload-text);
 }
 
+.missionShellRoot .missionCompareSheetSelect {
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 11px;
+  border: 1px solid var(--upload-border);
+  border-radius: 6px;
+  background: var(--upload-surface);
+  color: var(--upload-text);
+  font-family: "Roboto Mono", "Courier New", monospace;
+  font-size: 12px;
+}
+
+.missionShellRoot .missionCompareSheetSelect:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
 .missionShellRoot .missionCompareDropzone {
   margin-top: 0;
   min-height: 0;
@@ -4972,6 +5062,17 @@ a {
     border-color: #9bd7e3;
     box-shadow: 0 0 0 10px rgba(126, 207, 224, 0);
     transform: scale(1.05);
+  }
+}
+
+@keyframes missionResultsActionGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(126, 207, 224, 0.18);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(126, 207, 224, 0);
   }
 }
 
@@ -7199,6 +7300,20 @@ a {
   border: 0;
   background: transparent;
   border-radius: 0;
+}
+
+.resultsImpactAdminLink {
+  color: var(--workspace-blue-text);
+  text-decoration: none;
+}
+
+.resultsImpactAdminLink:hover,
+.resultsImpactAdminLink:focus-visible {
+  text-decoration: underline;
+}
+
+.adminTaxonomyDeepLinkNotice {
+  margin: 0 0 16px;
 }
 
 @media (max-width: 900px) {
