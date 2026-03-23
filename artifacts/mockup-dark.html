@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOMComparevX - Mission Control (Dark Theme)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* DESIGN TOKENS from DESIGN_CONCEPT.md */
+        :root {
+            --base: #121212;
+            --surface: #1E1E1E;
+            --raised: #2A2A2A;
+            --text-primary: #EAEAEA;
+            --text-secondary: #9E9E9E;
+            --border-accent: #424242;
+            --action-primary: #00BCD4; /* Cyan */
+            --status-success: #76FF03; /* Lime */
+            --status-warning: #FFC107; /* Amber */
+            --status-error: #FF5252;  /* Red */
+            --font-primary: 'Inter', sans-serif;
+            --font-mono: 'Roboto Mono', monospace;
+        }
+
+        body {
+            background-color: var(--base);
+            color: var(--text-primary);
+            font-family: var(--font-primary);
+            margin: 0;
+            padding: 0;
+            font-size: 14px;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Vertical Navigation */
+        .vertical-nav {
+            background-color: var(--surface);
+            border-right: 1px solid var(--border-accent);
+            width: 240px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            transition: width 0.3s ease;
+        }
+        .nav-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding: 8px 4px;
+        }
+        .nav-header .logo-icon {
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
+        }
+        .nav-header .logo-text {
+            font-weight: 600;
+            font-size: 18px;
+            white-space: nowrap;
+            opacity: 1;
+            transition: opacity 0.2s ease;
+        }
+        .nav-header .logo-text span { color: var(--action-primary); }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .nav-item:hover {
+            background-color: var(--raised);
+            color: var(--text-primary);
+        }
+        .nav-item.active {
+            background-color: var(--action-primary);
+            color: var(--base);
+        }
+        .nav-item .nav-icon { width: 20px; height: 20px; flex-shrink: 0; }
+        .nav-item .nav-text { opacity: 1; transition: opacity 0.2s ease; }
+
+        /* Collapsed State */
+        .vertical-nav.collapsed {
+            width: 56px;
+        }
+        .vertical-nav.collapsed .logo-text,
+        .vertical-nav.collapsed .nav-text {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Nav Footer */
+        .nav-footer {
+            margin-top: auto;
+        }
+        .theme-toggle {
+            display: flex;
+            justify-content: space-around;
+            background-color: var(--raised);
+            border-radius: 6px;
+            padding: 4px;
+        }
+        .theme-toggle button {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+        }
+        .theme-toggle button:hover { color: var(--text-primary); }
+        .theme-toggle button.active {
+            background-color: var(--action-primary);
+            color: var(--base);
+        }
+
+        /* Main Content Area */
+        .content-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            height: 60px;
+            border-bottom: 1px solid var(--border-accent);
+            flex-shrink: 0;
+        }
+        .user-profile { display: flex; align-items: center; gap: 16px; }
+        .user-profile .avatar { width: 32px; height: 32px; background-color: var(--action-primary); border-radius: 50%; }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background-color: var(--base);
+        }
+
+        /* ANTIGRAVITY: Elevation & Shadows */
+        .elevation-1 {
+            background-color: var(--surface);
+            border: 1px solid var(--border-accent);
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+        
+        .dashboard-widget {
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .widget-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .widget-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .widget-count {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--action-primary);
+        }
+
+        .widget-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-accent);
+        }
+        .widget-list-item:last-child { border-bottom: none; }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        /* MISSION CONTROL: Data Grid */
+        .results-grid-container {
+            margin-top: 24px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .results-grid-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-accent);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            white-space: nowrap;
+        }
+        th {
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            background-color: var(--raised);
+        }
+        tr { border-bottom: 1px solid var(--border-accent); }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:nth-child(even) { background-color: var(--raised); }
+        tbody tr:hover { background-color: #333; }
+        
+        .mono { font-family: var(--font-mono); }
+        
+        .status-cell { display: flex; align-items: center; }
+
+        /* BUTTONS */
+        .btn {
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-primary {
+            background-color: var(--action-primary);
+            color: #000;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--action-primary);
+            border: 1px solid var(--action-primary);
+        }
+        .btn-secondary:hover {
+            background-color: rgba(0, 188, 212, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <nav class="vertical-nav collapsed" id="vNav">
+            <div>
+                <div class="nav-header">
+                    <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2L18 6L14 10L10 6L14 2Z"></path><path d="M10 18L6 14L10 10L14 14L10 18Z"></path><path d="M18 18L14 14L18 10L22 14L18 18Z"></path><path d="M6 6L2 10L6 14L10 10L6 6Z"></path></svg>
+                    <span class="logo-text">BOM<span>Compare</span></span>
+                </div>
+                <a href="#" class="nav-item active">
+                    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" /></svg>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+                    <span class="nav-text">Compare</span>
+                </a>
+                <a href="#" class="nav-item">
+                     <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                    <span class="nav-text">History</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span class="nav-text">Admin</span>
+                </a>
+            </div>
+            <div class="nav-footer">
+                 <div class="theme-toggle">
+                    <button class="active" title="Dark Mode">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path></svg>
+                    </button>
+                    <button title="Light Mode">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>
+                    </button>
+                </div>
+                 <a href="#" class="nav-item" onclick="document.getElementById('vNav').classList.toggle('collapsed')">
+                    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+                    <span class="nav-text">Collapse</span>
+                </a>
+            </div>
+        </nav>
+        <div class="content-wrapper">
+            <header class="page-header">
+                <div class="search-bar">
+                    <!-- Global search can go here -->
+                </div>
+                <div class="user-profile">
+                    <button class="btn btn-primary">New Comparison</button>
+                    <div class="avatar"></div>
+                </div>
+            </header>
+            <main class="main-content">
+                <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 24px;">Mission Control</h1>
+            
+                <div class="dashboard-grid">
+                    <div class="dashboard-widget elevation-1">
+                        <div class="widget-header">
+                            <span class="widget-title">Open Approvals</span>
+                            <span class="widget-count">3</span>
+                        </div>
+                        <div class="widget-list">
+                            <div class="widget-list-item"><span>ECR-2026-034</span> <span class="mono">High Impact</span></div>
+                            <div class="widget-list-item"><span>ECR-2026-033</span> <span class="mono">Medium Impact</span></div>
+                            <div class="widget-list-item"><span>ECR-2026-031</span> <span class="mono">Low Impact</span></div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-widget elevation-1">
+                        <div class="widget-header">
+                            <span class="widget-title">Recent Uploads</span>
+                            <button class="btn btn-secondary">View All</button>
+                        </div>
+                        <div class="widget-list">
+                            <div class="widget-list-item">
+                                <div style="display: flex; align-items: center;"><span class="status-dot" style="background-color: var(--status-success);"></span>Project_Thor_v2.xlsx</div>
+                                <span class="text-secondary">Validated</span>
+                            </div>
+                            <div class="widget-list-item">
+                                <div style="display: flex; align-items: center;"><span class="status-dot" style="background-color: var(--status-error);"></span>Project_Loki_v5.csv</div>
+                                <span class="text-secondary">Failed</span>
+                            </div>
+                            <div class="widget-list-item">
+                                <div style="display: flex; align-items: center;"><span class="status-dot" style="background-color: var(--status-success);"></span>Project_Odin_v1.xlsx</div>
+                                <span class="text-secondary">Validated</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-widget elevation-1">
+                        <div class="widget-header">
+                            <span class="widget-title">Bottleneck Summary</span>
+                            <span class="widget-count" style="color: var(--status-warning);">12</span>
+                        </div>
+                        <div class="widget-list">
+                            <div class="widget-list-item"><span>Resistors (0402)</span> <span class="mono">8 Conflicts</span></div>
+                            <div class="widget-list-item"><span>Capacitors (10uF)</span> <span class="mono">3 Conflicts</span></div>
+                            <div class="widget-list-item"><span>MCU (STM32G0)</span> <span class="mono">1 Conflict</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="results-grid-container elevation-1">
+                    <div class="widget-header results-grid-header">
+                        <h2 class="widget-title">Latest Comparison: Project_Thor_v1 vs v2</h2>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Part Number</th>
+                                <th>Description</th>
+                                <th>Qty (v1)</th>
+                                <th>Qty (v2)</th>
+                                <th>Change</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="status-cell"><span class="status-dot" style="background-color: var(--status-success);"></span> Match</td>
+                                <td class="mono">R-0402-10K-1%</td>
+                                <td>Resistor, 10k Ohm, 1%</td>
+                                <td class="mono">12</td>
+                                <td class="mono">12</td>
+                                <td class="mono">-</td>
+                            </tr>
+                            <tr>
+                                <td class="status-cell"><span class="status-dot" style="background-color: var(--status-warning);"></span> Modified</td>
+                                <td class="mono">C-0805-1UF-X7R</td>
+                                <td>Capacitor, 1uF, 25V, X7R</td>
+                                <td class="mono">4</td>
+                                <td class="mono" style="color: var(--status-warning);">6</td>
+                                <td class="mono" style="color: var(--status-warning);">+2</td>
+                            </tr>
+                            <tr>
+                                <td class="status-cell"><span class="status-dot" style="background-color: var(--status-success);"></span> Match</td>
+                                <td class="mono">U-STM32G0B1RET6</td>
+                                <td>MCU, ARM Cortex M0+</td>
+                                <td class="mono">1</td>
+                                <td class="mono">1</td>
+                                <td class="mono">-</td>
+                            </tr>
+                            <tr>
+                                <td class="status-cell"><span class="status-dot" style="background-color: var(--status-error);"></span> Deletion</td>
+                                <td class="mono">FB-0603-120R-2A</td>
+                                <td>Ferrite Bead, 120 Ohm, 2A</td>
+                                <td class="mono">2</td>
+                                <td class="mono" style="color: var(--status-error);">0</td>
+                                <td class="mono" style="color: var(--status-error);">-2</td>
+                            </tr>
+                            <tr>
+                                <td class="status-cell"><span class="status-dot" style="background-color: var(--status-error);"></span> Addition</td>
+                                <td class="mono">D-SOD323-1N4148</td>
+                                <td>Diode, Small Signal</td>
+                                <td class="mono">0</td>
+                                <td class="mono" style="color: var(--status-error);">2</td>
+                                <td class="mono" style="color: var(--status-error);">+2</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </main>
+        </div>
+    </div>
+    <script>
+        // Simple script to handle toggling for the demo
+        document.addEventListener('DOMContentLoaded', () => {
+            const nav = document.getElementById('vNav');
+            const collapseBtn = nav.querySelector('.nav-footer .nav-item');
+            collapseBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                nav.classList.toggle('collapsed');
+            });
+        });
+    </script>
+</body>
+</html>
