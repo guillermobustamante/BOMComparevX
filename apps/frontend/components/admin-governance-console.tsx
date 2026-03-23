@@ -187,9 +187,9 @@ export function AdminGovernanceConsole() {
       taxonomyDeepLinkRationale ? `Rationale: ${taxonomyDeepLinkRationale}` : null
     ].filter(Boolean);
     if (parts.length === 0) {
-      return 'Opened from Results to review an unclassified row.';
+      return 'Opened from Change Review to classify an unclassified BOM row.';
     }
-    return `Opened from Results to review an unclassified row. ${parts.join(' | ')}`;
+    return `Opened from Change Review to classify an unclassified BOM row. ${parts.join(' | ')}`;
   }, [taxonomyDeepLinkActive, taxonomyDeepLinkField, taxonomyDeepLinkRationale]);
 
   async function loadTaxonomy(industry?: string) {
@@ -817,13 +817,13 @@ export function AdminGovernanceConsole() {
       {isAdmin && (
         <section className="adminMissionDeck" data-testid="admin-mission-deck">
           <div className="adminMissionDeckMain">
-            <p className="missionShellEyebrow">Tenant Governance</p>
-            <p className="p">Manage access, policy, audit, retention, taxonomy, and learned aliases from one mission control surface.</p>
+            <p className="missionShellEyebrow">Governance workspace</p>
+            <p className="p">Manage access, audit evidence, retention, BOM change rules, and learned aliases from one operating surface.</p>
           </div>
           <div className="cellChips adminMissionDeckPills">
-            <span className="missionPill">{activeAdminCount} active admins</span>
-            <span className="missionPill">{taxonomyCategoryCount} taxonomy categories</span>
-            <span className="missionPill">{aliases.length} learned aliases</span>
+            <span className="missionPill missionPillMeta">{activeAdminCount} active admins</span>
+            <span className="missionPill missionPillMeta">{taxonomyCategoryCount} rule categories</span>
+            <span className="missionPill missionPillMeta">{aliases.length} learned aliases</span>
           </div>
         </section>
       )}
@@ -855,8 +855,8 @@ export function AdminGovernanceConsole() {
           <section className={`panel adminSectionCard adminMissionSection ${collapsedSections.accessRoles ? 'adminSectionCardCollapsed' : ''}`}>
             <div className="adminSectionHeader adminMissionSectionHeader">
               <div className="adminSectionTitleGroup adminMissionSectionCopy">
-                <h2 className="adminSectionTitle">Access &amp; Roles</h2>
-                <p className="p">Grant or revoke tenant admin access while keeping upload policy controls in the same operating view.</p>
+                <h2 className="adminSectionTitle">Access and Roles</h2>
+                <p className="p">Grant or revoke tenant admin access and reset comparison policy controls from the same working area.</p>
               </div>
               <div className="adminSectionHeaderActions adminMissionSectionActions">
                 <button
@@ -887,7 +887,7 @@ export function AdminGovernanceConsole() {
                     data-testid="admin-user-search-btn"
                   >
                     <SearchIcon />
-                    Refresh Users
+                    Refresh people
                   </button>
                 </div>
                 <p className="missionSubtle">Active admins: {activeAdminCount}</p>
@@ -953,13 +953,13 @@ export function AdminGovernanceConsole() {
           <section className={`panel adminSectionCard adminMissionSection ${collapsedSections.auditArchive ? 'adminSectionCardCollapsed' : ''}`}>
             <div className="adminSectionHeader adminMissionSectionHeader">
               <div className="adminSectionTitleGroup adminMissionSectionCopy">
-                <h2 className="adminSectionTitle">Audit Export &amp; Archive</h2>
-                <p className="p">Export tenant audit evidence and manage append-only archive runs from one place.</p>
+                <h2 className="adminSectionTitle">Audit Exports and Archive</h2>
+                <p className="p">Export audit evidence for compliance and run append-only archive snapshots from the same console.</p>
               </div>
               <div className="adminSectionHeaderActions adminMissionSectionActions">
                 <div className="adminChipCluster adminMissionMetaStrip">
-                  <span className="chip">{archiveRuns.length} archive runs</span>
-                  <span className="chip">Format: {auditFormat.toUpperCase()}</span>
+                  <span className="chip missionPillMeta">{archiveRuns.length} archive runs</span>
+                  <span className="chip missionPillMeta">Format: {auditFormat.toUpperCase()}</span>
                 </div>
                 <button
                   className="adminIconButton"
@@ -985,11 +985,11 @@ export function AdminGovernanceConsole() {
                   <input value={auditActorEmail} onChange={(event) => setAuditActorEmail(event.target.value)} placeholder="Actor email" />
                   <button className="btn" type="button" onClick={downloadAuditExport}>
                     <ExportIcon />
-                    Export Audit
+                    Export evidence
                   </button>
                   <button className="btn btnPrimary" type="button" onClick={() => void runArchive()}>
                     <RunIcon />
-                    Run Archive
+                    Archive now
                   </button>
                 </div>
                 <div className="mappingTableWrap adminTableWrap">
@@ -1028,8 +1028,8 @@ export function AdminGovernanceConsole() {
           <section className={`panel adminSectionCard adminMissionSection ${collapsedSections.retentionSweep ? 'adminSectionCardCollapsed' : ''}`}>
             <div className="adminSectionHeader adminMissionSectionHeader">
               <div className="adminSectionTitleGroup adminMissionSectionCopy">
-                <h2 className="adminSectionTitle">Retention Sweep</h2>
-                <p className="p">Run a manual retention sweep and review what was removed.</p>
+                <h2 className="adminSectionTitle">Retention Cleanup</h2>
+                <p className="p">Run a manual retention cleanup and review which exports, alerts, and shares were removed.</p>
               </div>
               <div className="adminSectionHeaderActions adminMissionSectionActions">
                 <button
@@ -1054,7 +1054,7 @@ export function AdminGovernanceConsole() {
                   />
                   <button className="btn btnPrimary" type="button" onClick={() => void runRetentionSweep()}>
                     <RunIcon />
-                    Run Retention Sweep
+                    Run cleanup
                   </button>
                 </div>
                 {retentionResult ? (
@@ -1092,13 +1092,13 @@ export function AdminGovernanceConsole() {
           >
             <div className="adminSectionHeader adminMissionSectionHeader">
               <div className="adminSectionTitleGroup adminMissionSectionCopy">
-                <h2 className="adminSectionTitle">Change Taxonomy &amp; Impacts</h2>
-                <p className="p">All changed BOM properties roll into this tenant-owned taxonomy. Exact property matches win, high-confidence fuzzy matches are accepted automatically for now, and edits save without explicit save buttons.</p>
+                <h2 className="adminSectionTitle">Change Rules and Impacts</h2>
+                <p className="p">Manage the tenant rule set that classifies BOM changes and drives impact decisions. Exact matches win first, and approved edits save automatically.</p>
               </div>
               <div className="adminSectionHeaderActions adminMissionSectionActions">
                 <div className="taxonomySummaryStrip adminChipCluster adminMissionMetaStrip">
-                  <span className="chip">{taxonomyCategoryCount} categories</span>
-                  <span className="chip">Default: {defaultIndustry}</span>
+                  <span className="chip missionPillMeta">{taxonomyCategoryCount} categories</span>
+                  <span className="chip missionPillMeta">Default: {defaultIndustry}</span>
                   {taxonomyDirty ? <span className="chip chipReview">Pending</span> : null}
                 </div>
                 <button
@@ -1158,12 +1158,12 @@ export function AdminGovernanceConsole() {
 
                   <button className="btn" type="button" onClick={() => void loadTaxonomy(selectedIndustry)} disabled={taxonomyLoading}>
                     <RefreshIcon />
-                    {taxonomyLoading ? 'Loading...' : 'Reload'}
+                    {taxonomyLoading ? 'Loading...' : 'Reload rules'}
                   </button>
 
                   <button className="btn btnPrimary" type="button" onClick={() => addCategory()} disabled={!taxonomyDraft}>
                     <PlusIcon />
-                    Add Category
+                    Add rule category
                   </button>
                 </div>
 

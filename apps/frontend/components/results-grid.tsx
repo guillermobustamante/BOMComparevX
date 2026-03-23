@@ -22,6 +22,7 @@ import {
 import { ResultsImpactDialog } from './results-impact-dialog';
 import { ChangeType, DiffRow, ImpactCriticality } from './results-grid-contract';
 import {
+  ActiveWorkspaceState,
   buildResultsUrlFromWorkspace,
   clearActiveWorkspace,
   readActiveWorkspace,
@@ -126,6 +127,15 @@ const CHANGE_FILTERS: Array<{ value: 'all' | ChangeType; label: string }> = [
 ];
 
 const PAGE_SIZE_OPTIONS: PageSize[] = [50, 100, 200];
+const CHANGE_TYPE_LABELS: Record<ChangeType, string> = {
+  added: 'Added',
+  removed: 'Removed',
+  replaced: 'Replaced',
+  modified: 'Modified',
+  moved: 'Moved',
+  quantity_change: 'Quantity changed',
+  no_change: 'No change'
+};
 
 function emptySheetSelectorState(label = 'Select file first'): SheetSelectorState {
   return {
@@ -172,6 +182,67 @@ function effectiveSessionName(entry: Pick<SessionComparisonEntry, 'sessionName' 
   return (match?.[1] || rawLabel).trim();
 }
 
+function formatChangeTypeLabel(changeType: ChangeType): string {
+  return CHANGE_TYPE_LABELS[changeType];
+}
+
+function humanizeToken(value: string): string {
+  const normalized = value
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .toLowerCase();
+  if (!normalized) return '';
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function formatChangedFieldLabel(field: string): string {
+  const normalized = field.trim();
+  if (!normalized) return '';
+  const knownLabels: Record<string, string> = {
+    partNumber: 'Part number',
+    revision: 'Revision',
+    description: 'Description',
+    quantity: 'Quantity',
+    unitOfMeasure: 'Unit of measure',
+    parentPath: 'Parent path',
+    position: 'Position',
+    level: 'Level'
+  };
+  return knownLabels[normalized] || humanizeToken(normalized);
+}
+
+function formatClassificationReason(reason: string, changeType?: ChangeType): string {
+  const normalized = reason.trim();
+  if (!normalized) {
+    return changeType ? `${formatChangeTypeLabel(changeType)} detected` : 'Review rationale unavailable';
+  }
+
+  const knownReasons: Record<string, string> = {
+    matched_no_change: 'No material difference detected',
+    matched_modified: 'Matched item updated',
+    matched_moved: 'Matched item moved within the BOM',
+    matched_replaced: 'Matched item replaced',
+    matched_quantity_change: 'Quantity changed between revisions',
+    unmatched_source_row: 'Present only in the baseline revision',
+    unmatched_target_row: 'Present only in the candidate revision',
+    unmatched_pair_replacement: 'Baseline and candidate items were paired as a replacement'
+  };
+  if (knownReasons[normalized]) {
+    return knownReasons[normalized];
+  }
+  if (normalized.startsWith('field_changed_')) {
+    return `Field changed: ${formatChangedFieldLabel(normalized.slice('field_changed_'.length))}`;
+  }
+  if (normalized.startsWith('matched_')) {
+    const matchedType = normalized.slice('matched_'.length) as ChangeType;
+    if (matchedType in CHANGE_TYPE_LABELS) {
+      return `${formatChangeTypeLabel(matchedType)} confirmed`;
+    }
+  }
+  return humanizeToken(normalized);
+}
+
 export function ResultsGrid() {
   const resultsGridEnabled =
     (process.env.NEXT_PUBLIC_RESULTS_GRID_STAGE4_V1 || 'true').trim().toLowerCase() !== 'false';
@@ -211,6 +282,9 @@ export function ResultsGrid() {
   const lastStatusLoadedRowsRef = useRef(0);
   const statusPollInFlightRef = useRef(false);
   const latestStatusRef = useRef<DiffStatus | null>(null);
+  const currentCursorRef = useRef('0');
+  const viewModeRef = useRef<ResultsViewMode>('flat');
+  const expandedNodeIdsRef = useRef<string[]>([]);
 
   const activeComparisonId = comparisonIdParam || jobId;
   const activeSessionId = sessionId || status?.sessionId || null;
@@ -220,6 +294,7 @@ export function ResultsGrid() {
   const [shareRecipients, setShareRecipients] = useState<ShareRecipient[]>([]);
   const [shareError, setShareError] = useState<string | null>(null);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
+  const [shareRecipientsLoaded, setShareRecipientsLoaded] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [chainUploadDialogOpen, setChainUploadDialogOpen] = useState(false);
@@ -229,11 +304,14 @@ export function ResultsGrid() {
   const [historySessions, setHistorySessions] = useState<SessionComparisonEntry[]>([]);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historyFeedback, setHistoryFeedback] = useState<string | null>(null);
+  const [historySessionsLoaded, setHistorySessionsLoaded] = useState(false);
+  const [historySessionsLoading, setHistorySessionsLoading] = useState(false);
   const [renameDraft, setRenameDraft] = useState<Record<string, string>>({});
   const [sessionNameDraft, setSessionNameDraft] = useState('');
   const [sessionRenameBusy, setSessionRenameBusy] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [workspaceRestoreResolved, setWorkspaceRestoreResolved] = useState(false);
+  const [workspaceSnapshot, setWorkspaceSnapshot] = useState<ActiveWorkspaceState | null>(null);
   const [nextRevisionFile, setNextRevisionFile] = useState<File | null>(null);
   const [nextRevisionSheetSelector, setNextRevisionSheetSelector] = useState<SheetSelectorState>(() =>
     emptySheetSelectorState()
@@ -255,7 +333,7 @@ export function ResultsGrid() {
   }
 
   function fallbackImpactLabel(row: DiffRow): string {
-    return row.changeType === 'no_change' ? 'Unclassified' : 'Needs Review';
+    return row.changeType === 'no_change' ? 'No review needed' : 'Review needed';
   }
 
   function impactCriticalityLabel(row: DiffRow): string {
@@ -372,6 +450,10 @@ export function ResultsGrid() {
   }, []);
 
   useEffect(() => {
+    setWorkspaceSnapshot(readActiveWorkspace());
+  }, []);
+
+  useEffect(() => {
     if (workspaceRestoreResolved) return;
     if (hasExplicitWorkspaceParams) {
       setWorkspaceRestoreResolved(true);
@@ -419,6 +501,7 @@ export function ResultsGrid() {
         return;
       }
       setShareRecipients((payload as { recipients?: ShareRecipient[] }).recipients || []);
+      setShareRecipientsLoaded(true);
     } catch {
       setShareError('SHARE_LIST_FAILED: Could not load recipients.');
       setShareRecipients([]);
@@ -491,6 +574,7 @@ export function ResultsGrid() {
 
   async function loadSessionHistory(activeSessionId: string) {
     setHistoryError(null);
+    setHistorySessionsLoading(true);
     try {
       const query = new URLSearchParams({ sessionId: activeSessionId });
       if (activeComparisonId) {
@@ -511,6 +595,7 @@ export function ResultsGrid() {
       }
       const sessions = (payload as { sessions?: SessionComparisonEntry[] }).sessions || [];
       setHistorySessions(sessions);
+      setHistorySessionsLoaded(true);
       setRenameDraft((current) => {
         const next = { ...current };
         for (const entry of sessions) {
@@ -523,7 +608,16 @@ export function ResultsGrid() {
     } catch {
       setHistoryError('SESSION_HISTORY_FAILED: Could not load comparisons.');
       setHistorySessions([]);
+    } finally {
+      setHistorySessionsLoading(false);
     }
+  }
+
+  async function ensureSessionHistoryLoaded(force = false) {
+    if (!activeSessionId) return;
+    if (historySessionsLoading) return;
+    if (historySessionsLoaded && !force) return;
+    await loadSessionHistory(activeSessionId);
   }
 
   async function renameComparison(historyId: string, nextSessionName?: string) {
@@ -1024,7 +1118,22 @@ export function ResultsGrid() {
   useEffect(() => {
     if (!jobId) return;
     if (status?.status === 'completed' && !status.errorCode && !status.errorMessage) return;
-    const timer = setInterval(async () => {
+    let cancelled = false;
+    let timer: number | undefined;
+
+    const schedule = (delayMs: number) => {
+      if (cancelled) return;
+      timer = window.setTimeout(() => {
+        void pollStatus();
+      }, delayMs);
+    };
+
+    const pollStatus = async () => {
+      if (cancelled) return;
+      if (document.visibilityState === 'hidden') {
+        schedule(2500);
+        return;
+      }
       if (statusPollInFlightRef.current) return;
       statusPollInFlightRef.current = true;
       try {
@@ -1063,14 +1172,14 @@ export function ResultsGrid() {
 
         const statusAdvanced = currentStatus.loadedRows !== lastStatusLoadedRowsRef.current;
         const currentViewCount =
-          viewMode === 'tree' ? treeRowsCountRef.current : rowsCountRef.current;
+          viewModeRef.current === 'tree' ? treeRowsCountRef.current : rowsCountRef.current;
         const needsHydration = currentStatus.status === 'completed' && currentViewCount === 0;
         if (statusAdvanced || needsHydration) {
           lastStatusLoadedRowsRef.current = currentStatus.loadedRows;
-          if (viewMode === 'tree') {
-            await loadTreePage(currentStatus.jobId, currentCursor);
+          if (viewModeRef.current === 'tree') {
+            await loadTreePage(currentStatus.jobId, currentCursorRef.current, expandedNodeIdsRef.current);
           } else {
-            await loadPage(currentStatus.jobId, currentCursor);
+            await loadPage(currentStatus.jobId, currentCursorRef.current);
           }
         }
       } catch {
@@ -1087,11 +1196,22 @@ export function ResultsGrid() {
         });
       } finally {
         statusPollInFlightRef.current = false;
+        const latestStatus = latestStatusRef.current;
+        if (cancelled) return;
+        if (latestStatus?.status === 'completed' && !latestStatus.errorCode && !latestStatus.errorMessage) {
+          return;
+        }
+        schedule(latestStatus?.percentComplete && latestStatus.percentComplete >= 85 ? 2500 : 1500);
       }
-    }, 1000);
+    };
 
-    return () => clearInterval(timer);
-  }, [jobId, currentCursor, pageSize, search, partFilter, changeFilter, sortMode, status, viewMode, expandedNodeIds]);
+    schedule(1500);
+
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [jobId, status?.status]);
 
   useEffect(() => {
     if (!jobId) return;
@@ -1108,25 +1228,67 @@ export function ResultsGrid() {
   }, [jobId, search, partFilter, changeFilter, sortMode, pageSize, viewMode, expandedNodeIds]);
 
   useEffect(() => {
+    currentCursorRef.current = currentCursor;
+  }, [currentCursor]);
+
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+  }, [viewMode]);
+
+  useEffect(() => {
+    expandedNodeIdsRef.current = expandedNodeIds;
+  }, [expandedNodeIds]);
+
+  useEffect(() => {
     if (!activeComparisonId) {
       setShareRecipients([]);
       setShareError(null);
+      setShareRecipientsLoaded(false);
       return;
     }
-    void loadShareRecipients(activeComparisonId);
+    setShareRecipients([]);
+    setShareError(null);
+    setShareFeedback(null);
+    setShareRecipientsLoaded(false);
   }, [activeComparisonId]);
 
   useEffect(() => {
     if (!activeSessionId) {
       setHistorySessions([]);
+      setHistorySessionsLoaded(false);
+      setHistorySessionsLoading(false);
+      setHistoryError(null);
       return;
     }
-    void loadSessionHistory(activeSessionId);
+    setHistorySessions([]);
+    setHistorySessionsLoaded(false);
+    setHistorySessionsLoading(false);
+    setHistoryError(null);
   }, [activeSessionId, activeComparisonId]);
+
+  useEffect(() => {
+    if (shareDialogOpen && activeComparisonId && !shareRecipientsLoaded) {
+      void loadShareRecipients(activeComparisonId);
+    }
+  }, [shareDialogOpen, activeComparisonId, shareRecipientsLoaded]);
+
+  useEffect(() => {
+    if ((currentComparisonDialogOpen || historyDialogOpen) && activeSessionId && !historySessionsLoaded) {
+      void ensureSessionHistoryLoaded();
+    }
+  }, [currentComparisonDialogOpen, historyDialogOpen, activeSessionId, historySessionsLoaded]);
 
   const currentSessionEntry = historySessions.find((entry) => entry.current) || historySessions[0] || null;
   const sessionNameDirty = sessionNameDraft.trim() !== effectiveSessionName(currentSessionEntry);
-  const sessionTitleActionStripVisible = Boolean(activeSessionId && currentSessionEntry);
+  const showSessionHeader = Boolean(activeComparisonId || activeSessionId || hasExplicitWorkspaceParams);
+  const sessionTitleActionStripVisible = showSessionHeader;
+  const sessionHeaderComparisonLabel = currentSessionEntry
+    ? formatComparisonLabelHuman(currentSessionEntry)
+    : workspaceSnapshot?.comparisonLabel
+      ? workspaceSnapshot.comparisonLabel
+      : activeComparisonId
+        ? 'Comparison details load on demand'
+        : 'No comparison loaded yet';
 
   useEffect(() => {
     setSessionNameDraft(effectiveSessionName(currentSessionEntry));
@@ -1143,6 +1305,7 @@ export function ResultsGrid() {
       sessionName: effectiveSessionName(currentSessionEntry),
       comparisonLabel: currentSessionEntry.comparisonLabel
     });
+    setWorkspaceSnapshot(readActiveWorkspace());
   }, [activeSessionId, activeComparisonId, currentSessionEntry]);
 
   const visibleRows = rows;
@@ -1168,170 +1331,249 @@ export function ResultsGrid() {
     );
   }
 
+  const resultsActionStrip = (
+    <div className="missionToggleStrip missionResultsActionStrip missionResultsHeaderActionStrip">
+      <button
+        className="screenIconAction missionResultsIconButton"
+        type="button"
+        onClick={() => {
+          setCurrentComparisonDialogOpen(true);
+          void ensureSessionHistoryLoaded();
+        }}
+        disabled={!activeSessionId}
+        aria-label="Current file comparison"
+        title={!activeSessionId ? 'Current session is unavailable' : 'Current file comparison'}
+        data-testid="results-current-comparison-btn"
+      >
+        <FileDetailsIcon />
+      </button>
+      <button
+        className="screenIconAction missionResultsIconButton"
+        type="button"
+        onClick={() => {
+          setChainUploadError(null);
+          setChainUploadDialogOpen(true);
+        }}
+        disabled={!activeSessionId || chainUploadBusy}
+        aria-label="Upload next revision"
+        title={
+          !activeSessionId
+            ? 'Current session is unavailable'
+            : chainUploadBusy
+              ? 'Uploading next revision'
+              : 'Upload next revision'
+        }
+        data-testid="results-upload-next-btn"
+      >
+        <UploadTrayIcon />
+      </button>
+      <button
+        className="screenIconAction missionResultsIconButton"
+        type="button"
+        onClick={() => {
+          setHistoryError(null);
+          setHistoryFeedback(null);
+          setHistoryDialogOpen(true);
+          void ensureSessionHistoryLoaded();
+        }}
+        disabled={!activeSessionId}
+        aria-label="Previous comparisons"
+        title={!activeSessionId ? 'Current session is unavailable' : 'Previous comparisons'}
+        data-testid="results-session-history-btn"
+      >
+        <HistoryIcon />
+      </button>
+      <button
+        className={`screenIconAction missionResultsIconButton ${viewMode === 'flat' ? 'screenIconActionActive' : ''}`}
+        type="button"
+        onClick={() => void toggleView('flat')}
+        disabled={viewMode === 'flat'}
+        aria-label="Flat view"
+        title="Flat view"
+        data-testid="results-view-flat-btn"
+      >
+        <FlatViewIcon />
+      </button>
+      <button
+        className={`screenIconAction missionResultsIconButton ${viewMode === 'tree' ? 'screenIconActionActive' : ''}`}
+        type="button"
+        onClick={() => void toggleView('tree')}
+        disabled={!resultsTreeViewEnabled || viewMode === 'tree'}
+        aria-label="Tree view"
+        title="Tree view"
+        data-testid="results-view-tree-btn"
+      >
+        <TreeViewIcon />
+      </button>
+      <button
+        className="screenIconAction missionResultsIconButton"
+        type="button"
+        onClick={() => setShareDialogOpen(true)}
+        disabled={!activeComparisonId}
+        aria-label="Share"
+        title="Share"
+        data-testid="results-share-btn"
+      >
+        <ShareIcon />
+      </button>
+      <button
+        className="screenIconAction missionResultsIconButton"
+        type="button"
+        onClick={() => setExportDialogOpen(true)}
+        disabled={!activeComparisonId}
+        aria-label="Export"
+        title="Export"
+        data-testid="results-export-menu-btn"
+      >
+        <ExportIcon />
+      </button>
+      <button
+        className="screenIconAction missionResultsIconButton"
+        type="button"
+        onClick={() => void startDiffJob()}
+        disabled={isStarting}
+        aria-label={isStarting ? 'Starting diff' : 'Run diff'}
+        title={isStarting ? 'Starting diff' : 'Run diff'}
+        data-testid="results-run-btn"
+      >
+        <RunIcon />
+      </button>
+    </div>
+  );
+
+  const toolbarProgressBadge =
+    status && status.status === 'running' ? (
+      <div
+        className="resultsProgressBadge resultsProgressBadgeRunning missionResultsProgressBadge"
+        data-testid="results-partial-badge"
+      >
+        <CheckCircleIcon />
+        <span className="resultsProgressTrack" aria-hidden="true">
+          <span className="resultsProgressFill" style={{ width: `${Math.max(12, status.percentComplete)}%` }} />
+        </span>
+        <span className="resultsProgressText">
+          <strong className="resultsProgressMeta">
+            {formatStatusPhase(status.phase)} {status.percentComplete}%
+          </strong>
+          <span className="resultsProgressHint">Comparison in progress</span>
+        </span>
+      </div>
+    ) : status && status.status === 'completed' && !status.errorCode && !status.errorMessage ? (
+      <div
+        className="resultsProgressBadge resultsProgressBadgeComplete missionResultsProgressBadge"
+        data-testid="results-complete-badge"
+      >
+        <CheckCircleIcon />
+        <span className="resultsProgressTrack" aria-hidden="true">
+          <span className="resultsProgressFill" style={{ width: '100%' }} />
+        </span>
+        <span className="resultsProgressText">
+          <strong className="resultsProgressMeta">Ready to review</strong>
+          <span className="resultsProgressHint">Diff finished</span>
+        </span>
+      </div>
+    ) : (
+      <div
+        className="resultsProgressBadge resultsProgressBadgePending missionResultsProgressBadge"
+        aria-live="polite"
+        data-testid="results-loading-badge"
+      >
+        <CheckCircleIcon />
+        <span className="resultsProgressTrack" aria-hidden="true">
+          <span className="resultsProgressFill" style={{ width: '18%' }} />
+        </span>
+        <span className="resultsProgressText">
+          <strong className="resultsProgressMeta">Preparing comparison</strong>
+          <span className="resultsProgressHint">Loading workspace</span>
+        </span>
+      </div>
+    );
+
   return (
     <>
-      {activeSessionId && currentSessionEntry && (
+      {showSessionHeader && (
         <section className="resultsSessionTitleBar" data-testid="results-session-title-bar">
           <div className="resultsSessionTitleBarMain">
-            <div className="resultsSessionTitleBarHeader">
-              <div className="resultsSessionTitleEditor">
-                <input
-                  id="results-session-name-input"
-                  value={sessionNameDraft}
-                  onChange={(event) => setSessionNameDraft(event.target.value)}
-                  onBlur={() => {
-                    if (!sessionNameDirty || sessionRenameBusy || !currentSessionEntry.canRename) return;
-                    void saveSessionName();
-                  }}
-                  placeholder={effectiveSessionName(currentSessionEntry) || 'Untitled session'}
-                  readOnly={!currentSessionEntry.canRename}
-                  data-testid="results-session-name-input"
-                />
-                {sessionNameDirty && currentSessionEntry.canRename && (
-                  <button
-                    className="btn btnPrimary"
-                    type="button"
-                    onClick={() => void saveSessionName()}
-                    disabled={sessionRenameBusy}
-                    data-testid="results-session-name-save"
-                  >
-                    {sessionRenameBusy ? 'Saving...' : 'Save'}
-                  </button>
-                )}
-              </div>
-              <div className="missionToggleStrip missionResultsActionStrip missionResultsHeaderActionStrip">
+            <div className="resultsSessionTitleEditor">
+              <input
+                id="results-session-name-input"
+                value={currentSessionEntry ? sessionNameDraft : workspaceSnapshot?.sessionName || ''}
+                onChange={(event) => setSessionNameDraft(event.target.value)}
+                onFocus={() => {
+                  void ensureSessionHistoryLoaded();
+                }}
+                onBlur={() => {
+                  if (!sessionNameDirty || sessionRenameBusy || !currentSessionEntry?.canRename) return;
+                  void saveSessionName();
+                }}
+                placeholder={
+                  currentSessionEntry
+                    ? effectiveSessionName(currentSessionEntry) || 'Untitled session'
+                    : workspaceSnapshot?.sessionName || 'Session details load on demand'
+                }
+                readOnly={!currentSessionEntry?.canRename}
+                aria-busy={!currentSessionEntry}
+                data-testid="results-session-name-input"
+              />
+              {sessionNameDirty && currentSessionEntry?.canRename && (
                 <button
-                  className="screenIconAction missionResultsIconButton"
+                  className="btn btnPrimary"
                   type="button"
-                  onClick={() => setCurrentComparisonDialogOpen(true)}
-                  disabled={!currentSessionEntry}
-                  aria-label="Current file comparison"
-                  title={!currentSessionEntry ? 'Current session is unavailable' : 'Current file comparison'}
-                  data-testid="results-current-comparison-btn"
+                  onClick={() => void saveSessionName()}
+                  disabled={sessionRenameBusy}
+                  data-testid="results-session-name-save"
                 >
-                  <FileDetailsIcon />
+                  {sessionRenameBusy ? 'Saving...' : 'Save'}
                 </button>
-                <button
-                  className="screenIconAction missionResultsIconButton"
-                  type="button"
-                  onClick={() => {
-                    setChainUploadError(null);
-                    setChainUploadDialogOpen(true);
-                  }}
-                  disabled={!activeSessionId || chainUploadBusy}
-                  aria-label="Upload next revision"
-                  title={
-                    !activeSessionId
-                      ? 'Current session is unavailable'
-                      : chainUploadBusy
-                        ? 'Uploading next revision'
-                        : 'Upload next revision'
-                  }
-                  data-testid="results-upload-next-btn"
-                >
-                  <UploadTrayIcon />
-                </button>
-                <button
-                  className="screenIconAction missionResultsIconButton"
-                  type="button"
-                  onClick={() => {
-                    setHistoryError(null);
-                    setHistoryFeedback(null);
-                    setHistoryDialogOpen(true);
-                  }}
-                  disabled={!activeSessionId}
-                  aria-label="Previous comparisons"
-                  title={!activeSessionId ? 'Current session is unavailable' : 'Previous comparisons'}
-                  data-testid="results-session-history-btn"
-                >
-                  <HistoryIcon />
-                </button>
-                <button
-                  className={`screenIconAction missionResultsIconButton ${viewMode === 'flat' ? 'screenIconActionActive' : ''}`}
-                  type="button"
-                  onClick={() => void toggleView('flat')}
-                  disabled={viewMode === 'flat'}
-                  aria-label="Flat view"
-                  title="Flat view"
-                  data-testid="results-view-flat-btn"
-                >
-                  <FlatViewIcon />
-                </button>
-                <button
-                  className={`screenIconAction missionResultsIconButton ${viewMode === 'tree' ? 'screenIconActionActive' : ''}`}
-                  type="button"
-                  onClick={() => void toggleView('tree')}
-                  disabled={!resultsTreeViewEnabled || viewMode === 'tree'}
-                  aria-label="Tree view"
-                  title="Tree view"
-                  data-testid="results-view-tree-btn"
-                >
-                  <TreeViewIcon />
-                </button>
-                <button
-                  className="screenIconAction missionResultsIconButton"
-                  type="button"
-                  onClick={() => setShareDialogOpen(true)}
-                  disabled={!activeComparisonId}
-                  aria-label="Share"
-                  title="Share"
-                  data-testid="results-share-btn"
-                >
-                  <ShareIcon />
-                </button>
-                <button
-                  className="screenIconAction missionResultsIconButton"
-                  type="button"
-                  onClick={() => setExportDialogOpen(true)}
-                  disabled={!activeComparisonId}
-                  aria-label="Export"
-                  title="Export"
-                  data-testid="results-export-menu-btn"
-                >
-                  <ExportIcon />
-                </button>
-                <button
-                  className="screenIconAction missionResultsIconButton"
-                  type="button"
-                  onClick={() => void startDiffJob()}
-                  disabled={isStarting}
-                  aria-label={isStarting ? 'Starting diff' : 'Run diff'}
-                  title={isStarting ? 'Starting diff' : 'Run diff'}
-                  data-testid="results-run-btn"
-                >
-                  <RunIcon />
-                </button>
-              </div>
+              )}
             </div>
-            <span className="resultsSessionComparisonLabel">{formatComparisonLabelHuman(currentSessionEntry)}</span>
-          </div>
-          <div className="resultsSessionTitleBarMeta">
-            <div className="cellChips">
+            <div className="resultsSessionTitleRail">
               <span
-                className="missionPill"
-                title="How many saved comparisons are grouped in this revision chain."
-                data-testid="results-session-count-pill"
+                className="resultsSessionComparisonLabel"
+                data-testid="results-session-comparison-label"
               >
-                {historySessions.length} comparisons
+                {sessionHeaderComparisonLabel}
               </span>
-              {currentSessionEntry.current && (
-                <span
-                  className="missionPill"
-                  title="The comparison currently open on this page."
-                  data-testid="results-session-current-pill"
-                >
-                  Current loaded
-                </span>
-              )}
-              {currentSessionEntry.latest && (
-                <span
-                  className="missionPill"
-                  title="The newest comparison already saved in this revision chain."
-                  data-testid="results-session-latest-pill"
-                >
-                  Latest available
-                </span>
-              )}
+              <div className="resultsSessionTitleRailRight">
+                {resultsActionStrip}
+                <div className="cellChips resultsSessionStatusPills">
+                  {currentSessionEntry ? (
+                    <span
+                      className="missionPill missionPillMeta"
+                      title="How many saved comparisons are grouped in this revision chain."
+                      data-testid="results-session-count-pill"
+                    >
+                      {historySessions.length} comparisons
+                    </span>
+                  ) : (
+                    <span
+                      className="missionPill missionPillMeta"
+                      title="Session details load when you open the review details or history."
+                      data-testid="results-session-loading-pill"
+                    >
+                      Session details on demand
+                    </span>
+                  )}
+                  {currentSessionEntry?.current && (
+                    <span
+                      className="missionPill missionPillMeta"
+                      title="The comparison currently open on this page."
+                      data-testid="results-session-current-pill"
+                    >
+                      Current loaded
+                    </span>
+                  )}
+                  {currentSessionEntry?.latest && (
+                    <span
+                      className="missionPill missionPillMeta"
+                      title="The newest comparison already saved in this revision chain."
+                      data-testid="results-session-latest-pill"
+                    >
+                      Latest available
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -1341,142 +1583,12 @@ export function ResultsGrid() {
       <div className="missionResultsToolbar" data-testid="results-toolbar">
         {!sessionTitleActionStripVisible && (
           <div className="missionResultsToolbarTop">
-            <div className="missionToggleStrip missionResultsActionStrip">
-              <button
-                className="screenIconAction missionResultsIconButton"
-                type="button"
-                onClick={() => setCurrentComparisonDialogOpen(true)}
-                disabled={!currentSessionEntry}
-                aria-label="Current file comparison"
-                title={!currentSessionEntry ? 'Current session is unavailable' : 'Current file comparison'}
-                data-testid="results-current-comparison-btn"
-              >
-                <FileDetailsIcon />
-              </button>
-              <button
-                className="screenIconAction missionResultsIconButton"
-                type="button"
-                onClick={() => {
-                  setChainUploadError(null);
-                  setChainUploadDialogOpen(true);
-                }}
-                disabled={!activeSessionId || chainUploadBusy}
-                aria-label="Upload next revision"
-                title={
-                  !activeSessionId
-                    ? 'Current session is unavailable'
-                    : chainUploadBusy
-                      ? 'Uploading next revision'
-                      : 'Upload next revision'
-                }
-                data-testid="results-upload-next-btn"
-              >
-                <UploadTrayIcon />
-              </button>
-              <button
-                className="screenIconAction missionResultsIconButton"
-                type="button"
-                onClick={() => {
-                  setHistoryError(null);
-                  setHistoryFeedback(null);
-                  setHistoryDialogOpen(true);
-                }}
-                disabled={!activeSessionId}
-                aria-label="Previous comparisons"
-                title={!activeSessionId ? 'Current session is unavailable' : 'Previous comparisons'}
-                data-testid="results-session-history-btn"
-              >
-                <HistoryIcon />
-              </button>
-              <button
-                className={`screenIconAction missionResultsIconButton ${viewMode === 'flat' ? 'screenIconActionActive' : ''}`}
-                type="button"
-                onClick={() => void toggleView('flat')}
-                disabled={viewMode === 'flat'}
-                aria-label="Flat view"
-                title="Flat view"
-                data-testid="results-view-flat-btn"
-              >
-                <FlatViewIcon />
-              </button>
-              <button
-                className={`screenIconAction missionResultsIconButton ${viewMode === 'tree' ? 'screenIconActionActive' : ''}`}
-                type="button"
-                onClick={() => void toggleView('tree')}
-                disabled={!resultsTreeViewEnabled || viewMode === 'tree'}
-                aria-label="Tree view"
-                title="Tree view"
-                data-testid="results-view-tree-btn"
-              >
-                <TreeViewIcon />
-              </button>
-              <button
-                className="screenIconAction missionResultsIconButton"
-                type="button"
-                onClick={() => setShareDialogOpen(true)}
-                disabled={!activeComparisonId}
-                aria-label="Share"
-                title="Share"
-                data-testid="results-share-btn"
-              >
-                <ShareIcon />
-              </button>
-              <button
-                className="screenIconAction missionResultsIconButton"
-                type="button"
-                onClick={() => setExportDialogOpen(true)}
-                disabled={!activeComparisonId}
-                aria-label="Export"
-                title="Export"
-                data-testid="results-export-menu-btn"
-              >
-                <ExportIcon />
-              </button>
-              <button
-                className="screenIconAction missionResultsIconButton"
-                type="button"
-                onClick={() => void startDiffJob()}
-                disabled={isStarting}
-                aria-label={isStarting ? 'Starting diff' : 'Run diff'}
-                title={isStarting ? 'Starting diff' : 'Run diff'}
-                data-testid="results-run-btn"
-              >
-                <RunIcon />
-              </button>
-            </div>
+            {resultsActionStrip}
           </div>
         )}
         <div className="missionResultsToolbarGridRow">
           <div className="missionResultsToolbarLeft">
-            {status && status.status === 'running' && (
-              <div className="resultsProgressBadge resultsProgressBadgeRunning missionResultsProgressBadge" data-testid="results-partial-badge">
-                <CheckCircleIcon />
-                <span className="resultsProgressTrack" aria-hidden="true">
-                  <span className="resultsProgressFill" style={{ width: `${Math.max(12, status.percentComplete)}%` }} />
-                </span>
-                <span className="resultsProgressText">
-                  <strong className="resultsProgressMeta">
-                    {formatStatusPhase(status.phase)} {status.percentComplete}%
-                  </strong>
-                  <span className="resultsProgressHint">Comparison in progress</span>
-                </span>
-              </div>
-            )}
-            {status && status.status === 'completed' && !status.errorCode && !status.errorMessage && (
-              <div
-                className="resultsProgressBadge resultsProgressBadgeComplete missionResultsProgressBadge"
-                data-testid="results-complete-badge"
-              >
-                <CheckCircleIcon />
-                <span className="resultsProgressTrack" aria-hidden="true">
-                  <span className="resultsProgressFill" style={{ width: '100%' }} />
-                </span>
-                <span className="resultsProgressText">
-                  <strong className="resultsProgressMeta">Ready to review</strong>
-                  <span className="resultsProgressHint">Diff finished</span>
-                </span>
-              </div>
-            )}
+            {toolbarProgressBadge}
             <div className="resultsInlineFilters resultsFilters resultsFiltersMain missionResultsFiltersStrip">
               <input
                 value={search}
@@ -1518,7 +1630,10 @@ export function ResultsGrid() {
           </div>
           <div className="resultsPagination missionResultsPagination missionResultsToolbarRight" data-testid="results-pagination-controls">
             <div className="resultsPaginationGroup missionResultsPaginationGroup">
-              <span className="resultsPaginationSummary missionResultsPaginationSummary">
+              <span
+                className="resultsPaginationSummary missionResultsPaginationSummary"
+                data-testid="results-pagination-summary"
+              >
                 Showing {pageStart}-{pageEnd} of {filteredTotalRows}
               </span>
               <select
@@ -1598,7 +1713,9 @@ export function ResultsGrid() {
                 const primaryImpactSummary = primaryImpactCategory(row);
                 const overflowImpactCount = impactOverflowCount(row);
                 const unclassifiedAdminHref =
-                  isAdminUser && impactSummary === 'Unclassified' ? buildAdminTaxonomyLink(row) : null;
+                  isAdminUser && !hasImpactCategories(row) && row.changeType !== 'no_change'
+                    ? buildAdminTaxonomyLink(row)
+                    : null;
                 return (
                   <tr
                     key={row.rowId}
@@ -1607,7 +1724,7 @@ export function ResultsGrid() {
                   >
                   <td>
                     <span className={`missionStatusTag missionResultsChangePill missionResultsChangePill-${changeTone(row.changeType)}`}>
-                      {row.changeType}
+                      {formatChangeTypeLabel(row.changeType)}
                     </span>
                   </td>
                   <td className="missionResultsMono">{row.keyFields.partNumber || '-'}</td>
@@ -1646,15 +1763,15 @@ export function ResultsGrid() {
                       )}
                     </div>
                   </td>
-                  <td className="missionResultsMono">{row.rationale.classificationReason}</td>
+                  <td className="missionResultsMono">{formatClassificationReason(row.rationale.classificationReason, row.changeType)}</td>
                   <td>
                     <div className="cellChips missionResultsChangedFields">
                       {row.rationale.changedFields.length === 0 && (
-                        <span className="missionPill missionResultsFieldChip missionResultsFieldChipMuted">none</span>
+                        <span className="missionPill missionResultsFieldChip missionResultsFieldChipMuted">No field changes</span>
                       )}
                       {row.rationale.changedFields.map((field) => (
                         <span className="missionPill missionResultsFieldChip" key={`${row.rowId}-${field}`}>
-                          {field}
+                          {formatChangedFieldLabel(field)}
                         </span>
                       ))}
                     </div>
@@ -1665,10 +1782,16 @@ export function ResultsGrid() {
                       type="button"
                       onClick={() => setImpactDialogRow(row)}
                       disabled={!hasImpactCategories(row)}
-                      title={hasImpactCategories(row) ? 'View impact classification' : 'Impact classification needs review'}
+                      title={
+                        hasImpactCategories(row)
+                          ? 'Open change impact details'
+                          : row.changeType === 'no_change'
+                            ? 'No impact review is needed for unchanged rows'
+                            : 'Change impact still needs review'
+                      }
                       data-testid={`results-impact-detail-${row.rowId}`}
                     >
-                      {hasImpactCategories(row) ? 'View Impact' : 'Needs Review'}
+                      {hasImpactCategories(row) ? 'Open impact' : row.changeType === 'no_change' ? 'No review needed' : 'Review needed'}
                     </button>
                   </td>
                   </tr>
@@ -1730,7 +1853,7 @@ export function ResultsGrid() {
                     </td>
                     <td>
                       <span className={`missionStatusTag missionResultsChangePill missionResultsChangePill-${changeTone(node.changeType)}`}>
-                        {node.changeType}
+                        {formatChangeTypeLabel(node.changeType)}
                       </span>
                     </td>
                     <td className="missionResultsMono">{node.keyFields.partNumber || '-'}</td>
@@ -1748,11 +1871,11 @@ export function ResultsGrid() {
                     <td>
                       <div className="cellChips missionResultsChangedFields">
                         {node.changedFields.length === 0 && (
-                          <span className="missionPill missionResultsFieldChip missionResultsFieldChipMuted">none</span>
+                          <span className="missionPill missionResultsFieldChip missionResultsFieldChipMuted">No field changes</span>
                         )}
                         {node.changedFields.map((field) => (
                           <span className="missionPill missionResultsFieldChip" key={`${node.nodeId}-${field}`}>
-                            {field}
+                            {formatChangedFieldLabel(field)}
                           </span>
                         ))}
                       </div>
@@ -1770,7 +1893,7 @@ export function ResultsGrid() {
         </div>
       )}
 
-      {currentComparisonDialogOpen && currentSessionEntry && (
+      {currentComparisonDialogOpen && (
         <div className="screenModalLayer" role="presentation">
           <button
             type="button"
@@ -1802,25 +1925,37 @@ export function ResultsGrid() {
                 <CloseIcon />
               </button>
             </div>
-            <article className="resultsCurrentComparisonCard" data-testid="results-current-comparison-card">
-              <div className="cellChips">
-                <span className="missionPill">{currentSessionEntry.status}</span>
-                {currentSessionEntry.current && <span className="missionPill">Current</span>}
-                {currentSessionEntry.latest && <span className="missionPill">Latest</span>}
-              </div>
-              <strong>{currentSessionEntry.comparisonLabel}</strong>
-              <span>{currentSessionEntry.initiatorEmail}</span>
-              <dl className="resultsCurrentComparisonDetails">
-                <div>
-                  <dt>Uploaded</dt>
-                  <dd>{currentSessionEntry.comparisonDateLabel}</dd>
+            {currentSessionEntry ? (
+              <article className="resultsCurrentComparisonCard" data-testid="results-current-comparison-card">
+                <div className="cellChips">
+                  <span className="missionPill missionPillMeta">{currentSessionEntry.status}</span>
+                  {currentSessionEntry.current && <span className="missionPill missionPillMeta">Current</span>}
+                  {currentSessionEntry.latest && <span className="missionPill missionPillMeta">Latest</span>}
                 </div>
-                <div>
-                  <dt>Session title</dt>
-                  <dd>{effectiveSessionName(currentSessionEntry) || 'Untitled session'}</dd>
+                <strong>{currentSessionEntry.comparisonLabel}</strong>
+                <span>{currentSessionEntry.initiatorEmail}</span>
+                <dl className="resultsCurrentComparisonDetails">
+                  <div>
+                    <dt>Uploaded</dt>
+                    <dd>{currentSessionEntry.comparisonDateLabel}</dd>
+                  </div>
+                  <div>
+                    <dt>Session title</dt>
+                    <dd>{effectiveSessionName(currentSessionEntry) || 'Untitled session'}</dd>
+                  </div>
+                </dl>
+              </article>
+            ) : (
+              <article className="resultsCurrentComparisonCard" data-testid="results-current-comparison-card">
+                <div className="cellChips">
+                  <span className="missionPill missionPillMeta">
+                    {historySessionsLoading ? 'Loading details' : 'Details on demand'}
+                  </span>
                 </div>
-              </dl>
-            </article>
+                <strong>{workspaceSnapshot?.comparisonLabel || 'Current comparison details'}</strong>
+                <span>{historySessionsLoading ? 'Fetching saved session details...' : 'Open previous comparisons to load the saved chain summary.'}</span>
+              </article>
+            )}
             <div className="screenDialogActions">
               <button
                 className="btn"
@@ -2091,7 +2226,12 @@ export function ResultsGrid() {
                   </tr>
                 </thead>
                 <tbody>
-                  {historySessions.length === 0 && (
+                  {historySessionsLoading && (
+                    <tr>
+                      <td colSpan={5}>Loading previous comparisons...</td>
+                    </tr>
+                  )}
+                  {!historySessionsLoading && historySessionsLoaded && historySessions.length === 0 && (
                     <tr>
                       <td colSpan={5}>No previous comparisons in this session.</td>
                     </tr>
@@ -2119,9 +2259,9 @@ export function ResultsGrid() {
                       <td>{entry.initiatorEmail}</td>
                       <td>
                         <div className="cellChips">
-                          <span className="missionPill">{entry.status}</span>
-                          {entry.current && <span className="missionPill">Current</span>}
-                          {entry.latest && <span className="missionPill">Latest</span>}
+                          <span className="missionPill missionPillMeta">{entry.status}</span>
+                          {entry.current && <span className="missionPill missionPillMeta">Current</span>}
+                          {entry.latest && <span className="missionPill missionPillMeta">Latest</span>}
                         </div>
                       </td>
                       <td>
@@ -2248,7 +2388,12 @@ export function ResultsGrid() {
                       </tr>
                     </thead>
                     <tbody>
-                      {shareRecipients.length === 0 && (
+                      {!shareRecipientsLoaded && !shareError && (
+                        <tr>
+                          <td colSpan={4}>Loading recipients...</td>
+                        </tr>
+                      )}
+                      {shareRecipientsLoaded && shareRecipients.length === 0 && (
                         <tr>
                           <td colSpan={4}>No active recipients.</td>
                         </tr>

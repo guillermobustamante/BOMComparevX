@@ -11,6 +11,8 @@
     "build": "npm --prefix apps/backend run build && npm --prefix apps/frontend run build",
     "frontend:test:e2e": "npx playwright test",
     "frontend:test:e2e:install": "npx playwright install chromium",
+    "frontend:test:s25": "powershell -ExecutionPolicy Bypass -File tools/qa/run-s25-frontend-validation.ps1",
+    "frontend:test:s25:perf": "powershell -ExecutionPolicy Bypass -File tools/qa/run-s25-frontend-validation.ps1 -IncludePerfProfile",
     "frontend:ci": "npm --prefix apps/frontend run ci",
     "security:vulns": "node tools/security/check-vulnerabilities.mjs",
     "security:licenses": "node tools/security/check-licenses.mjs",

@@ -31,7 +31,7 @@ export function ActiveWorkspaceNotice(props: {
         {workspace.comparisonLabel && <p className="missionSubtle">{workspace.comparisonLabel}</p>}
       </div>
       <Link className="btn btnPrimary" href={nextUrl}>
-        Return to Results
+        Return to Change Review
       </Link>
     </section>
   );

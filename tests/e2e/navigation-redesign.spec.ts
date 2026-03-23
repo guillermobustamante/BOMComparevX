@@ -42,9 +42,9 @@ test('navigation redesign preserves tooltips, collapse behavior, and theme toggl
   await expect(shell).toHaveAttribute('data-theme', 'light');
 
   await expect(page.getByTestId('nav-toggle-btn')).toHaveAttribute('title', 'Collapse navigation');
-  await expect(page.getByTestId('nav-link-compare')).toHaveAttribute('title', 'Compare: Revision intake');
-  await expect(page.getByTestId('nav-link-mapping')).toHaveAttribute('title', 'Mapping: Governance and review');
-  await expect(page.getByTestId('nav-link-results')).toHaveAttribute('title', 'Results: Diff workspace');
+  await expect(page.getByTestId('nav-link-compare')).toHaveAttribute('title', 'Compare: Upload current and proposed BOMs');
+  await expect(page.getByTestId('nav-link-mapping')).toHaveAttribute('title', 'Field Review: Confirm BOM columns and impact fields');
+  await expect(page.getByTestId('nav-link-results')).toHaveAttribute('title', 'Review: BOM differences and impact');
   await expect(page.getByTestId('theme-toggle-switch')).toHaveAttribute('title', 'Toggle Theme');
   await expect(page.getByTestId('theme-toggle-btn')).toHaveAttribute('title', 'Toggle Theme');
   await expect(page.getByTestId('nav-profile-toggle')).toHaveAttribute('title', email);
@@ -80,29 +80,29 @@ test('navigation redesign keeps route wiring working across shell links', async 
   const page = await context.newPage();
 
   await page.goto('/upload');
-  await page.getByTestId('nav-link-chains').click();
+  await page.getByTestId('nav-link-history').click();
   await expect(page).toHaveURL(/\/history$/);
-  await expect(page.getByRole('heading', { name: 'Revision Chains' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Revision History' })).toBeVisible();
 
-  await page.getByTestId('nav-link-notices').click();
+  await page.getByTestId('nav-link-alerts').click();
   await expect(page).toHaveURL(/\/notifications$/);
-  await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Comparison Alerts' })).toBeVisible();
 
   await page.getByTestId('nav-link-admin').click();
   await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByRole('heading', { name: 'Admin', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Governance', exact: true })).toBeVisible();
 
   await page.getByTestId('nav-link-mapping').click();
   await expect(page).toHaveURL(/\/mappings$/);
-  await expect(page.getByRole('heading', { name: 'Mapping Check' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'BOM Field Review', exact: true })).toBeVisible();
 
   await page.getByTestId('nav-link-results').click();
   await expect(page).toHaveURL(/\/results/);
-  await expect(page.getByRole('heading', { name: 'Results' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Change Review' })).toBeVisible();
 
   await page.getByTestId('nav-link-compare').click();
   await expect(page).toHaveURL(/\/upload$/);
-  await expect(page.getByRole('heading', { name: 'Compare BOMs' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Compare BOM Revisions' })).toBeVisible();
 
   await context.close();
 });

@@ -53,7 +53,7 @@ test('results redesign preserves toolbar tooltips and action dialogs', async ({ 
   await expect(page.getByTestId('results-panel')).toBeVisible();
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
   await expect(page.getByTestId('results-complete-badge')).toContainText('Ready to review');
-  await expect(page.getByRole('heading', { name: 'Results' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Change Review' })).toBeVisible();
   await expect(page.getByText('Mission Control')).toHaveCount(0);
   await expect(shell).toHaveAttribute('data-theme', 'light');
   await expect(page.getByTestId('theme-toggle-btn')).toHaveAttribute('title', 'Toggle Theme');
@@ -61,15 +61,40 @@ test('results redesign preserves toolbar tooltips and action dialogs', async ({ 
   const uploadButtonBox = await page.getByTestId('results-upload-next-btn').boundingBox();
   const runButtonBox = await page.getByTestId('results-run-btn').boundingBox();
   const searchInputBox = await page.getByTestId('results-search-input').boundingBox();
+  const sortSelectBox = await page.getByTestId('results-sort-select').boundingBox();
+  const paginationSummaryBox = await page.getByTestId('results-pagination-summary').boundingBox();
   const pageSizeBox = await page.getByTestId('results-page-size-select').boundingBox();
   const paginationNextBox = await page.getByTestId('results-page-next').boundingBox();
   const toolbarBox = await page.getByTestId('results-toolbar').boundingBox();
-  if (!uploadButtonBox || !runButtonBox || !searchInputBox || !pageSizeBox || !paginationNextBox || !toolbarBox) {
+  const sessionTitleBar = page.getByTestId('results-session-title-bar');
+  const sessionTitleBarBox = (await sessionTitleBar.count()) ? await sessionTitleBar.boundingBox() : null;
+  const sessionStatusPill = page.locator(
+    '[data-testid="results-session-loading-pill"], [data-testid="results-session-count-pill"]'
+  );
+  const sessionStatusPillBox = (await sessionStatusPill.count()) ? await sessionStatusPill.first().boundingBox() : null;
+  if (
+    !uploadButtonBox ||
+    !runButtonBox ||
+    !searchInputBox ||
+    !sortSelectBox ||
+    !paginationSummaryBox ||
+    !pageSizeBox ||
+    !paginationNextBox ||
+    !toolbarBox
+  ) {
     throw new Error('Results toolbar controls did not render with measurable layout boxes');
   }
   expect(uploadButtonBox.y).toBeLessThan(searchInputBox.y);
   expect(Math.abs(searchInputBox.y - pageSizeBox.y)).toBeLessThan(6);
-  expect(toolbarBox.x + toolbarBox.width - (runButtonBox.x + runButtonBox.width)).toBeLessThan(48);
+  expect(sortSelectBox.x + sortSelectBox.width).toBeLessThanOrEqual(paginationSummaryBox.x - 12);
+  expect(paginationSummaryBox.x + paginationSummaryBox.width).toBeLessThanOrEqual(pageSizeBox.x - 12);
+  if (sessionTitleBarBox && sessionStatusPillBox) {
+    expect(runButtonBox.x + runButtonBox.width).toBeLessThanOrEqual(sessionStatusPillBox.x - 12);
+  } else if (sessionTitleBarBox) {
+    expect(sessionTitleBarBox.x + sessionTitleBarBox.width - (runButtonBox.x + runButtonBox.width)).toBeLessThan(48);
+  } else {
+    expect(toolbarBox.x + toolbarBox.width - (runButtonBox.x + runButtonBox.width)).toBeLessThan(48);
+  }
   expect(toolbarBox.x + toolbarBox.width - (paginationNextBox.x + paginationNextBox.width)).toBeLessThan(48);
 
   await page.locator('label[title="Toggle Theme"]').click();
@@ -118,7 +143,7 @@ test('results redesign keeps filtering, tree toggle, and impact dialog behavior'
   await expect(page.getByTestId('results-grid-table')).toContainText('PN200');
 
   await page.getByTestId('results-change-filter').selectOption('quantity_change');
-  await expect(page.getByTestId('results-grid-table')).toContainText('quantity_change');
+  await expect(page.getByTestId('results-grid-table')).toContainText('Quantity changed');
 
   await page.getByTestId('results-view-tree-btn').click();
   await expect(page.getByTestId('results-tree-table')).toBeVisible();

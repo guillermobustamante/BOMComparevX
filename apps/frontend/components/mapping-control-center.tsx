@@ -94,18 +94,18 @@ export function MappingControlCenter() {
     <section className="panel missionWorkspacePage missionWorkspacePageMapping" data-testid="mapping-control-center">
       <ActiveWorkspaceNotice
         eyebrow="Active Session"
-        message="Mapping review stays separate from results, but you can jump back to the active session workspace at any time."
+        message="Field review stays separate from change review, but you can return to the active comparison workspace at any time."
         dataTestId="mappings-active-workspace"
       />
       <div className="screenToolbar missionWorkspaceHero">
         <div className="screenToolbarMeta missionWorkspaceHeroMeta">
-          <span className="missionShellEyebrow">Mapping Mission Control</span>
-          <p className="p">Review confirmed mapping snapshots, open a revision directly, and keep governance decisions in the same workspace.</p>
+          <span className="missionShellEyebrow">Field review queue</span>
+          <p className="p">Confirm which BOM columns identify parts, revisions, quantities, suppliers, and impact-driving fields before you compare revisions.</p>
         </div>
         <div className="screenToolbarActions missionWorkspaceHeroActions">
-          <span className="missionPill">{snapshots.length} snapshots</span>
-          {selected ? <span className="missionPill">Focused on {selected.revisionId}</span> : null}
-          <span className="missionPill">{averageConfidence} avg confidence</span>
+          <span className="missionPill missionPillMeta">{snapshots.length} saved reviews</span>
+          {selected ? <span className="missionPill missionPillMeta">Revision {selected.revisionId}</span> : null}
+          <span className="missionPill missionPillMeta">{averageConfidence} avg confidence</span>
         </div>
       </div>
 
@@ -113,9 +113,9 @@ export function MappingControlCenter() {
 
       <div className="mappingCenterGrid">
         <section className="panel missionWorkspaceCard mappingCenterActionCard">
-          <span className="missionShellEyebrow">Revision Access</span>
-          <h2 className="h2">Open a mapping preview directly</h2>
-          <p className="p">Use a revision ID when you already know which BOM needs field-understanding review.</p>
+          <span className="missionShellEyebrow">Open by revision</span>
+          <h2 className="h2">Open a field review directly</h2>
+          <p className="p">Use a revision ID when you already know which BOM needs column confirmation.</p>
           <div className="screenInlineForm mappingCenterInlineForm">
             <input
               value={revisionInput}
@@ -130,10 +130,10 @@ export function MappingControlCenter() {
                 if (next) router.push(`/mappings/${encodeURIComponent(next)}`);
               }}
             >
-              Open Revision Preview
+              Open field review
             </button>
             <button className="btn" type="button" onClick={() => void loadSnapshots()}>
-              Refresh Snapshots
+              Refresh queue
             </button>
           </div>
         </section>
@@ -141,8 +141,8 @@ export function MappingControlCenter() {
         <section className="panel missionWorkspaceCard mappingCenterPrimary">
           <div className="missionWorkspaceCardHeader">
             <div className="missionWorkspaceCardTitleGroup">
-              <span className="missionShellEyebrow">Snapshot Queue</span>
-              <h2 className="h2">Confirmed mapping snapshots</h2>
+              <span className="missionShellEyebrow">Saved field reviews</span>
+              <h2 className="h2">Confirmed BOM field reviews</h2>
             </div>
           </div>
           <div className="mappingTableWrap">
@@ -168,10 +168,10 @@ export function MappingControlCenter() {
                     <td>
                       <div className="cellChips">
                         <button className="btn" type="button" onClick={() => void openSnapshot(snapshot.revisionId)}>
-                          Review Snapshot
+                          View summary
                         </button>
                         <button className="btn" type="button" onClick={() => router.push(`/mappings/${encodeURIComponent(snapshot.revisionId)}`)}>
-                          Open Mapping
+                          Open field review
                         </button>
                       </div>
                     </td>
@@ -192,7 +192,7 @@ export function MappingControlCenter() {
         <section className="panel missionWorkspaceCard mappingCenterDetailCard">
           <div className="missionWorkspaceCardHeader">
             <div className="missionWorkspaceCardTitleGroup">
-              <span className="missionShellEyebrow">Snapshot Detail</span>
+              <span className="missionShellEyebrow">Field review detail</span>
               <h2 className="h2">Revision {selected.revisionId}</h2>
               <p className="p">Confirmed by {selected.createdBy} on {formatMappingTimestamp(selected.confirmedAtUtc)}.</p>
             </div>

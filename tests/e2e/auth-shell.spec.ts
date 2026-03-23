@@ -183,8 +183,10 @@ test('authenticated user can load upload shell', async ({ browser, request, base
 
   await page.goto('/upload');
   await expect(page.getByTestId('upload-validation-form')).toBeVisible();
+  await expect(page.getByText('playwright.user')).toBeVisible();
+  await page.getByTestId('nav-profile-toggle').click();
   await expect(page.getByText('playwright.user@example.com')).toBeVisible();
-  await expect(page.getByText('tenant: tenant-playwright')).toBeVisible();
+  await expect(page.getByText('Tenant: tenant-playwright')).toBeVisible();
 
   await context.close();
 });
@@ -668,6 +670,8 @@ test('history page supports rename, tag, and soft-delete actions', async ({
     mimeType: 'text/csv',
     buffer: Buffer.from('part_number,description,quantity\nHX-100,History Item,2\n')
   });
+  await expect(page.getByTestId('upload-sheet-select-a')).toHaveValue('CSV');
+  await expect(page.getByTestId('upload-sheet-select-b')).toHaveValue('CSV');
   await Promise.all([
     page.waitForResponse(
       (response) =>
@@ -734,7 +738,7 @@ test('upload can open results using uploaded revision pair (real file rows)', as
   await startComparisonFromUpload(page);
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 15000 });
   await expect(page.getByTestId('results-grid-table')).toContainText('3023');
-  await expect(page.getByTestId('results-grid-table')).toContainText('modified');
+  await expect(page.getByTestId('results-grid-table')).toContainText('Modified');
   await expect(page.getByTestId('results-grid-table')).toContainText('Color');
   await expect(page.getByTestId('results-grid-table')).toContainText('Qty');
   await expect(page.getByTestId('results-grid-table')).toContainText('Cost');
@@ -912,8 +916,8 @@ test('stage 7 adapter scenario: SAP same-vs-same yields no-change-dominant witho
   await page.setInputFiles('[data-testid="file-input-b"]', bomExamplePath('Example 3 ver 1 SAP.xlsx'));
   await startComparisonFromUpload(page);
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
-  await expect(page.getByTestId('results-grid-table')).toContainText('no_change');
-  await expect(page.getByTestId('results-grid-table')).not.toContainText('replaced');
+  await expect(page.getByTestId('results-grid-table')).toContainText('No change');
+  await expect(page.getByTestId('results-grid-table')).not.toContainText('Replaced');
 
   await context.close();
 });
@@ -946,7 +950,7 @@ test('stage 7 adapter scenario: SAP version delta surfaces modified changed fiel
   await startComparisonFromUpload(page);
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 20000 });
   await page.getByTestId('results-change-filter').selectOption('modified');
-  await expect(page.getByTestId('results-grid-table')).toContainText('modified');
+  await expect(page.getByTestId('results-grid-table')).toContainText('Modified');
   await expect(page.getByTestId('results-grid-table')).toContainText(/Qty|Plant|Part Number/i);
 
   await context.close();
@@ -1064,8 +1068,8 @@ test('results page streams partial-to-final diff rows with rationale metadata', 
   await expect(page.getByTestId('results-panel')).toBeVisible();
   await expect(page.getByTestId('results-grid-table')).toBeVisible();
   await expect(page.getByTestId('results-complete-badge')).toBeVisible({ timeout: 15000 });
-  await expect(page.getByTestId('results-grid-table')).toContainText('quantity_change');
-  await expect(page.getByText('matched_quantity_change')).toBeVisible();
+  await expect(page.getByTestId('results-grid-table')).toContainText('Quantity changed');
+  await expect(page.getByText('Quantity changed between revisions')).toBeVisible();
 
   await context.close();
 });
@@ -1100,7 +1104,7 @@ test('results page supports search/sort/filter/change-type controls', async ({
   await expect(page.getByTestId('results-grid-table')).toContainText('3023');
 
   await page.getByTestId('results-change-filter').selectOption('modified');
-  await expect(page.getByTestId('results-grid-table')).toContainText('modified');
+  await expect(page.getByTestId('results-grid-table')).toContainText('Modified');
 
   await page.getByTestId('results-search-input').fill('PLATE 1X2');
   await expect(page.getByTestId('results-grid-table')).toContainText('PLATE 1X2');
@@ -1110,14 +1114,14 @@ test('results page supports search/sort/filter/change-type controls', async ({
 
   await page.getByTestId('results-part-filter-input').fill('3023');
   await page.getByTestId('results-search-input').fill('');
-  await expect(page.getByTestId('results-grid-table')).toContainText('modified');
+  await expect(page.getByTestId('results-grid-table')).toContainText('Modified');
 
   await page.getByTestId('results-search-input').fill('NO-MATCH');
   await expect(page.getByTestId('results-grid-table')).toContainText('No rows for the current page/filter.');
 
   await page.getByTestId('results-search-input').fill('');
   await page.getByTestId('results-sort-select').selectOption('change');
-  await expect(page.getByTestId('results-grid-table')).toContainText('modified');
+  await expect(page.getByTestId('results-grid-table')).toContainText('Modified');
 
   await context.close();
 });
@@ -1181,7 +1185,7 @@ test('results page supports tree mode toggle and expand/collapse behavior', asyn
   expect(afterCount).toBeGreaterThanOrEqual(beforeCount);
 
   await page.getByTestId('results-change-filter').selectOption('quantity_change');
-  await expect(page.getByTestId('results-tree-table')).toContainText('quantity_change');
+  await expect(page.getByTestId('results-tree-table')).toContainText('Quantity changed');
 
   await context.close();
 });
@@ -1359,6 +1363,19 @@ test('results session header saves the shared name and restores the active works
     'title',
     'The newest comparison already saved in this revision chain.'
   );
+
+  const titleBarBox = await page.getByTestId('results-session-title-bar').boundingBox();
+  const nameInputBox = await page.getByTestId('results-session-name-input').boundingBox();
+  const comparisonLabelBox = await page.getByTestId('results-session-comparison-label').boundingBox();
+  const currentButtonBox = await page.getByTestId('results-current-comparison-btn').boundingBox();
+  if (!titleBarBox || !nameInputBox || !comparisonLabelBox || !currentButtonBox) {
+    throw new Error('Results session header did not render with measurable layout boxes');
+  }
+  expect(nameInputBox.width).toBeGreaterThan(240);
+  expect(nameInputBox.width).toBeLessThan(460);
+  expect(currentButtonBox.y).toBeGreaterThan(nameInputBox.y + 10);
+  expect(Math.abs(currentButtonBox.y - comparisonLabelBox.y)).toBeLessThan(28);
+  expect(comparisonLabelBox.width).toBeLessThan(titleBarBox.width);
 
   await page.getByTestId('results-current-comparison-btn').click();
   await expect(page.getByTestId('results-current-comparison-dialog')).toBeVisible({ timeout: 20000 });

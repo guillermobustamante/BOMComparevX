@@ -228,20 +228,20 @@ export function HistoryPanel() {
     <section className="panel missionWorkspacePage missionWorkspacePageHistory historyChainsPanel" data-testid="history-panel">
       <ActiveWorkspaceNotice
         eyebrow="Active Session"
-        message="Your last results workspace is available if you want to jump back without rebuilding the URL."
+        message="Your last change review is available if you want to return without rebuilding the URL."
         dataTestId="history-active-workspace"
       />
 
       <div className="screenToolbar historyChainsToolbar">
         <div className="screenToolbarMeta">
-          <span className="missionShellEyebrow">Revision Chains</span>
+          <span className="missionShellEyebrow">Saved comparison history</span>
           <p className="p">
-            Grouped BOM session chains show how each comparison evolved when a new revision was added.
+            Reopen saved BOM comparisons and see how each revision chain evolved over time.
           </p>
         </div>
         <div className="screenToolbarActions">
-          <span className="missionPill historyChainsToolbarPill">Grouped by session</span>
-          <span className="missionPill historyChainsToolbarPill">Newest first</span>
+          <span className="missionPill missionPillMeta historyChainsToolbarPill">Grouped by session</span>
+          <span className="missionPill missionPillMeta historyChainsToolbarPill">Newest first</span>
           <button
             className="screenIconAction"
             type="button"
@@ -277,8 +277,8 @@ export function HistoryPanel() {
               <div className="historySessionMain">
                 <div className="historySessionNameRow">
                   <div className="historySessionName">{session.sessionName || 'Untitled session'}</div>
-                  {session.active ? <span className="missionPill historyPillActive">Open now</span> : null}
-                  {session.latestEntry.latest ? <span className="missionPill historyPillLatest">Latest revision</span> : null}
+                  {session.active ? <span className="missionPill historyPillActive">Active review</span> : null}
+                  {session.latestEntry.latest ? <span className="missionPill missionPillMeta historyPillLatest">Latest saved</span> : null}
                 </div>
                 <div className="historySessionMeta">
                   <span>Owner: {session.ownerEmail}</span>
@@ -289,6 +289,7 @@ export function HistoryPanel() {
                 <strong>{session.comparisonCount}</strong>
                 <span>Comparisons</span>
               </div>
+              <span className="historySessionToggleLabel" aria-hidden="true">View chain</span>
               <span className="historySessionToggle" aria-hidden="true" />
             </summary>
 
@@ -343,15 +344,15 @@ export function HistoryPanel() {
                           </div>
                         </div>
                         <div className="historyComparisonState">
-                          <span className="missionPill">{entry.status}</span>
+                          <span className="missionPill missionPillMeta">{entry.status}</span>
                           {entry.current ? <span className="missionPill historyPillActive">Current</span> : null}
-                          {entry.latest ? <span className="missionPill historyPillLatest">Latest</span> : null}
+                          {entry.latest ? <span className="missionPill missionPillMeta historyPillLatest">Latest saved</span> : null}
                         </div>
                       </div>
 
                       <div className="historyComparisonActions">
                         <button
-                          className="screenIconAction screenIconActionCompact"
+                          className="btn"
                           type="button"
                           onClick={() => setSelectedEntry(entry)}
                           aria-label={`Revision details for ${entry.comparisonLabel || entry.historyId}`}
@@ -359,20 +360,22 @@ export function HistoryPanel() {
                           data-testid={`history-details-open-${entry.historyId}`}
                         >
                           <FileDetailsIcon />
+                          View details
                         </button>
                         {entryUrl ? (
                           <Link
-                            className="screenIconAction screenIconActionCompact"
+                            className="btn btnPrimary"
                             href={entryUrl}
                             aria-label={`Open ${entry.comparisonLabel || entry.historyId}`}
                             title="Open comparison"
                             data-testid={`history-open-results-${entry.historyId}`}
                           >
                             <OpenIcon />
+                            Open review
                           </Link>
                         ) : (
                           <button
-                            className="screenIconAction screenIconActionCompact"
+                            className="btn"
                             type="button"
                             disabled
                             aria-label={`Open ${entry.historyId}`}
@@ -380,6 +383,7 @@ export function HistoryPanel() {
                             data-testid={`history-open-results-${entry.historyId}`}
                           >
                             <OpenIcon />
+                            Open review
                           </button>
                         )}
                         <button

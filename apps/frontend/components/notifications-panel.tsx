@@ -86,17 +86,17 @@ export function NotificationsPanel() {
     <section className="panel missionWorkspacePage missionWorkspacePageStream notificationsPage" data-testid="notifications-panel">
       <ActiveWorkspaceNotice
         eyebrow="Active Session"
-        message="Notification links can take you elsewhere, but your current results workspace is still available."
+        message="Alert links can take you elsewhere, but your current change review is still available."
         dataTestId="notifications-active-workspace"
       />
       <div className="screenToolbar missionWorkspaceHero">
         <div className="screenToolbarMeta missionWorkspaceHeroMeta">
-          <span className="missionShellEyebrow">Mission Feed</span>
-          <p className="p">Track comparison completions and failures, then jump directly back into the linked workspace.</p>
+          <span className="missionShellEyebrow">Comparison alerts</span>
+          <p className="p">Track completed, failed, and shared comparison activity, then return directly to the linked review workspace.</p>
         </div>
         <div className="screenToolbarActions missionWorkspaceHeroActions">
-          <span className="missionPill">{items.length} events</span>
-          <span className="missionPill">{unreadCount} unread</span>
+          <span className="missionPill missionPillMeta">{items.length} alerts</span>
+          <span className="missionPill missionPillMeta">{unreadCount} unread</span>
           <span className="missionPill notificationPillComplete">{completedCount} completed</span>
           <span className="missionPill notificationPillFailed">{failedCount} failed</span>
           <button
@@ -154,16 +154,16 @@ export function NotificationsPanel() {
                     className="btn"
                     onClick={() => void markRead(item.notificationId)}
                     aria-label={`Open notification ${item.notificationId}`}
-                    title="Open"
+                    title="Open review"
                     data-testid={`notification-link-${item.notificationId}`}
                   >
                     <OpenIcon />
-                    Open
+                    Open review
                   </Link>
                 ) : (
                   <button className="btn" type="button" disabled>
                     <OpenIcon />
-                    Unavailable
+                    No linked review
                   </button>
                 )}
               </div>

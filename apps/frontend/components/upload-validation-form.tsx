@@ -119,7 +119,7 @@ function loadingSheetSelectorState(): SheetSelectorState {
 }
 
 function fileLabel(file: 'fileA' | 'fileB'): string {
-  return file === 'fileA' ? 'Revision A' : 'Revision B';
+  return file === 'fileA' ? 'Current BOM' : 'Proposed BOM';
 }
 
 export function UploadValidationForm() {
@@ -254,7 +254,7 @@ export function UploadValidationForm() {
         message: 'Drop one or two files only.'
       };
       setError(nextError);
-      openIssueDialog('Upload intake', 'Dropzone issue', nextError);
+      openIssueDialog('Upload BOM revisions', 'Dropzone issue', nextError);
       return;
     }
 
@@ -294,7 +294,7 @@ export function UploadValidationForm() {
         message: 'Select exactly two files before validating.'
       };
       setError(nextError);
-      openIssueDialog('Compare', 'Comparison blocked', nextError);
+      openIssueDialog('Compare BOM revisions', 'Comparison blocked', nextError);
       return { ok: false, warnings: [] };
     }
 
@@ -318,7 +318,7 @@ export function UploadValidationForm() {
           setBlockedUntilUtc(parsedError.cooldownUntilUtc);
         }
         setError(parsedError);
-        openIssueDialog('Compare', 'Validation issue', parsedError);
+        openIssueDialog('Compare BOM revisions', 'Validation issue', parsedError);
         return { ok: false, warnings: [] };
       }
 
@@ -335,7 +335,7 @@ export function UploadValidationForm() {
         message: 'Could not reach upload validation service.'
       };
       setError(nextError);
-      openIssueDialog('Compare', 'Validation issue', nextError);
+      openIssueDialog('Compare BOM revisions', 'Validation issue', nextError);
       return { ok: false, warnings: [] };
     } finally {
       setIsSubmitting(false);
@@ -352,7 +352,7 @@ export function UploadValidationForm() {
         message: 'Select exactly two files before queueing.'
       };
       setError(nextError);
-      openIssueDialog('Comparison', 'Comparison blocked', nextError);
+      openIssueDialog('Compare BOM revisions', 'Comparison blocked', nextError);
       return false;
     }
 
@@ -427,7 +427,7 @@ export function UploadValidationForm() {
         if (cancelled) return;
         setSheetSelectorA(emptySheetSelectorState('Unavailable'));
         setError(nextError);
-        openIssueDialog('Revision A', 'Sheet inspection issue', nextError);
+        openIssueDialog('Current BOM', 'Sheet inspection issue', nextError);
       });
     return () => {
       cancelled = true;
@@ -449,7 +449,7 @@ export function UploadValidationForm() {
         if (cancelled) return;
         setSheetSelectorB(emptySheetSelectorState('Unavailable'));
         setError(nextError);
-        openIssueDialog('Revision B', 'Sheet inspection issue', nextError);
+        openIssueDialog('Proposed BOM', 'Sheet inspection issue', nextError);
       });
     return () => {
       cancelled = true;
@@ -501,7 +501,7 @@ export function UploadValidationForm() {
       };
     }
     return {
-      label: 'Waiting for source',
+      label: 'File not loaded',
       className: 'missionComparePill missionComparePillWaiting'
     };
   }
@@ -593,8 +593,8 @@ export function UploadValidationForm() {
             <UploadTrayIcon />
           </div>
           <div className="missionCompareDropzoneContent">
-            <strong>Drag and drop BOM files</strong>
-            <span>Drop one or two files here. Two dropped files map to `Revision A` then `Revision B`.</span>
+            <strong>Upload BOM revisions</strong>
+            <span>Upload the current BOM and the proposed revision. If two files are dropped, the first becomes the current BOM and the second becomes the proposed BOM.</span>
           </div>
         </section>
       </section>
@@ -624,8 +624,8 @@ export function UploadValidationForm() {
         >
           <div className="missionCompareCardHeader">
             <div>
-              <p className="missionCompareEyebrow">Revision A</p>
-              <h2 className="h2">Primary source revision</h2>
+              <p className="missionCompareEyebrow">Current BOM</p>
+              <h2 className="h2">Current or released BOM</h2>
             </div>
             <label className="btn missionCompareSelectButton" htmlFor="fileA">
               Select file
@@ -684,7 +684,7 @@ export function UploadValidationForm() {
             <div>
               <span className="missionCompareMetaLabel">Role</span>
               <strong className="missionCompareMetaValue">
-                <span className="missionComparePill missionComparePillBaseline">Baseline BOM</span>
+                <span className="missionComparePill missionComparePillBaseline">Current BOM</span>
               </strong>
             </div>
           </div>
@@ -714,8 +714,8 @@ export function UploadValidationForm() {
         >
           <div className="missionCompareCardHeader">
             <div>
-              <p className="missionCompareEyebrow">Revision B</p>
-              <h2 className="h2">Candidate comparison revision</h2>
+              <p className="missionCompareEyebrow">Proposed BOM</p>
+              <h2 className="h2">New or proposed BOM revision</h2>
             </div>
             <label className="btn missionCompareSelectButton" htmlFor="fileB">
               Select file
@@ -774,7 +774,7 @@ export function UploadValidationForm() {
             <div>
               <span className="missionCompareMetaLabel">Role</span>
               <strong className="missionCompareMetaValue">
-                <span className="missionComparePill missionComparePillCandidate">Candidate BOM</span>
+                <span className="missionComparePill missionComparePillCandidate">Proposed BOM</span>
               </strong>
             </div>
           </div>

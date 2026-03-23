@@ -830,6 +830,35 @@ Resolution:
 - Implemented on `2026-03-20`.
 - Added an admin-only `Unclassified` deep link in `/results`, routed it to `/admin?section=taxonomyImpacts...`, auto-expanded the taxonomy section on landing, scrolled it into view, and surfaced a contextual banner with the row field/rationale so admins land directly in the relevant governance workspace.
 
+### ISSUE-036 - PM assessment open items still leave the authenticated frontend short of release-ready polish
+- Status: `Open`
+- Priority: `P1`
+- Area: `Frontend / Shell / Upload / Results / History / Notifications / Admin / Mappings`
+- First observed: `2026-03-22`
+
+Problem:
+- The PM assessment recorded that the most visible Results overlap and raw-language defects were corrected, but several open issues remain before the authenticated frontend can be called visually complete.
+- Navigation and page copy still mix internal phrasing with user-facing task language.
+- Secondary pages remain too loose and vertically tall compared with the tighter Compare and Results anchors.
+- Action hierarchy is still weaker than it should be on History, Notifications, and Admin.
+- The expanded sidebar footer still exposes crowded technical identity text.
+- Results still performs avoidable polling and eager side-data fetching that add churn around the primary review surface.
+
+Desired outcome:
+- Execute a closeout sprint that:
+  - applies manufacturing-focused language across shell and page headers
+  - tightens density and action hierarchy on secondary pages
+  - trims unnecessary Compare hero height
+  - simplifies the expanded-shell footer identity treatment
+  - reduces Results refetch churn by decoupling polling from local view state and deferring share/history data loads until needed
+  - updates the PM assessment so completion status is explicit
+
+Follow-up:
+- tracked in `Sprint S25`
+- S25 implementation update on `2026-03-22`:
+  - shell/page naming, secondary-page density, Compare hero spacing, badge semantics, Results polling decoupling, and lazy side-data loading were completed
+  - the issue is now narrowed to the residual Results CLS/layout-instability follow-up recorded as `UI-03` in `docs/Frontend-PM-Assessment-2026-03-22.md`
+
 ## 3. Linked follow-up records
 - Sprint 12 QA: [UI_QA_S12_RESULTS_REVISION_CHAIN.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\UI_QA_S12_RESULTS_REVISION_CHAIN.md:1)
 - Sprint 12.1 backlog: [SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md](C:\Users\yetro\Evolve Global Solutions\BOM Compare - Documents\Code-BOMComparevX\BOMComparevX\docs\SPRINT_S12_1_RESULTS_CHAIN_HARDENING.md:1)

@@ -11,21 +11,69 @@ type PageTitleConfig = {
 };
 
 const navItems = [
-  { href: '/upload', label: 'Compare BOMs', shortLabel: 'Compare', subtitle: 'Revision intake', icon: <CompareIcon /> },
-  { href: '/mappings', label: 'Mapping Check', shortLabel: 'Mapping', subtitle: 'Governance and review', icon: <MappingIcon /> },
-  { href: '/results', label: 'Results', shortLabel: 'Results', subtitle: 'Diff workspace', icon: <ResultsIcon /> },
-  { href: '/history', label: 'Revision Chains', shortLabel: 'Chains', subtitle: 'BOM session history', icon: <HistoryIcon /> },
-  { href: '/notifications', label: 'Notifications', shortLabel: 'Notices', subtitle: 'Event log', icon: <NotificationsIcon /> },
-  { href: '/admin', label: 'Admin', shortLabel: 'Admin', subtitle: 'Policy controls', icon: <AdminIcon /> }
+  {
+    href: '/upload',
+    label: 'Compare BOM Revisions',
+    shortLabel: 'Compare',
+    subtitle: 'Upload current and proposed BOMs',
+    testId: 'compare',
+    icon: <CompareIcon />
+  },
+  {
+    href: '/mappings',
+    label: 'BOM Field Review',
+    shortLabel: 'Field Review',
+    subtitle: 'Confirm BOM columns and impact fields',
+    testId: 'mapping',
+    icon: <MappingIcon />
+  },
+  {
+    href: '/results',
+    label: 'Change Review',
+    shortLabel: 'Review',
+    subtitle: 'BOM differences and impact',
+    testId: 'results',
+    icon: <ResultsIcon />
+  },
+  {
+    href: '/history',
+    label: 'Revision History',
+    shortLabel: 'History',
+    subtitle: 'Saved comparison history',
+    testId: 'history',
+    icon: <HistoryIcon />
+  },
+  {
+    href: '/notifications',
+    label: 'Comparison Alerts',
+    shortLabel: 'Alerts',
+    subtitle: 'Completed, failed, and shared activity',
+    testId: 'alerts',
+    icon: <NotificationsIcon />
+  },
+  {
+    href: '/admin',
+    label: 'Governance',
+    shortLabel: 'Governance',
+    subtitle: 'Access, audit, retention, and rules',
+    testId: 'admin',
+    icon: <AdminIcon />
+  }
 ];
 
 const titleMap: Record<string, PageTitleConfig> = {
-  '/upload': { title: 'Compare BOMs' },
-  '/results': { title: 'Results' },
-  '/history': { title: 'Revision Chains' },
-  '/notifications': { title: 'Notifications' },
-  '/admin': { title: 'Admin' }
+  '/upload': { title: 'Compare BOM Revisions' },
+  '/results': { title: 'Change Review' },
+  '/history': { title: 'Revision History' },
+  '/notifications': { title: 'Comparison Alerts' },
+  '/admin': { title: 'Governance' }
 };
+
+function profileIdentity(email: string): string {
+  const localPart = email.split('@')[0]?.trim();
+  if (!localPart) return email;
+  return localPart.length > 22 ? `${localPart.slice(0, 22)}...` : localPart;
+}
 
 export function AppShell(props: {
   userEmail: string;
@@ -111,8 +159,9 @@ export function AppShell(props: {
     pathname === '/admin' ||
     pathname.startsWith('/mappings');
   const currentPage = pathname.startsWith('/mappings')
-    ? { title: 'Mapping Check' }
+    ? { title: 'BOM Field Review' }
     : titleMap[pathname] || { title: 'BOM Compare VX' };
+  const identityLabel = profileIdentity(props.userEmail);
 
   return (
     <div
@@ -174,7 +223,7 @@ export function AppShell(props: {
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={item.label}
                 title={`${item.shortLabel}: ${item.subtitle}`}
-                data-testid={`nav-link-${item.shortLabel.toLowerCase()}`}
+                data-testid={`nav-link-${item.testId}`}
               >
                 <span className="missionShellNavIcon">{item.icon}</span>
                 <span className="missionShellNavText">
@@ -202,12 +251,16 @@ export function AppShell(props: {
                 <ProfileIcon />
               </button>
               <div className="missionShellProfileText">
-                <span className="missionShellProfileEmail">{props.userEmail}</span>
-                <span className="missionShellProfileTenant">tenant: {props.tenantId}</span>
+                <span className="missionShellProfileEmail">{identityLabel}</span>
+                <span className="missionShellProfileTenant">Active workspace account</span>
               </div>
             </div>
             {accountMenuOpen ? (
               <div className="missionShellProfilePopover" role="menu" aria-label="Account menu" data-testid="nav-profile-menu">
+                <div className="missionShellProfilePopoverMeta" aria-hidden="true">
+                  <strong>{props.userEmail}</strong>
+                  <span>Tenant: {props.tenantId}</span>
+                </div>
                 <Link
                   href="/login"
                   className="missionShellProfileMenuItem"
